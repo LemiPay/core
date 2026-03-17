@@ -1,0 +1,2 @@
+# core
+Main mono repo
