@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-diesel = { version = "2.2.0", features = ["postgres"] }
+diesel = { version = "2.2.0", features = ["postgres", "uuid"] }
+uuid = { version = "1.22.0", features = ["serde", "v4"] }
 # build libpq and openssl as part of the build process
 # uncomment these lines if you run into setup issues
 # pq-sys = { version = "0.6", features = ["bundled"] }
-# openssl-sys = { version = "0.9.100", features = ["vendored"] }
+# openssl-sys = { version = "0.9.100", features = ["vencdored"] }
 dotenvy = "0.15"
 
