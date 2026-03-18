@@ -1,15 +1,21 @@
-use server::{establish_connection, models::User};
 use diesel::prelude::*;
+use server::data::database::{establish_connection};
+use server::models::User;
 
-fn main() {
+fn get_users(conn: &mut PgConnection, limit: i64) -> Vec<User> {
     use server::schema::user::dsl::user;
 
-    let connection = &mut establish_connection();
-    let results = user
-        .limit(5)
+    user
+        .limit(limit)
         .select(User::as_select())
-        .load(connection)
-        .expect("Error loading posts");
+        .load(conn)
+        .expect("Error loading posts")
+}
+
+fn main() {
+    let connection = &mut establish_connection();
+
+    let results = get_users(connection, 5);
 
     println!("Displaying {} posts", results.len());
 
