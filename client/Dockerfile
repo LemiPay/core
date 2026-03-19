@@ -18,14 +18,14 @@ RUN corepack enable
 
 WORKDIR /app
 
-# Solo lo necesario
-COPY --from=builder /app/build ./build
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/pnpm-lock.yaml ./
+ENV NODE_ENV=production
+ENV PORT=5173
 
-# Instalar solo deps de producción
-RUN pnpm install --prod --frozen-lockfile
+# Copiamos build + deps ya instaladas
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
 
 EXPOSE 5173
 
-CMD ["pnpm", "preview", "--host"]
+CMD ["node", "build"]
