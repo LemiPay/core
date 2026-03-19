@@ -21,7 +21,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
     ports:
-      - "${PORT_BACKEND}:3000"
+      - "${PORT_SERVER}:3000"
 
   client:
     build: ./client
@@ -29,7 +29,7 @@ services:
     depends_on:
       - server
     ports:
-      - "${PORT_FRONTEND}:5173"
+      - "${PORT_CLIENT}:5173"
 
 volumes:
   postgres_data:

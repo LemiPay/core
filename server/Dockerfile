@@ -1,9 +1,11 @@
-FROM rust:1.75
+FROM rust:latest
 
-WORKDIR /app
+WORKDIR /server
 
 COPY . .
 
 RUN cargo build --release
 
-CMD ["./target/release/tu_backend"] ??
+EXPOSE 3000
+
+CMD ["./target/release/server"]
