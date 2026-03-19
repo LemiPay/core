@@ -1,15 +1,19 @@
-use diesel::prelude::*;
+use crate::data::config::DbConfig;
+use crate::data::error::DbError;
+use crate::data::pool::{DbConn, DbPool, create_pool};
 
-use dotenvy::dotenv;
-use std::env;
+#[derive(Clone)]
+pub struct Db {
+    pool: DbPool,
+}
 
-pub fn establish_connection() -> PgConnection {
-    dotenv().ok();
+impl Db {
+    pub fn new(config: DbConfig) -> Self {
+        let pool = create_pool(&config.database_url);
+        Self { pool }
+    }
 
-    let database_url = 
-        env::var("DATABASE_URL")
-            .expect("DATABASE_URL must be set");
-
-    PgConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+    pub fn get_conn(&self) -> Result<DbConn, DbError> {
+        Ok(self.pool.get()?)
+    }
 }
