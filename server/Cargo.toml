@@ -1,0 +1,16 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+diesel = { version = "2.2.0", features = ["postgres", "uuid", "r2d2"] }
+uuid = { version = "1.22.0", features = ["serde", "v4"] }
+dotenvy = "0.15"
+axum = { version = "0.8.8", features = ["macros"] }
+http = "1.4.0"
+serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.50", features = ["full"] }
+r2d2 = "0.8.10"
+thiserror = "2.0.18"
+
