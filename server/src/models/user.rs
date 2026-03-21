@@ -10,7 +10,6 @@ use crate::schema::user;
 pub struct User {
     pub id: Uuid,
     pub password: String,
-    pub auth_token: Option<String>,
     pub name: Option<String>,
     pub email: Option<String>,
 }
