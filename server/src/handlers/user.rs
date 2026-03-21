@@ -17,8 +17,8 @@ pub struct AppState {
 
 #[derive(Deserialize)]
 pub struct CreateUserRequest {
-    pub name: String,
-    pub email: String,
+    pub name: Option<String>,
+    pub email: Option<String>,
 }
 
 // CREATE
@@ -28,7 +28,7 @@ pub async fn create_user(
 ) -> Result<Json<User>, AppError> {
     let user = state
         .user_service
-        .create_user(payload.name, payload.email)?;
+        .create_user(payload)?;
     Ok(Json(user))
 }
 
