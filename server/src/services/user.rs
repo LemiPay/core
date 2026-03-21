@@ -8,6 +8,7 @@ use crate::repositories::traits::user_repo::UserRepository;
 use crate::errors::app_error::AppError;
 use crate::handlers::user::CreateUserRequest;
 
+#[derive(Clone)]
 pub struct UserService {
     repo: Arc<dyn UserRepository>,
 }

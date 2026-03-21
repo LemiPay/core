@@ -4,7 +4,7 @@ use crate::data::pool::{DbConn, DbPool, create_pool};
 
 #[derive(Clone)]
 pub struct Db {
-    pool: DbPool,
+    pub(crate) pool: DbPool,
 }
 
 impl Db {
