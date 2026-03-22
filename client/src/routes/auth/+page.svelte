@@ -1,24 +1,25 @@
 <script>
+    import { register } from "$lib/api/auth";
+
     let name="";
-    let email='';
-    let password='';
+    let email="";
+    let password="";
 
-    async function register(){
-        const respuesta = await fetch('http://localhost:3000/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password })
-        });
-
-        if (respuesta.ok) {
-            alert("¡Usuario creado!");
+    async function create_user(){
+        try {
+            await register({ name, email, password })
+            alert("User created!");
+        } catch (error) {
+            console.error(error)
         }
-
     }
 
 </script>
 
-<input bind:value={name} placeholder="Nombre" />
-<input bind:value={email} placeholder="Email" />
-<input bind:value={password} placeholder="Password" />
-<button onclick={() => register()}>Registrarse</button>
+<form onsubmit={() => create_user()} class="flex flex-col max-w-2xl">
+    <input bind:value={name} type="text" placeholder="Nombre" required />
+    <input bind:value={email} type="email" placeholder="Email" required />
+    <input bind:value={password} type="password" placeholder="Password" />
+
+    <button type="submit">Sign Up</button>
+</form>
