@@ -20,7 +20,9 @@ impl UserService {
 
     pub fn create_user(&self, user: CreateUserRequest) -> Result<User, AppError> {
         let name = user.name.ok_or(AppError::BadRequest("Name empty".into()))?;
-        let email = user.email.ok_or(AppError::BadRequest("Email empty".into()))?;
+        let email = user
+            .email
+            .ok_or(AppError::BadRequest("Email empty".into()))?;
 
         let user = self.repo.create(name, email)?;
 

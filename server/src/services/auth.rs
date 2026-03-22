@@ -18,8 +18,12 @@ impl AuthService {
 
     pub fn register_user(&self, user: RegisterRequest) -> Result<User, AppError> {
         let name = user.name.ok_or(AppError::BadRequest("Name empty".into()))?;
-        let email = user.email.ok_or(AppError::BadRequest("Email empty".into()))?;
-        let password = user.password.ok_or(AppError::BadRequest("Password empty".into()))?;
+        let email = user
+            .email
+            .ok_or(AppError::BadRequest("Email empty".into()))?;
+        let password = user
+            .password
+            .ok_or(AppError::BadRequest("Password empty".into()))?;
 
         let user = self.repo.register(name, email, password)?;
 

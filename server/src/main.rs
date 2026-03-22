@@ -15,11 +15,11 @@ use crate::router::create_router;
 
 use crate::data::config::DbConfig;
 use crate::data::database::Db;
-use crate::data::state::{AppState};
+use crate::data::state::AppState;
 
 // Repos
-use crate::repositories::diesel::user_repo_impl::DieselUserRepository;
 use crate::repositories::diesel::auth_repo_impl::DieselAuthRepository;
+use crate::repositories::diesel::user_repo_impl::DieselUserRepository;
 use crate::services::auth::AuthService;
 // Services
 use crate::services::user::UserService;
@@ -42,7 +42,7 @@ async fn main() {
 
     let state = Arc::new(AppState {
         user_service,
-        auth_service
+        auth_service,
     });
 
     // 🚏 Router

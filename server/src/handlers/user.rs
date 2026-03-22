@@ -1,12 +1,12 @@
+use crate::data::state::SharedState;
+use crate::errors::app_error::AppError;
+use crate::models::user::User;
 use axum::{
     Json,
     extract::{Path, State},
 };
 use serde::Deserialize;
 use uuid::Uuid;
-use crate::data::state::SharedState;
-use crate::errors::app_error::AppError;
-use crate::models::user::User;
 
 #[derive(Deserialize)]
 pub struct CreateUserRequest {

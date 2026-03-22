@@ -1,9 +1,6 @@
-use axum::{
-    Router,
-    routing::{post},
-};
 use crate::data::state::SharedState;
-use crate::handlers::auth::{register};
+use crate::handlers::auth::register;
+use axum::{Router, routing::post};
 
 pub fn auth_routes(state: SharedState) -> Router {
     Router::new()

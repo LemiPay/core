@@ -1,24 +1,32 @@
+use crate::data::state::SharedState;
+
 use axum::Router;
-use crate::data::state::{SharedState};
-use crate::routes::user::user_routes;
+use axum::http::{
+    Method,
+    HeaderValue,
+    header::{AUTHORIZATION, CONTENT_TYPE},
+};
+use tower_http::cors::CorsLayer;
+
+// Routes
 use crate::routes::auth::auth_routes;
-use tower_http::cors::{Any, CorsLayer};
-use axum::http::Method;
-
-
-
+use crate::routes::user::user_routes;
 
 pub fn create_router(state: SharedState) -> Router {
-
     let cors = CorsLayer::new()
         // Permitimos que el front en el puerto 5173 nos hable
-        .allow_origin("http://localhost:5173".parse::<axum::http::HeaderValue>().unwrap())
-        // Permitimos los métodos que necesites (POST para registro, etc)
-        .allow_methods([Method::POST, Method::GET])
-        // Muy importante: permitir el encabezado Content-Type para el JSON
-        .allow_headers([axum::http::header::CONTENT_TYPE]);
+        .allow_origin(
+            "http://localhost:5173"
+                .parse::<HeaderValue>()
+                .unwrap(),
+        )
+        // HTTP Methods Permitidos
+        .allow_methods([Method::POST, Method::GET, Method::PUT, Method::DELETE])
+        // Headers Permitidos
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
+
     Router::new()
         .merge(user_routes(state.clone()))
         .nest("/auth", auth_routes(state.clone()))
-        .layer(cors)//este layer tiene que ir al final de la creacion del Router por si dsp hay que agregar otros nest
+        .layer(cors) //este layer tiene que ir al final de la creacion del Router por si dsp hay que agregar otros nest
 }

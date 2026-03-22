@@ -10,8 +10,7 @@ impl DbConfig {
         dotenvy::dotenv().ok(); // intenta cargar .env del cwd
         dotenvy::from_filename("../.env").ok(); // fallback
 
-        let database_url =
-            env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
         Self { database_url }
     }
