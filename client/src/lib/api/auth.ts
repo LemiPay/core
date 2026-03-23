@@ -5,16 +5,8 @@ export function register(data: {
     email: string,
     password: string
 }){
-    //todo hashear la contraseña y validar mail
-
-    const x = {
-        name: data.name || null,
-        email: data.email || null,
-        password: data.password || null,
-    }
-
     return apiFetch("/auth/register", {
         method: "POST",
-        body: JSON.stringify(x)
+        body: JSON.stringify(data)
     })
 }
