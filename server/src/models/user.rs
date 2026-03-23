@@ -10,8 +10,8 @@ use crate::schema::user;
 pub struct User {
     pub id: Uuid,
     pub password: String,
-    pub name: Option<String>,
-    pub email: Option<String>,
+    pub name: String,
+    pub email: String,
 }
 
 #[derive(Insertable, Deserialize)]

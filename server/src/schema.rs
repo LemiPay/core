@@ -3,8 +3,8 @@
 diesel::table! {
     user (id) {
         id -> Uuid,
+        email -> Text,
         password -> Text,
-        name -> Nullable<Text>,
-        email -> Nullable<Text>,
+        name -> Text,
     }
 }
