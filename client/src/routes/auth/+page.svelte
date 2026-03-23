@@ -24,7 +24,7 @@
 
 <div class="flex justify-center items-center min-h-screen bg-white p-4">
     <form
-            onsubmit|preventDefault={create_user}
+            onsubmit={create_user}
             class="flex flex-col w-full max-w-md p-8 border border-gray-200 rounded-lg shadow-sm space-y-6"
     >
         <div class="space-y-2">
