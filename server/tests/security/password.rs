@@ -11,10 +11,8 @@ fn hash_password_creates_a_non_empty_hash_that_verifies() {
 
     assert!(!hash.is_empty(), "el hash no debería ser vacío");
     assert_ne!(hash, raw_password, "el hash no debería ser igual a la password original");
-    assert!(
-        verify_password(raw_password, &hash).expect("la verificación no debería fallar"),
-        "la password original debería validar contra su hash"
-    );
+
+    verify_password(raw_password, &hash).expect("la verificación no debería fallar");
 }
 
 #[test]
@@ -22,10 +20,10 @@ fn verify_password_fails_with_an_incorrect_password() {
     let raw_password = "MiPasswordSegura123!";
     let wrong_password = "OtraPasswordDistinta456!";
 
-    let hash = hash_password(raw_password).expect("la password debería poder hashearse");
+    let hash = hash_password(raw_password)
+        .expect("la password debería poder hashearse");
 
-    assert!(
-        !verify_password(wrong_password, &hash).expect("la verificación no debería fallar"),
-        "una password distinta no debería validar"
-    );
+    let result = verify_password(wrong_password, &hash);
+
+    assert!(result.is_err());
 }

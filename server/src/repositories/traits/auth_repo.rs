@@ -8,4 +8,6 @@ pub trait AuthRepository: Send + Sync {
         email: String,
         hashed_password: String,
     ) -> Result<User, DbError>;
+
+    fn find_by_email(&self, user_email: String) -> Result<Option<User>, DbError>;
 }
