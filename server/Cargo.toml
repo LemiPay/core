@@ -17,3 +17,4 @@ tower-http = { version = "0.6.2", features = ["cors"] }
 jsonwebtoken = "10.3.0"
 argon2 = "0.5.3"
 rand = "0.8.5"
+validator = "0.20.0"
