@@ -35,7 +35,7 @@ impl AuthService {
         }
 
         let password_hash =
-            hash_password(&*password).map_err(|e| AppError::PasswordHash(e.to_string()))?;
+            hash_password(&password).map_err(|e| AppError::PasswordHash(e.to_string()))?;
 
         let user = self.repo.register(name, email, password_hash)?;
 
