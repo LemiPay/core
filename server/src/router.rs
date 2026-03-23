@@ -2,8 +2,7 @@ use crate::data::state::SharedState;
 
 use axum::Router;
 use axum::http::{
-    Method,
-    HeaderValue,
+    HeaderValue, Method,
     header::{AUTHORIZATION, CONTENT_TYPE},
 };
 use tower_http::cors::CorsLayer;
@@ -15,11 +14,7 @@ use crate::routes::user::user_routes;
 pub fn create_router(state: SharedState) -> Router {
     let cors = CorsLayer::new()
         // Permitimos que el front en el puerto 5173 nos hable
-        .allow_origin(
-            "http://localhost:5173"
-                .parse::<HeaderValue>()
-                .unwrap(),
-        )
+        .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
         // HTTP Methods Permitidos
         .allow_methods([Method::POST, Method::GET, Method::PUT, Method::DELETE])
         // Headers Permitidos

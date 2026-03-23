@@ -5,6 +5,8 @@ use crate::repositories::traits::auth_repo::AuthRepository;
 
 use crate::errors::app_error::AppError;
 use crate::handlers::auth::RegisterRequest;
+use crate::helpers::validations::require_non_empty;
+use crate::security::password::hash_password;
 
 #[derive(Clone)]
 pub struct AuthService {
@@ -17,15 +19,15 @@ impl AuthService {
     }
 
     pub fn register_user(&self, user: RegisterRequest) -> Result<User, AppError> {
-        let name = user.name.ok_or(AppError::BadRequest("Name empty".into()))?;
-        let email = user
-            .email
-            .ok_or(AppError::BadRequest("Email empty".into()))?;
-        let password = user
-            .password
-            .ok_or(AppError::BadRequest("Password empty".into()))?;
+        // Validate data
+        let name = require_non_empty(user.name, "Name")?;
+        let email = require_non_empty(user.email, "Email")?;
+        let password = require_non_empty(user.password, "Password")?;
 
-        let user = self.repo.register(name, email, password)?;
+        let password_hash =
+            hash_password(&*password).map_err(|e| AppError::PasswordHash(e.to_string()))?;
+
+        let user = self.repo.register(name, email, password_hash)?;
 
         Ok(user)
     }

@@ -17,13 +17,18 @@ impl DieselAuthRepository {
 }
 
 impl AuthRepository for DieselAuthRepository {
-    fn register(&self, name: String, email: String, password: String) -> Result<User, DbError> {
+    fn register(
+        &self,
+        name: String,
+        email: String,
+        hashed_password: String,
+    ) -> Result<User, DbError> {
         let mut conn = self.db.get_conn()?;
 
         let new_user = NewUser {
             name,
             email,
-            password,
+            password: hashed_password,
         };
 
         let result = diesel::insert_into(user::table)

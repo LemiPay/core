@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+
 use serde::Serialize;
 use thiserror::Error;
 
@@ -18,6 +19,12 @@ pub enum AppError {
 
     #[error("Bad request: {0}")]
     BadRequest(String),
+
+    #[error("Internal server error")]
+    Internal,
+
+    #[error("Password hashing error")]
+    PasswordHash(String),
 }
 
 #[derive(Serialize)]
@@ -31,6 +38,8 @@ impl IntoResponse for AppError {
             AppError::Db(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             AppError::NotFound => (StatusCode::NOT_FOUND, self.to_string()),
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
+            AppError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            AppError::PasswordHash(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
         };
 
         let body = Json(ErrorResponse { message });
