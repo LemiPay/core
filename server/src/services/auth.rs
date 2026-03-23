@@ -9,6 +9,7 @@ use crate::handlers::auth::{LoginRequest, RegisterRequest};
 use crate::helpers::validations::require_non_empty;
 use crate::security::password::{hash_password, verify_password};
 
+use crate::security::jwt::generate_jwt;
 use validator::{ValidateEmail, ValidateLength};
 
 #[derive(Clone)]
@@ -43,7 +44,7 @@ impl AuthService {
         Ok(user)
     }
 
-    pub fn login_user(&self, user: LoginRequest) -> Result<User, AppError> {
+    pub fn login_user(&self, user: LoginRequest) -> Result<String, AppError> {
         // Validate data
 
         let email = require_non_empty(user.email, "Email")?;
@@ -54,10 +55,10 @@ impl AuthService {
             .find_by_email(email)?
             .ok_or(AppError::Unauthorized)?;
 
-        print!("Found user: {:?}", found_user.password);
-
         verify_password(&password, &found_user.password).map_err(|_| AppError::Unauthorized)?;
 
-        Ok(found_user)
+        let token = generate_jwt(found_user.id).map_err(|_| AppError::Internal)?;
+
+        Ok(token)
     }
 }

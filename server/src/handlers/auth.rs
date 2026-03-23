@@ -2,7 +2,7 @@ use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
 use crate::models::user::User;
 use axum::{Json, extract::State};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct RegisterRequest {
@@ -15,6 +15,11 @@ pub struct RegisterRequest {
 pub struct LoginRequest {
     pub email: Option<String>,
     pub password: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct LoginResponse {
+    token: String,
 }
 
 // Register
@@ -30,7 +35,7 @@ pub async fn register(
 pub async fn login(
     State(state): State<SharedState>,
     Json(payload): Json<LoginRequest>,
-) -> Result<Json<User>, AppError> {
-    let user = state.auth_service.login_user(payload)?;
-    Ok(Json(user))
+) -> Result<Json<LoginResponse>, AppError> {
+    let jwt = state.auth_service.login_user(payload)?;
+    Ok(Json(LoginResponse { token: jwt }))
 }
