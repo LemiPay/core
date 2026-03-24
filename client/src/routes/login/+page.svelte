@@ -1,5 +1,6 @@
 <script>
     import { login } from "$lib/api/auth";
+    
 
     let email = "";
     let password = "";
@@ -8,9 +9,12 @@
     async function login_user() {
         isLoading = true;
         try {
-            await login({ email, password });
+            const response = await login({ email, password });
+            localStorage.setItem("token", response.token);
             alert("User Logged In!");
             email = password = "";
+            //redirecciono
+            window.location.href = "/";
         } catch (error) {
             console.error(error);
             alert("Error logging in");

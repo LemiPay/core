@@ -14,7 +14,7 @@ export function register(data: {
 export function login(data:{
     email: string,
     password:string
-}){
+}): Promise<{ token: string }>{
     return apiFetch("/auth/login", {
         method:"POST",
         body: JSON.stringify(data)
