@@ -10,3 +10,13 @@ export function register(data: {
         body: JSON.stringify(data)
     })
 }
+
+export function login(data:{
+    email: string,
+    password:string
+}){
+    return apiFetch("/auth/login", {
+        method:"POST",
+        body: JSON.stringify(data)
+    })
+}
