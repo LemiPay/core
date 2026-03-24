@@ -9,12 +9,11 @@
         isLoading = true;
         try {
             await login({ email, password });
-            alert("User Logged!");
-            // Limpiar campos tras éxito
+            alert("User Logged In!");
             email = password = "";
         } catch (error) {
             console.error(error);
-            alert("Error al loguear usuario");
+            alert("Error logging in");
         } finally {
             isLoading = false;
         }
@@ -27,8 +26,8 @@
             class="flex flex-col w-full max-w-md p-8 border border-gray-200 rounded-lg shadow-sm space-y-6"
     >
         <div class="space-y-2">
-            <h2 class="text-2xl font-bold tracking-tight text-black">Entra a tu cuenta</h2>
-            <p class="text-sm text-gray-500">Ingresa tus datos para loguearte en la plataforma.</p>
+            <h2 class="text-2xl font-bold tracking-tight text-black">Log in to your account</h2>
+            <p class="text-sm text-gray-500">Enter your details to access the platform.</p>
         </div>
 
         <div class="space-y-4">
@@ -38,14 +37,14 @@
                         id="email"
                         bind:value={email}
                         type="email"
-                        placeholder="nombre@ejemplo.com"
+                        placeholder="name@example.com"
                         required
                         class="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black transition-all"
                 />
             </div>
 
             <div class="flex flex-col gap-1.5">
-                <label for="password" class="text-sm font-medium">Contraseña</label>
+                <label for="password" class="text-sm font-medium">Password</label>
                 <input
                         id="password"
                         bind:value={password}
@@ -62,7 +61,7 @@
                 disabled={isLoading}
                 class="w-full bg-black text-white font-medium py-2 px-4 rounded-md hover:bg-gray-800 disabled:bg-gray-400 transition-colors cursor-pointer"
         >
-            {isLoading ? "Logging..." : "Log in"}
+            {isLoading ? "Logging in..." : "Log in"}
         </button>
     </form>
 </div>
