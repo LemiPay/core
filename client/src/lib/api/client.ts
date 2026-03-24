@@ -1,11 +1,13 @@
+import type {ApiResponse} from "$lib/types/auth.types";
+
 const API_URL = "http://localhost:3000";
 
 export async function apiFetch<T>(
     path: string,
     options: RequestInit = {}
-): Promise<T> {
+): ApiResponse<T> {
     const res = await fetch(`${API_URL}${path}`, {
-        //credentials: 'include',
+        // Include {credentials: 'include'} in options if Auth required
         headers: {
             'Content-Type': 'application/json',
             ...options.headers
@@ -13,9 +15,9 @@ export async function apiFetch<T>(
         ...options
     });
 
-    if (!res.ok) {
-        throw new Error(`API error: ${res.status}`);
+    return {
+        status: res.status,
+        message: res.statusText,
+        body: await res.json() as T
     }
-
-    return res.json();
 }

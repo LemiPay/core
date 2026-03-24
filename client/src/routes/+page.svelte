@@ -1,5 +1,8 @@
 <script>
     import { isAuthenticated } from '$lib/stores/store';
+
+    const me = "dsada0d9sa-d8asd89sa-d3nnd3-da9d9sa";
+    // Aca se puede pegarle a /auth/me y devulve el ID de las credentials logeadas.
 </script>
 
 
@@ -19,7 +22,7 @@
 
     {#if $isAuthenticated}
         <div class="status-badge">
-            <p>You are currently logged in</p>
+            <p>You are currently logged in as {me}</p>
         </div>
     {/if}
 </div>
