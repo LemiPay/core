@@ -46,9 +46,15 @@ impl AuthService {
 
     pub fn login_user(&self, user: LoginRequest) -> Result<String, AppError> {
         // Validate data
-
         let email = require_non_empty(user.email, "Email")?;
         let password = require_non_empty(user.password, "Password")?;
+
+        let valid = ValidateEmail::validate_email(&email)
+            && ValidateLength::validate_length(&password, Some(5), Some(30), None);
+
+        if !valid {
+            return Err(AppError::Unauthorized);
+        }
 
         let found_user = self
             .repo
