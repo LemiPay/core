@@ -10,4 +10,7 @@ declare global {
 	}
 }
 
-export {};
+// Returns __T__ if __OK__ and __B__ if __Error__
+type Result<T, B> = Promise<T | B>;
+
+export type { Result };
