@@ -48,7 +48,6 @@
 		align-items: center;
 		justify-content: center;
 	}
-
 	.container {
 		width: 100%;
 		max-width: 400px;
