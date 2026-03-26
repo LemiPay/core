@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { register } from '$lib/api/auth';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import AuthLayout from '$lib/components/AuthLayout.svelte';
 
 	let data = $state({
@@ -32,7 +32,9 @@
 			password: ''
 		};
 
-		await goto('/login');
+		setTimeout(() => {
+			window.location.href = '/login';
+		}, 1000);
 	}
 </script>
 
