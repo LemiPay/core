@@ -1,9 +1,11 @@
 <script>
     import { isAuthenticated } from '$lib/stores/store';
+    import {goto, invalidateAll} from "$app/navigation";
+
 
     async function logoutUser(){
         localStorage.removeItem('token');
-        window.location.href= "/";
+        window.location.href = '/';
     }
 
     const me = "dsada0d9sa-d8asd89sa-d3nnd3-da9d9sa";
