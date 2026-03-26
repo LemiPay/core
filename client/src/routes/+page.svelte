@@ -1,5 +1,12 @@
 <script>
     import { isAuthenticated } from '$lib/stores/store';
+    import {goto, invalidateAll} from "$app/navigation";
+
+
+    async function logoutUser(){
+        localStorage.removeItem('token');
+        window.location.href = '/';
+    }
 
     const me = "dsada0d9sa-d8asd89sa-d3nnd3-da9d9sa";
     // Aca se puede pegarle a /auth/me y devulve el ID de las credentials logeadas.
@@ -18,6 +25,9 @@
     <div class="button-group">
         <a href="/login" class="btn btn-primary">Log in</a>
         <a href="/register" class="btn btn-secondary">Create account</a>
+        {#if $isAuthenticated}
+            <button onclick={logoutUser} class="btn btn-logout">Log out</button>
+        {/if}
     </div>
 
     {#if $isAuthenticated}
@@ -116,4 +126,19 @@
         margin: 0;               /* Resetear márgenes por defecto del p */
         font-weight: 500;
     }
+    .btn-logout {
+        background-color: #fff;
+        color: #e63946; /* Un rojo elegante, no muy chillón */
+        border: 1px solid #ffccd5; /* Borde sutil rojizo */
+        cursor: pointer;
+        width: 100%;
+        display: block;
+    }
+
+    .btn-logout:hover {
+        background-color: #fff5f5; /* Cambio de fondo muy leve al pasar el mouse */
+        border-color: #e63946;
+        opacity: 1; /* Sobrescribimos el opacity 0.8 genérico para mejor feedback */
+    }
+
 </style>
