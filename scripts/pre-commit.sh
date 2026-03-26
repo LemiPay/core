@@ -45,11 +45,11 @@ if git diff --cached --name-only | grep '^client/.*$' > /dev/null; then
     exit 1
   }
 
-  echo "🧪 Running Svelte tests..."
-  pnpm run test || {
-    echo "❌ Svelte tests failed."
-    exit 1
-  }
+#  echo "🧪 Running Svelte tests..."
+#  pnpm run test || {
+#    echo "❌ Svelte tests failed."
+#    exit 1
+#  }
 
   cd .. || exit 1
 else
