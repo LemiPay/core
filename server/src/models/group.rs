@@ -1,19 +1,15 @@
 use chrono::NaiveDate;
-use diesel::{AsExpression, FromSqlRow, Insertable, Queryable, Selectable};
+use diesel::{Insertable, Queryable, Selectable};
 use serde::{Deserialize, Serialize};
+use diesel_derive_enum::DbEnum;
 use uuid::Uuid;
 
 use crate::schema::group;
 
-//esto estuve viendo y no puede usar de una el enum de postgres asi que hay que crear nuestro
-//model de enum en rust
-
-#[derive(Debug, Serialize, Deserialize, AsExpression, FromSqlRow)]
-#[diesel(sql_type = crate::schema::sql_types::GroupStatus)]
+#[derive(Debug, DbEnum, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[db_enum(existing_type_path = "crate::schema::sql_types::GroupStatus")]
 pub enum MyGroupStatus {
-    #[serde(rename = "active")]
     Active,
-    #[serde(rename = "ended")]
     Ended,
 }
 #[derive(Queryable, Serialize, Selectable)]
