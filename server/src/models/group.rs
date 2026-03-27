@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use diesel::{Insertable, Queryable, Selectable};
-use serde::{Deserialize, Serialize};
 use diesel_derive_enum::DbEnum;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::schema::group;
