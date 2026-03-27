@@ -4,20 +4,26 @@ use std::sync::Arc;
 mod data;
 pub mod errors;
 mod handlers;
+pub mod helpers;
 mod models;
 mod repositories;
 mod router;
 pub mod routes;
 mod schema;
+pub mod security;
 mod services;
 
-use crate::handlers::user::AppState;
 use crate::router::create_router;
 
 use crate::data::config::DbConfig;
 use crate::data::database::Db;
+use crate::data::state::AppState;
 
+// Repos
+use crate::repositories::diesel::auth_repo_impl::DieselAuthRepository;
 use crate::repositories::diesel::user_repo_impl::DieselUserRepository;
+use crate::services::auth::AuthService;
+// Services
 use crate::services::user::UserService;
 
 #[tokio::main]
@@ -29,13 +35,17 @@ async fn main() {
     let db = Db::new(db_config);
 
     // 📦 Repository
-    let user_repo = Arc::new(DieselUserRepository::new(db));
+    let user_repo = Arc::new(DieselUserRepository::new(db.clone()));
+    let auth_repo = Arc::new(DieselAuthRepository::new(db.clone()));
 
     // 🧠 Service
-    let user_service = Arc::new(UserService::new(user_repo));
+    let user_service = UserService::new(user_repo);
+    let auth_service = AuthService::new(auth_repo);
 
-    // 🌐 App State
-    let state = AppState { user_service };
+    let state = Arc::new(AppState {
+        user_service,
+        auth_service,
+    });
 
     // 🚏 Router
     let app = create_router(state);
