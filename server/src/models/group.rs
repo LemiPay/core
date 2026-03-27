@@ -1,10 +1,9 @@
-use diesel::{AsExpression, FromSqlRow, Insertable, Queryable, Selectable};
 use chrono::NaiveDate;
+use diesel::{AsExpression, FromSqlRow, Insertable, Queryable, Selectable};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::schema::group;
-
 
 //esto estuve viendo y no puede usar de una el enum de postgres asi que hay que crear nuestro
 //model de enum en rust
@@ -32,5 +31,5 @@ pub struct Group {
 #[diesel(table_name = group)]
 pub struct NewGroup {
     pub name: String,
-    pub description: String
+    pub description: String,
 }

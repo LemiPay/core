@@ -28,7 +28,6 @@ use crate::services::user::UserService;
 
 #[tokio::main]
 async fn main() {
-
     // 🔧 Config
     let db_config = DbConfig::from_env();
 
