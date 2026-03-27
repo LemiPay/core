@@ -10,6 +10,7 @@ if git diff --cached --name-only | grep '^server/.*\.rs$' > /dev/null; then
   echo "🔍 Running cargo fmt..."
   cargo fmt -- --check || {
     echo "❌ Formatting failed. Run cargo fmt."
+    cargo fmt
   }
 
   echo "🧠 Running cargo check..."
