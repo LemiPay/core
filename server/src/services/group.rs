@@ -35,11 +35,10 @@ impl GroupService {
             return Err(AppError::BadRequest("Invalid registration data".into()));
         }
 
-        //todo manejar estas dos acciones como transacciones de SQL
-        let group = self.group_repo.create_group(name, description);
+        let group = self.group_repo.create_group(name, description, id);
         let group_id = group?.id;
 
-        let user_in_group = self.user_in_group_repo.add_user_to_group(id, group_id);
+        //let user_in_group = self.user_in_group_repo.add_user_to_group(id, group_id);
 
         Ok(group_id)
     }

@@ -37,4 +37,5 @@ pub struct UserInGroup {
 pub struct NewUserInGroup {
     pub user_id: Uuid,
     pub group_id: Uuid,
+    pub role: Option<MyGroupRole>,
 }
