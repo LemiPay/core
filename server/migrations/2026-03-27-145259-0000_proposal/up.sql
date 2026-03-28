@@ -43,7 +43,7 @@ CREATE TABLE vote (
     proposal_id UUID NOT NULL,
     user_id UUID NOT NULL,
 
-    vote vote_type NOT NULL,
+    value vote_type NOT NULL,
 
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
