@@ -11,7 +11,7 @@ if git diff --cached --name-only | grep '^server/.*\.rs$' > /dev/null; then
   cargo fmt -- --check || {
     echo "❌ Formatting failed. Running cargo fmt."
     cargo fmt
-    git add $(git diff --cached --name-only | grep '^server/.*\.rs$')
+    git -C .. add $(git -C .. diff --cached --name-only | grep '^server/.*\.rs$')
   }
 
   echo "🧠 Running cargo check..."
