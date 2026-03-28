@@ -1,7 +1,5 @@
-use crate::models::group::MyGroupStatus;
 use crate::schema::user_in_group;
-use crate::schema::user_in_group::user_id;
-use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use diesel::{Insertable, Queryable, Selectable};
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
@@ -30,7 +28,7 @@ pub struct UserInGroup {
     pub group_id: Uuid,
     pub role: MyGroupRole,
     pub status: MyGroupMemberStatus,
-    pub joined_at: NaiveDateTime,
+    pub joined_at: NaiveDateTime, //acá se una NaiveDateTime porque de postgres viene como TimeStamp()
     pub updated_at: NaiveDateTime,
 }
 

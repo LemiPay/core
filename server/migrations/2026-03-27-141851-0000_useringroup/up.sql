@@ -13,7 +13,7 @@ CREATE TABLE user_in_group (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (user_id, group_id),
-
+    --cuando llamamos a user o group que sea con "" porque es una palabra reservada
     CONSTRAINT fk_user
        FOREIGN KEY (user_id)
            REFERENCES "user"(id)
