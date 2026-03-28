@@ -34,7 +34,7 @@ pub struct UserInGroup {
 
 #[derive(Insertable, Deserialize)]
 #[diesel(table_name = user_in_group)]
-pub struct NewGroup {
+pub struct NewUserInGroup {
     pub user_id: Uuid,
     pub group_id: Uuid,
 }

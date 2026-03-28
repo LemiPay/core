@@ -22,6 +22,7 @@ use crate::data::state::AppState;
 // Repos
 use crate::repositories::diesel::auth_repo_impl::DieselAuthRepository;
 use crate::repositories::diesel::group_repo_impl::DieselGroupRepository;
+use crate::repositories::diesel::user_in_group_repo_impl::DieselUserInGroupRepository;
 use crate::repositories::diesel::user_repo_impl::DieselUserRepository;
 use crate::services::auth::AuthService;
 use crate::services::group::GroupService;
@@ -40,11 +41,11 @@ async fn main() {
     let user_repo = Arc::new(DieselUserRepository::new(db.clone()));
     let auth_repo = Arc::new(DieselAuthRepository::new(db.clone()));
     let group_repo = Arc::new(DieselGroupRepository::new(db.clone()));
-
+    let user_in_group_repo = Arc::new(DieselUserInGroupRepository::new(db.clone()));
     // 🧠 Service
     let user_service = UserService::new(user_repo);
     let auth_service = AuthService::new(auth_repo);
-    let group_service = GroupService::new(group_repo);
+    let group_service = GroupService::new(group_repo, user_in_group_repo);
 
     let state = Arc::new(AppState {
         user_service,
