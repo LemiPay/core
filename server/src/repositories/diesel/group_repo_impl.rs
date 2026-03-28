@@ -1,6 +1,5 @@
 use crate::data::database::Db;
 use crate::data::error::DbError;
-use crate::data::pool::DbPool;
 use crate::models::group::{Group, NewGroup};
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::schema::group;

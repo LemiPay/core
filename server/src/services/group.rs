@@ -8,7 +8,6 @@ use crate::errors::app_error::AppError;
 use crate::handlers::group::NewGroupRequest;
 
 use crate::helpers::validations::require_non_empty;
-use crate::schema::user_in_group::user_id;
 use validator::ValidateLength;
 
 #[derive(Clone)]
@@ -20,8 +19,8 @@ impl GroupService {
         Self { repo }
     }
     pub fn create_group(&self, group: NewGroupRequest, id: Uuid) -> Result<Uuid, AppError> {
-        let name = require_non_empty(group.name, "Email")?;
-        let description = require_non_empty(group.description, "Password")?;
+        let name = require_non_empty(group.name, "Name")?;
+        let description = require_non_empty(group.description, "Description")?;
 
         let valid = ValidateLength::validate_length(&name, Some(4), Some(30), None)
             && ValidateLength::validate_length(&description, Some(8), Some(30), None);
