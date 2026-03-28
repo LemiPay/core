@@ -1,6 +1,6 @@
 use crate::models::group::Group;
-use crate::models::user::User;
 use crate::repositories::traits::group_repo::GroupRepository;
+use crate::repositories::traits::user_in_group_repo::UserInGroupRepo;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -12,11 +12,18 @@ use validator::ValidateLength;
 
 #[derive(Clone)]
 pub struct GroupService {
-    repo: Arc<dyn GroupRepository>,
+    group_repo: Arc<dyn GroupRepository>,
+    user_in_group_repo: Arc<dyn UserInGroupRepo>,
 }
 impl GroupService {
-    pub fn new(repo: Arc<dyn GroupRepository>) -> Self {
-        Self { repo }
+    pub fn new(
+        group_repo: Arc<dyn GroupRepository>,
+        user_in_group_repo: Arc<dyn UserInGroupRepo>,
+    ) -> Self {
+        Self {
+            group_repo,
+            user_in_group_repo,
+        }
     }
     pub fn create_group(&self, group: NewGroupRequest, id: Uuid) -> Result<Uuid, AppError> {
         let name = require_non_empty(group.name, "Name")?;
@@ -27,13 +34,20 @@ impl GroupService {
         if !valid {
             return Err(AppError::BadRequest("Invalid registration data".into()));
         }
-        let group = self.repo.create_group(name, description);
-        //todo crear la tupla de user in group
 
-        Ok(group?.id)
+        //todo manejar estas dos acciones como transacciones de SQL
+        let group = self.group_repo.create_group(name, description);
+        let group_id = group?.id;
+
+        let user_in_group = self.user_in_group_repo.add_user_to_group(id, group_id);
+
+        Ok(group_id)
     }
     pub fn get_group_by_id(&self, group_id: Uuid) -> Result<Group, AppError> {
-        let found_group = self.repo.find_by_id(group_id)?.ok_or(AppError::NotFound)?;
+        let found_group = self
+            .group_repo
+            .find_by_id(group_id)?
+            .ok_or(AppError::NotFound)?;
         Ok(found_group)
     }
 }
