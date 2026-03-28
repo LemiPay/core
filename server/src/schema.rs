@@ -12,6 +12,14 @@ pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "group_status"))]
     pub struct GroupStatus;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "proposal_status"))]
+    pub struct ProposalStatus;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "vote_type"))]
+    pub struct VoteType;
 }
 
 diesel::table! {
@@ -25,6 +33,27 @@ diesel::table! {
         status -> GroupStatus,
         created_at -> Date,
         updated_at -> Date,
+    }
+}
+
+diesel::table! {
+    new_member_proposal (proposal_id) {
+        proposal_id -> Uuid,
+        new_member_id -> Uuid,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::ProposalStatus;
+
+    proposal (id) {
+        id -> Uuid,
+        group_id -> Uuid,
+        created_by -> Uuid,
+        status -> ProposalStatus,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
@@ -52,7 +81,32 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::VoteType;
+
+    vote (proposal_id, user_id) {
+        proposal_id -> Uuid,
+        user_id -> Uuid,
+        value -> VoteType,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::joinable!(new_member_proposal -> proposal (proposal_id));
+diesel::joinable!(new_member_proposal -> user (new_member_id));
+diesel::joinable!(proposal -> group (group_id));
+diesel::joinable!(proposal -> user (created_by));
 diesel::joinable!(user_in_group -> group (group_id));
 diesel::joinable!(user_in_group -> user (user_id));
+diesel::joinable!(vote -> proposal (proposal_id));
+diesel::joinable!(vote -> user (user_id));
 
-diesel::allow_tables_to_appear_in_same_query!(group, user, user_in_group,);
+diesel::allow_tables_to_appear_in_same_query!(
+    group,
+    new_member_proposal,
+    proposal,
+    user,
+    user_in_group,
+    vote,
+);
