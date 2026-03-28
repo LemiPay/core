@@ -10,4 +10,5 @@ pub trait GroupRepository: Send + Sync {
         user_id: Uuid,
     ) -> Result<Group, DbError>;
     fn find_by_id(&self, id: Uuid) -> Result<Option<Group>, DbError>;
+    fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError>;
 }

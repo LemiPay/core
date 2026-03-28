@@ -56,4 +56,15 @@ impl GroupRepository for DieselGroupRepository {
             .optional()?;
         Ok(result)
     }
+
+    fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = user_in_group::table
+            .filter(user_in_group::group_id.eq(group_id))
+            .filter(user_in_group::user_id.eq(user_id))
+            .filter(user_in_group::role.eq(MyGroupRole::Admin))
+            .first::<UserInGroup>(&mut conn)
+            .optional()?;
+        Ok(result.is_some())
+    }
 }

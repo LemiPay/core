@@ -39,4 +39,8 @@ impl GroupService {
             .ok_or(AppError::NotFound)?;
         Ok(found_group)
     }
+    pub fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, AppError> {
+        let result = self.group_repo.is_member(user_id, group_id)?;
+        Ok(result)
+    }
 }
