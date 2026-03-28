@@ -3,7 +3,10 @@ use crate::errors::app_error::AppError;
 use crate::models::group::Group;
 use crate::models::user::User;
 use crate::security::auth_extractor::AuthUser;
-use axum::{Json, extract::State};
+use axum::{
+    Json,
+    extract::{Path, State},
+};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -23,4 +26,11 @@ pub async fn create_group(
 ) -> Result<Json<NewGroupResponse>, AppError> {
     let group_id = state.group_service.create_group(payload, user.user_id);
     Ok(Json(NewGroupResponse { id: group_id? }))
+}
+pub async fn get_group_by_id(
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Group>, AppError> {
+    let group = state.group_service.get_group_by_id(group_id);
+    Ok(group?.into())
 }
