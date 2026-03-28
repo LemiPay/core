@@ -40,7 +40,7 @@ impl GroupRepository for DieselGroupRepository {
                 role: Some(MyGroupRole::Admin),
             };
 
-            let user_in_group_result = diesel::insert_into(user_in_group::table)
+            let _user_in_group_result = diesel::insert_into(user_in_group::table)
                 .values(&new_user_in_group)
                 .returning(UserInGroup::as_returning())
                 .get_result(conn);

@@ -1,5 +1,4 @@
 use crate::data::error::DbError;
-use crate::data::pool::DbPool;
 use crate::models::group::Group;
 use uuid::Uuid;
 
