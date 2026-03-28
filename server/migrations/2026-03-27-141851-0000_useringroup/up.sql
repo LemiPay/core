@@ -16,11 +16,11 @@ CREATE TABLE user_in_group (
 
     CONSTRAINT fk_user
        FOREIGN KEY (user_id)
-           REFERENCES user(id)
+           REFERENCES "user"(id)
            ON DELETE CASCADE,
 
     CONSTRAINT fk_group
        FOREIGN KEY (group_id)
-           REFERENCES group(id)
+           REFERENCES "group"(id)
            ON DELETE CASCADE
 );
