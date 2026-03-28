@@ -18,7 +18,11 @@ impl DieselUserInGroupRepository {
 impl UserInGroupRepo for DieselUserInGroupRepository {
     fn add_user_to_group(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, DbError> {
         let mut conn = self.db.get_conn()?;
-        let new_user_in_group = NewUserInGroup { user_id, group_id };
+        let new_user_in_group = NewUserInGroup {
+            user_id,
+            group_id,
+            role: None,
+        };
         let result = diesel::insert_into(user_in_group::table)
             .values(&new_user_in_group)
             .returning(UserInGroup::as_returning())
