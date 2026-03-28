@@ -22,8 +22,8 @@ pub struct Proposal {
     pub group_id: Uuid,
     pub created_by: Uuid,
     pub status: ProposalStatus,
-    created_at: NaiveDateTime,
-    updated_at: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
 #[derive(Insertable, Deserialize)]
