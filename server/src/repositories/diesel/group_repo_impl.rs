@@ -1,11 +1,11 @@
-use diesel::prelude::*;
-
 use crate::data::database::Db;
 use crate::data::error::DbError;
 use crate::data::pool::DbPool;
 use crate::models::group::{Group, NewGroup};
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::schema::group;
+use diesel::prelude::*;
+use uuid::Uuid;
 
 pub struct DieselGroupRepository {
     db: Db,
@@ -28,6 +28,14 @@ impl GroupRepository for DieselGroupRepository {
             .returning(Group::as_returning())
             .get_result(&mut conn)?;
 
+        Ok(result)
+    }
+    fn find_by_id(&self, id: Uuid) -> Result<Option<Group>, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = group::table
+            .filter(group::id.eq(id))
+            .first::<Group>(&mut conn)
+            .optional()?;
         Ok(result)
     }
 }

@@ -5,4 +5,5 @@ use uuid::Uuid;
 
 pub trait GroupRepository: Send + Sync {
     fn create_group(&self, name: String, description: String) -> Result<Group, DbError>;
+    fn find_by_id(&self, id: Uuid) -> Result<Option<Group>, DbError>;
 }

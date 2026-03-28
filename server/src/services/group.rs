@@ -33,4 +33,8 @@ impl GroupService {
 
         Ok(group?.id)
     }
+    pub fn get_group_by_id(&self, group_id: Uuid) -> Result<Group, AppError> {
+        let found_group = self.repo.find_by_id(group_id)?.ok_or(AppError::NotFound)?;
+        Ok(found_group)
+    }
 }
