@@ -1,7 +1,6 @@
 use crate::security::jwt::decode_jwt;
 use axum::body::Body;
 use axum::{
-    extract::State,
     http::{Request, StatusCode},
     middleware::Next,
     response::Response,
