@@ -1,4 +1,4 @@
-use crate::schema::proposal;
+use crate::schema::{proposal, vote};
 use chrono::NaiveDateTime;
 use diesel::{Insertable, Queryable, Selectable};
 use diesel_derive_enum::DbEnum;
@@ -7,11 +7,19 @@ use uuid::Uuid;
 
 #[derive(Debug, DbEnum, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[db_enum(existing_type_path = "crate::schema::sql_types::ProposalStatus")]
-pub enum ProposalStatus {
+pub enum MyProposalStatus {
     Pending,
     Approved,
     Rejected,
     Executed,
+}
+
+#[derive(Debug, DbEnum, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[db_enum(existing_type_path = "crate::schema::sql_types::VoteType")]
+pub enum MyVoteType {
+    Yes,
+    No,
+    Abstain,
 }
 
 #[derive(Queryable, Serialize, Selectable)]
@@ -21,7 +29,7 @@ pub struct Proposal {
     pub id: Uuid,
     pub group_id: Uuid,
     pub created_by: Uuid,
-    pub status: ProposalStatus,
+    pub status: MyProposalStatus,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
@@ -31,4 +39,22 @@ pub struct Proposal {
 pub struct NewProposal {
     pub group_id: Uuid,
     pub created_by: Uuid,
+}
+
+#[derive(Queryable, Serialize, Selectable)]
+#[diesel(table_name = vote)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct Vote {
+    pub proposal_id: Uuid,
+    pub user_id: Uuid,
+    pub value: MyVoteType,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Insertable, Deserialize)]
+#[diesel(table_name = vote)]
+pub struct NewVote {
+    pub proposal_id: Uuid,
+    pub user_id: Uuid,
+    pub value: MyVoteType,
 }
