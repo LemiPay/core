@@ -1,4 +1,4 @@
-use crate::data::state::{AppState, SharedState};
+use crate::data::state::SharedState;
 use crate::security::auth_extractor::AuthUser;
 use axum::body::Body;
 use axum::{
