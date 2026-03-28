@@ -1,7 +1,7 @@
 use crate::services::auth::AuthService;
+use crate::services::group::GroupService;
 use crate::services::user::UserService;
 use std::sync::Arc;
-
 // ----------------------
 // APP STATE
 // ----------------------
@@ -10,6 +10,7 @@ use std::sync::Arc;
 pub struct AppState {
     pub user_service: UserService,
     pub auth_service: AuthService,
+    pub group_service: GroupService,
 }
 
 pub type SharedState = Arc<AppState>;

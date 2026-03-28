@@ -1,0 +1,8 @@
+use crate::data::error::DbError;
+use crate::data::pool::DbPool;
+use crate::models::group::Group;
+use uuid::Uuid;
+
+pub trait GroupRepository: Send + Sync {
+    fn create_group(&self, name: String, description: String) -> Result<Group, DbError>;
+}
