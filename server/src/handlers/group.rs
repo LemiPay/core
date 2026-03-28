@@ -1,7 +1,6 @@
 use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
 use crate::models::group::Group;
-use crate::models::user::User;
 use crate::security::auth_extractor::AuthUser;
 use axum::{
     Json,
