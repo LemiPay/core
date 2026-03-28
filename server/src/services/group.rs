@@ -23,7 +23,7 @@ impl GroupService {
         let name = require_non_empty(group.name, "Email")?;
         let description = require_non_empty(group.description, "Password")?;
 
-        let valid = ValidateLength::validate_length(&name, Some(8), Some(30), None)
+        let valid = ValidateLength::validate_length(&name, Some(4), Some(30), None)
             && ValidateLength::validate_length(&description, Some(8), Some(30), None);
         if !valid {
             return Err(AppError::BadRequest("Invalid registration data".into()));
