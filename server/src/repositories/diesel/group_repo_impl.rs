@@ -5,6 +5,7 @@ use crate::models::user_in_group::{MyGroupRole, NewUserInGroup, UserInGroup};
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::schema::group;
 use crate::schema::user_in_group;
+use axum::Json;
 use diesel::prelude::*;
 use uuid::Uuid;
 
@@ -62,9 +63,29 @@ impl GroupRepository for DieselGroupRepository {
         let result = user_in_group::table
             .filter(user_in_group::group_id.eq(group_id))
             .filter(user_in_group::user_id.eq(user_id))
+            .first::<UserInGroup>(&mut conn)
+            .optional()?;
+        Ok(result.is_some())
+    }
+    fn is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = user_in_group::table
+            .filter(user_in_group::group_id.eq(group_id))
+            .filter(user_in_group::user_id.eq(user_id))
             .filter(user_in_group::role.eq(MyGroupRole::Admin))
             .first::<UserInGroup>(&mut conn)
             .optional()?;
         Ok(result.is_some())
+    }
+    fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<Json<()>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let _ = diesel::update(user_in_group::table)
+            .filter(user_in_group::group_id.eq(group_id))
+            .filter(user_in_group::user_id.eq(user_id))
+            .set(user_in_group::role.eq(MyGroupRole::Admin))
+            .execute(&mut conn)?;
+
+        Ok(Json(()))
     }
 }
