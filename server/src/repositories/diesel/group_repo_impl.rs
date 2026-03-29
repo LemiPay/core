@@ -49,6 +49,19 @@ impl GroupRepository for DieselGroupRepository {
         });
         Ok(result?)
     }
+    fn add_user_to_group(&self, user_id: Uuid, group_id: Uuid) -> Result<Json<()>, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let new_user_in_group = NewUserInGroup {
+            user_id,
+            group_id,
+            role: Some(MyGroupRole::Member),
+        };
+        let _result = diesel::insert_into(user_in_group::table)
+            .values(&new_user_in_group)
+            .returning(UserInGroup::as_returning())
+            .get_result(&mut conn);
+        Ok(Json(())) //aca devuelvo un json vacío porque sí si se quiere cambiar que se cambie
+    }
     fn find_by_id(&self, id: Uuid) -> Result<Option<Group>, DbError> {
         let mut conn = self.db.get_conn()?;
         let result = group::table
