@@ -14,4 +14,5 @@ pub trait GroupRepository: Send + Sync {
     fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError>;
     fn is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError>;
     fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<Json<()>, DbError>;
+    fn add_user_to_group(&self, user_id: Uuid, group_id: Uuid) -> Result<Json<()>, DbError>;
 }
