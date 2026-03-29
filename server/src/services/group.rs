@@ -52,7 +52,7 @@ impl GroupService {
 
     pub fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, AppError> {
         if self.is_admin(user_id, group_id)? {
-            return Err(AppError::AlreadyAdmin);
+            return Err(AppError::Forbidden);
         }
         let result = self.group_repo.make_admin(user_id, group_id)?;
         Ok(result)
