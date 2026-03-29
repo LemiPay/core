@@ -23,9 +23,9 @@ use crate::data::state::AppState;
 use crate::repositories::diesel::auth_repo_impl::DieselAuthRepository;
 use crate::repositories::diesel::group_repo_impl::DieselGroupRepository;
 use crate::repositories::diesel::user_repo_impl::DieselUserRepository;
+// Services
 use crate::services::auth::AuthService;
 use crate::services::group::GroupService;
-// Services
 use crate::services::user::UserService;
 
 #[tokio::main]
