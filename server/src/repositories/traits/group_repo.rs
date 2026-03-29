@@ -1,5 +1,6 @@
 use crate::data::error::DbError;
 use crate::models::group::Group;
+use axum::Json;
 use uuid::Uuid;
 
 pub trait GroupRepository: Send + Sync {
@@ -11,4 +12,6 @@ pub trait GroupRepository: Send + Sync {
     ) -> Result<Group, DbError>;
     fn find_by_id(&self, id: Uuid) -> Result<Option<Group>, DbError>;
     fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError>;
+    fn is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError>;
+    fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<Json<()>, DbError>;
 }

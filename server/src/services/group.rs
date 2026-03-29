@@ -1,5 +1,6 @@
 use crate::models::group::Group;
 use crate::repositories::traits::group_repo::GroupRepository;
+use axum::Json;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -41,6 +42,18 @@ impl GroupService {
     }
     pub fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, AppError> {
         let result = self.group_repo.is_member(user_id, group_id)?;
+        Ok(result)
+    }
+    pub fn is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, AppError> {
+        let result = self.group_repo.is_admin(user_id, group_id)?;
+        Ok(result)
+    }
+
+    pub fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<Json<()>, AppError> {
+        if self.is_admin(user_id, group_id)? {
+            return Err(AppError::AlreadyAdmin);
+        }
+        let result = self.group_repo.make_admin(user_id, group_id)?;
         Ok(result)
     }
 }
