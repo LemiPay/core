@@ -77,28 +77,28 @@ impl GroupRepository for DieselGroupRepository {
             .optional()?;
         Ok(result.is_some())
     }
-    fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<Json<()>, DbError> {
+    fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, DbError> {
         let mut conn = self.db.get_conn()?;
 
-        let _ = diesel::update(user_in_group::table)
+        let result = diesel::update(user_in_group::table)
             .filter(user_in_group::group_id.eq(group_id))
             .filter(user_in_group::user_id.eq(user_id))
             .set(user_in_group::role.eq(MyGroupRole::Admin))
-            .execute(&mut conn)?;
+            .get_result::<UserInGroup>(&mut conn)?;
 
-        Ok(Json(()))
+        Ok(result)
     }
-    fn add_user_to_group(&self, user_id: Uuid, group_id: Uuid) -> Result<Json<()>, DbError> {
+    fn add_user_to_group(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, DbError> {
         let mut conn = self.db.get_conn()?;
         let new_user_in_group = NewUserInGroup {
             user_id,
             group_id,
             role: Some(MyGroupRole::Member),
         };
-        let _result = diesel::insert_into(user_in_group::table)
+        let result = diesel::insert_into(user_in_group::table)
             .values(&new_user_in_group)
             .returning(UserInGroup::as_returning())
             .get_result(&mut conn);
-        Ok(Json(())) //aca devuelvo un json vacío porque sí si se quiere cambiar que se cambie
+        Ok(result?) //aca devuelvo un json vacío porque sí si se quiere cambiar que se cambie
     }
 }

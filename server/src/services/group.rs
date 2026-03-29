@@ -8,6 +8,7 @@ use crate::errors::app_error::AppError;
 use crate::handlers::group::NewGroupRequest;
 
 use crate::helpers::validations::require_non_empty;
+use crate::models::user_in_group::UserInGroup;
 use validator::ValidateLength;
 
 #[derive(Clone)]
@@ -49,7 +50,7 @@ impl GroupService {
         Ok(result)
     }
 
-    pub fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<Json<()>, AppError> {
+    pub fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, AppError> {
         if self.is_admin(user_id, group_id)? {
             return Err(AppError::AlreadyAdmin);
         }
