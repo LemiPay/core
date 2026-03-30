@@ -3,6 +3,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { checkAuth } from '$lib/stores/store';
 	import { onMount } from 'svelte';
+	import '$lib/stores/appkit';
 
 	let { children } = $props();
 	//aca se podria hacer que si no esta autenticado lo redireccione solo
