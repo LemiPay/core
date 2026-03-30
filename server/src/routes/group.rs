@@ -9,27 +9,21 @@ use axum::{
 
 pub fn group_routes(state: SharedState) -> Router {
     Router::new()
-        .route(
-            "/create",
-            post(create_group).route_layer(middleware::from_fn(auth_middleware)),
-        )
+        .route("/create", post(create_group))
         .route(
             "/{id}",
-            get(get_group_by_id)
-                .route_layer(middleware::from_fn_with_state(
-                    state.clone(),
-                    is_in_group_middleware,
-                ))
-                .route_layer(middleware::from_fn(auth_middleware)),
+            get(get_group_by_id).route_layer(middleware::from_fn_with_state(
+                state.clone(),
+                is_in_group_middleware,
+            )),
         )
         .route(
             "/{id}/make_admin",
-            post(make_group_admin)
-                .route_layer(middleware::from_fn_with_state(
-                    state.clone(),
-                    is_group_admin_middleware,
-                ))
-                .route_layer(middleware::from_fn(auth_middleware)),
+            post(make_group_admin).route_layer(middleware::from_fn_with_state(
+                state.clone(),
+                is_group_admin_middleware,
+            )),
         )
+        .route_layer(middleware::from_fn(auth_middleware))
         .with_state(state)
 }
