@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::errors::app_error::AppError;
 use crate::handlers::group::NewGroupRequest;
 
+use crate::data::pool::DbConn;
 use crate::helpers::validations::require_non_empty;
 use crate::models::user_in_group::UserInGroup;
 use validator::ValidateLength;
@@ -19,7 +20,12 @@ impl GroupService {
     pub fn new(group_repo: Arc<dyn GroupRepository>) -> Self {
         Self { group_repo }
     }
-    pub fn create_group(&self, group: NewGroupRequest, id: Uuid) -> Result<Uuid, AppError> {
+    pub fn create_group(
+        &self,
+        group: NewGroupRequest,
+        id: Uuid,
+        conn: DbConn,
+    ) -> Result<Uuid, AppError> {
         let name = require_non_empty(group.name, "Name")?;
         let description = require_non_empty(group.description, "Description")?;
 
