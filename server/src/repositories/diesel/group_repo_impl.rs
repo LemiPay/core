@@ -1,9 +1,11 @@
 use crate::data::database::Db;
 use crate::data::error::DbError;
 use crate::models::group::{Group, MyGroupStatus, NewGroup};
-use crate::models::user_in_group::{MyGroupRole, NewUserInGroup, UserInGroup};
+use crate::models::user::User;
+use crate::models::user_in_group::{GroupMember, MyGroupRole, NewUserInGroup, UserInGroup};
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::schema::group;
+use crate::schema::user;
 use crate::schema::user_in_group;
 use axum::Json;
 use diesel::prelude::*;
@@ -117,5 +119,27 @@ impl GroupRepository for DieselGroupRepository {
             .first::<Group>(&mut conn)
             .optional()?;
         Ok(result.is_some())
+    }
+
+    fn get_group_members(&self, group_id: Uuid) -> Result<Vec<GroupMember>, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let raw_result = user_in_group::table
+            .inner_join(user::table)
+            .filter(user_in_group::group_id.eq(group_id))
+            .get_results::<(UserInGroup, User)>(&mut conn)?;
+
+        let members = raw_result
+            .into_iter()
+            .map(|(rel, u)| GroupMember {
+                user_id: u.id,
+                group_id: rel.group_id,
+                name: u.name,
+                email: u.email,
+                status: rel.status,
+                role: rel.role,
+            })
+            .collect();
+
+        Ok(members)
     }
 }

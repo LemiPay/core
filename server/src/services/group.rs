@@ -7,9 +7,11 @@ use uuid::Uuid;
 use crate::errors::app_error::AppError;
 use crate::handlers::group::NewGroupRequest;
 
+use crate::data::error::DbError;
 use crate::data::pool::DbConn;
 use crate::helpers::validations::require_non_empty;
-use crate::models::user_in_group::UserInGroup;
+use crate::models::user::User;
+use crate::models::user_in_group::{GroupMember, UserInGroup};
 use validator::ValidateLength;
 
 #[derive(Clone)]
@@ -63,6 +65,11 @@ impl GroupService {
             return Err(AppError::Forbidden);
         }
         let result = self.group_repo.delete_group(group_id)?;
+        Ok(result)
+    }
+
+    pub fn get_group_members(&self, group_id: Uuid) -> Result<Vec<GroupMember>, AppError> {
+        let result = self.group_repo.get_group_members(group_id)?;
         Ok(result)
     }
 }

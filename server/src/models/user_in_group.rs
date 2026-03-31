@@ -39,3 +39,12 @@ pub struct NewUserInGroup {
     pub group_id: Uuid,
     pub role: Option<MyGroupRole>,
 }
+#[derive(Serialize)]
+pub struct GroupMember {
+    pub user_id: Uuid,
+    pub group_id: Uuid,
+    pub name: String,
+    pub email: String,
+    pub status: MyGroupMemberStatus,
+    pub role: MyGroupRole,
+}

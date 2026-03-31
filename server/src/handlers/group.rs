@@ -2,7 +2,7 @@ use crate::data::state::{AppState, SharedState};
 use crate::errors::app_error::AppError;
 use crate::models::group::Group;
 use crate::models::user::User;
-use crate::models::user_in_group::UserInGroup;
+use crate::models::user_in_group::{GroupMember, UserInGroup};
 use crate::schema::vote::user_id;
 use crate::security::auth_extractor::AuthUser;
 use axum::{
@@ -52,5 +52,12 @@ pub async fn make_group_admin(
     let result = state
         .group_service
         .make_admin(payload.new_user_id, group_id)?;
+    Ok(Json(result))
+}
+pub async fn get_group_members(
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Vec<GroupMember>>, AppError> {
+    let result = state.group_service.get_group_members(group_id)?;
     Ok(Json(result))
 }
