@@ -1,6 +1,6 @@
 use crate::data::database::Db;
 use crate::data::error::DbError;
-use crate::models::group::{Group, MyGroupStatus, NewGroup};
+use crate::models::group::{Group, GroupUpdate, MyGroupStatus, NewGroup};
 use crate::models::user::User;
 use crate::models::user_in_group::{
     GroupFromUser, GroupMember, MyGroupMemberStatus, MyGroupRole, NewUserInGroup, UserInGroup,
@@ -167,5 +167,21 @@ impl GroupRepository for DieselGroupRepository {
             .collect();
 
         Ok(groups)
+    }
+    fn update_group_info(
+        &self,
+        group_id: Uuid,
+        group_update: GroupUpdate,
+    ) -> Result<Group, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = diesel::update(group::table)
+            .filter(group::id.eq(group_id))
+            .set((
+                &group_update,
+                group::updated_at.eq(chrono::Utc::now().naive_utc().date()),
+            ))
+            .get_result::<Group>(&mut conn)?;
+        Ok(result)
     }
 }

@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use diesel::{Insertable, Queryable, Selectable};
+use diesel::{AsChangeset, Insertable, Queryable, Selectable};
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -28,4 +28,11 @@ pub struct Group {
 pub struct NewGroup {
     pub name: String,
     pub description: String,
+}
+#[derive(Deserialize, AsChangeset)]
+#[diesel(table_name = group)]
+pub struct GroupUpdate {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub status: Option<MyGroupStatus>,
 }
