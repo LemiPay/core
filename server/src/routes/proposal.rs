@@ -20,8 +20,8 @@ pub fn proposal_routes(state: SharedState) -> Router {
                 ))
                 .route_layer(middleware::from_fn(auth_middleware)),
         )
-        .route(
-            "/{group_id}/new-member/",
+        .route(g
+            "/new-member/{group_id}",
             post(new_group_member)
                 .route_layer(middleware::from_fn_with_state(
                     state.clone(),
