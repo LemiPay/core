@@ -1,6 +1,6 @@
 use crate::data::database::Db;
 use crate::data::error::DbError;
-use crate::models::group::{Group, NewGroup};
+use crate::models::group::{Group, MyGroupStatus, NewGroup};
 use crate::models::user_in_group::{MyGroupRole, NewUserInGroup, UserInGroup};
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::schema::group;
@@ -100,5 +100,13 @@ impl GroupRepository for DieselGroupRepository {
             .returning(UserInGroup::as_returning())
             .get_result(&mut conn);
         Ok(result?) //aca devuelvo un json vacío porque sí si se quiere cambiar que se cambie
+    }
+
+    fn delete_group(&self, group_id: Uuid) -> Result<Group, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = diesel::update(group::table.filter(group::id.eq(group_id)))
+            .set(group::status.eq(MyGroupStatus::Ended))
+            .get_result::<Group>(&mut conn)?;
+        Ok(result)
     }
 }

@@ -47,11 +47,6 @@ impl GroupService {
             .ok_or(AppError::NotFound)?;
         Ok(found_group)
     }
-    pub fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, AppError> {
-        let result = self.group_repo.is_member(user_id, group_id)?;
-        Ok(result)
-    }
-
     pub fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, AppError> {
         if is_admin(user_id, group_id, self.group_repo.clone())? {
             return Err(AppError::Forbidden);
@@ -60,11 +55,11 @@ impl GroupService {
         Ok(result)
     }
 
-    pub fn delete(&self, user_id: Uuid, group_id: Uuid) -> Result<Uuid, AppError> {
+    pub fn delete(&self, user_id: Uuid, group_id: Uuid) -> Result<Group, AppError> {
         if is_admin(user_id, group_id, self.group_repo.clone())? {
             return Err(AppError::Forbidden);
         }
-        let result = self.group_repo.deleteGroup(group_id)?;
-        Ok(result);
+        let result = self.group_repo.delete_group(group_id)?;
+        Ok(result)
     }
 }
