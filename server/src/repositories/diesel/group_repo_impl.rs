@@ -2,7 +2,9 @@ use crate::data::database::Db;
 use crate::data::error::DbError;
 use crate::models::group::{Group, MyGroupStatus, NewGroup};
 use crate::models::user::User;
-use crate::models::user_in_group::{GroupMember, MyGroupRole, NewUserInGroup, UserInGroup};
+use crate::models::user_in_group::{
+    GroupFromUser, GroupMember, MyGroupMemberStatus, MyGroupRole, NewUserInGroup, UserInGroup,
+};
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::schema::group;
 use crate::schema::user;
@@ -126,6 +128,7 @@ impl GroupRepository for DieselGroupRepository {
         let raw_result = user_in_group::table
             .inner_join(user::table)
             .filter(user_in_group::group_id.eq(group_id))
+            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
             .get_results::<(UserInGroup, User)>(&mut conn)?;
 
         let members = raw_result
@@ -141,5 +144,28 @@ impl GroupRepository for DieselGroupRepository {
             .collect();
 
         Ok(members)
+    }
+
+    fn get_user_groups(&self, user_id: Uuid) -> Result<Vec<GroupFromUser>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let raw_results = group::table
+            .inner_join(user_in_group::table)
+            .filter(user_in_group::user_id.eq(user_id))
+            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
+            .get_results::<(Group, UserInGroup)>(&mut conn)?;
+
+        let groups = raw_results
+            .into_iter()
+            .map(|(g, rel)| GroupFromUser {
+                user_id: rel.user_id,
+                group_id: g.id,
+                group_name: g.name,
+                group_description: g.description,
+                status: g.status,
+            })
+            .collect();
+
+        Ok(groups)
     }
 }

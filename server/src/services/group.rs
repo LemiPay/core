@@ -11,7 +11,7 @@ use crate::data::error::DbError;
 use crate::data::pool::DbConn;
 use crate::helpers::validations::require_non_empty;
 use crate::models::user::User;
-use crate::models::user_in_group::{GroupMember, UserInGroup};
+use crate::models::user_in_group::{GroupFromUser, GroupMember, UserInGroup};
 use validator::ValidateLength;
 
 #[derive(Clone)]
@@ -70,6 +70,12 @@ impl GroupService {
 
     pub fn get_group_members(&self, group_id: Uuid) -> Result<Vec<GroupMember>, AppError> {
         let result = self.group_repo.get_group_members(group_id)?;
+        Ok(result)
+    }
+
+    pub fn get_user_groups(&self, user_id: Uuid) -> Result<Vec<GroupFromUser>, AppError> {
+        let result = self.group_repo.get_user_groups(user_id)?;
+
         Ok(result)
     }
 }

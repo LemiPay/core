@@ -2,7 +2,7 @@ use crate::data::state::{AppState, SharedState};
 use crate::errors::app_error::AppError;
 use crate::models::group::Group;
 use crate::models::user::User;
-use crate::models::user_in_group::{GroupMember, UserInGroup};
+use crate::models::user_in_group::{GroupFromUser, GroupMember, UserInGroup};
 use crate::schema::vote::user_id;
 use crate::security::auth_extractor::AuthUser;
 use axum::{
@@ -59,5 +59,12 @@ pub async fn get_group_members(
     Path(group_id): Path<Uuid>,
 ) -> Result<Json<Vec<GroupMember>>, AppError> {
     let result = state.group_service.get_group_members(group_id)?;
+    Ok(Json(result))
+}
+pub async fn get_user_groups(
+    State(state): State<SharedState>,
+    user: AuthUser,
+) -> Result<Json<Vec<GroupFromUser>>, AppError> {
+    let result = state.group_service.get_user_groups(user.user_id)?;
     Ok(Json(result))
 }

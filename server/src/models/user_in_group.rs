@@ -1,3 +1,4 @@
+use crate::models::group::MyGroupStatus;
 use crate::schema::user_in_group;
 use chrono::NaiveDateTime;
 use diesel::{Insertable, Queryable, Selectable};
@@ -47,4 +48,13 @@ pub struct GroupMember {
     pub email: String,
     pub status: MyGroupMemberStatus,
     pub role: MyGroupRole,
+}
+
+#[derive(Serialize)]
+pub struct GroupFromUser {
+    pub user_id: Uuid,
+    pub group_id: Uuid,
+    pub group_name: String,
+    pub group_description: String,
+    pub status: MyGroupStatus,
 }

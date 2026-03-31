@@ -1,7 +1,7 @@
 use crate::data::error::DbError;
 use crate::models::group::Group;
 use crate::models::user::User;
-use crate::models::user_in_group::{GroupMember, UserInGroup};
+use crate::models::user_in_group::{GroupFromUser, GroupMember, UserInGroup};
 use axum::Json;
 use uuid::Uuid;
 
@@ -20,4 +20,5 @@ pub trait GroupRepository: Send + Sync {
     fn delete_group(&self, group_id: Uuid) -> Result<Group, DbError>;
     fn is_group_active(&self, group_id: Uuid) -> Result<bool, DbError>;
     fn get_group_members(&self, group_id: Uuid) -> Result<Vec<GroupMember>, DbError>;
+    fn get_user_groups(&self, user_id: Uuid) -> Result<Vec<GroupFromUser>, DbError>;
 }
