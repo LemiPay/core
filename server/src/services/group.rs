@@ -78,4 +78,6 @@ impl GroupService {
 
         Ok(result)
     }
+
+    //todo update_group_info fn required -> alta paja ahora
 }
