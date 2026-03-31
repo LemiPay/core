@@ -22,6 +22,11 @@ pub enum MyVoteType {
     Abstain,
 }
 
+#[derive(Serialize)]
+pub enum ProposalType {
+    NewMember,
+}
+
 #[derive(Queryable, Serialize, Selectable)]
 #[diesel(table_name = proposal)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
