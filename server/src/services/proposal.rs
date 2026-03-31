@@ -2,7 +2,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::app_error::AppError;
-use crate::models::proposal::Proposal;
+use crate::helpers::validations::{require_non_empty, require_non_empty_uuid};
+use crate::models::proposal::{NewProposal, Proposal};
 use crate::models::proposals::new_member::{NewMemberProposal, NewMemberProposalExpanded};
 // Repos
 use crate::repositories::traits::proposal_repo::ProposalRepository;
@@ -62,6 +63,30 @@ impl ProposalService {
             .proposal_repo
             .find_my_proposals(created_by)
             .map_err(AppError::Db)?;
+
+        Ok(result)
+    }
+
+    /// # Create new member proposal
+    /// Creates a new proposal for a user to join a group. The proposal is created with
+    /// the status "pending" and can be accepted or rejected by an admin of the group.
+    pub fn create_new_member_proposal(
+        &self,
+        created_by: Uuid,
+        group_id: Uuid,
+        new_user_id: Option<Uuid>,
+    ) -> Result<NewMemberProposalExpanded, AppError> {
+        // TODO: validate: new_user in group
+        // TODO: validate: new_user not in group
+        let new_member_id = require_non_empty_uuid(new_user_id, "New User ID")?;
+
+        let result = self.proposal_repo.create_new_member_proposal(
+            NewProposal {
+                group_id,
+                created_by,
+            },
+            new_member_id,
+        )?;
 
         Ok(result)
     }

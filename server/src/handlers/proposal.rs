@@ -33,3 +33,21 @@ pub async fn my_proposals(
     let proposals = state.proposal_service.get_my_proposals(user.user_id)?;
     Ok(Json(ProposalsResponse { proposals }))
 }
+
+#[derive(Deserialize)]
+pub struct NewMemberRequest {
+    pub user_id: Option<Uuid>,
+}
+
+pub async fn new_group_member(
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+    user: AuthUser,
+    Json(payload): Json<NewMemberRequest>,
+) -> Result<Json<NewMemberProposalExpanded>, AppError> {
+    let new_proposal =
+        state
+            .proposal_service
+            .create_new_member_proposal(user.user_id, group_id, payload.user_id);
+    Ok(Json(new_proposal?))
+}

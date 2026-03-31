@@ -27,5 +27,5 @@ pub fn create_router(state: SharedState) -> Router {
         .nest("/auth", auth_routes(state.clone()))
         .nest("/group", group_routes(state.clone()))
         .nest("/proposal", proposal_routes(state.clone()))
-        .layer(cors) //este layer tiene que ir al final de la creacion del Router por si dsp hay que agregar otros nest
+        .layer(cors) //este layer tiene que ir al final de la creación del Router por si dsp hay que agregar otros nest
 }

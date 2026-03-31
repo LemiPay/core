@@ -1,13 +1,12 @@
-use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, RunQueryDsl};
+use diesel::{Connection, ExpressionMethods, JoinOnDsl, QueryDsl, RunQueryDsl, SelectableHelper};
 use uuid::Uuid;
 
 use crate::repositories::traits::proposal_repo::ProposalRepository;
 
 use crate::data::database::Db;
 use crate::data::error::DbError;
-
 // Models
-use crate::models::proposal::{Proposal, ProposalType};
+use crate::models::proposal::{NewProposal, Proposal, ProposalType};
 use crate::models::proposals::new_member::{NewMemberProposal, NewMemberProposalExpanded};
 
 // Schema
@@ -67,5 +66,38 @@ impl ProposalRepository for DieselProposalRepository {
             .collect();
 
         Ok(parsed)
+    }
+
+    fn create_new_member_proposal(
+        &self,
+        new_proposal: NewProposal,
+        new_user_id: Uuid,
+    ) -> Result<NewMemberProposalExpanded, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = conn.transaction::<NewMemberProposalExpanded, DbError, _>(|this_conn| {
+            let proposal = diesel::insert_into(proposal::table)
+                .values(&new_proposal)
+                .returning(Proposal::as_returning())
+                .get_result(this_conn)?;
+
+            let params = NewMemberProposal {
+                proposal_id: proposal.id,
+                new_member_id: new_user_id,
+            };
+
+            let new_member_proposal = diesel::insert_into(new_member_proposal::table)
+                .values(&params)
+                .returning(NewMemberProposal::as_returning())
+                .get_result(this_conn)?;
+
+            Ok(NewMemberProposalExpanded {
+                proposal,
+                new_member_proposal,
+                proposal_type: ProposalType::NewMember,
+            })
+        })?;
+
+        Ok(result)
     }
 }

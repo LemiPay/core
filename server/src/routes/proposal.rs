@@ -1,7 +1,8 @@
 use crate::data::state::SharedState;
-use crate::handlers::proposal::{group_proposals, my_proposals};
+use crate::handlers::proposal::{group_proposals, my_proposals, new_group_member};
 use crate::security::auth_middleware::auth_middleware;
-use crate::security::is_in_group_middleware::is_in_group_middleware;
+use crate::security::is_in_group_middleware::{is_group_admin_middleware, is_in_group_middleware};
+use axum::routing::post;
 use axum::{Router, middleware, routing::get};
 
 pub fn proposal_routes(state: SharedState) -> Router {
@@ -16,6 +17,15 @@ pub fn proposal_routes(state: SharedState) -> Router {
                 .route_layer(middleware::from_fn_with_state(
                     state.clone(),
                     is_in_group_middleware,
+                ))
+                .route_layer(middleware::from_fn(auth_middleware)),
+        )
+        .route(
+            "/{group_id}/new-member/",
+            post(new_group_member)
+                .route_layer(middleware::from_fn_with_state(
+                    state.clone(),
+                    is_group_admin_middleware,
                 ))
                 .route_layer(middleware::from_fn(auth_middleware)),
         )

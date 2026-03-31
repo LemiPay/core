@@ -50,6 +50,6 @@ pub struct MeResponse {
 }
 
 pub async fn get_me(user: AuthUser) -> Result<Json<MeResponse>, AppError> {
-    // El parametro es un User pero que ya valida que este authed
+    // El parámetro es un User, pero que ya fue validada que este authed
     Ok(Json(MeResponse { id: user.user_id }))
 }
