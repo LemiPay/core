@@ -20,6 +20,9 @@ impl GroupService {
     pub fn new(group_repo: Arc<dyn GroupRepository>) -> Self {
         Self { group_repo }
     }
+    pub fn get_group_repo(&self) -> Arc<dyn GroupRepository> {
+        self.group_repo.clone()
+    }
     pub fn create_group(
         &self,
         group: NewGroupRequest,

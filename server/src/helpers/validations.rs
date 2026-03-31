@@ -30,3 +30,10 @@ pub fn is_member(
     let result = group_repo.is_member(user_id, group_id)?;
     Ok(result)
 }
+pub fn is_group_active(
+    group_id: Uuid,
+    group_repo: Arc<dyn GroupRepository>,
+) -> Result<bool, AppError> {
+    let result = group_repo.is_group_active(group_id)?;
+    Ok(result)
+}

@@ -109,4 +109,13 @@ impl GroupRepository for DieselGroupRepository {
             .get_result::<Group>(&mut conn)?;
         Ok(result)
     }
+    fn is_group_active(&self, group_id: Uuid) -> Result<bool, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = group::table
+            .filter(group::id.eq(group_id))
+            .filter(group::status.eq(MyGroupStatus::Active))
+            .first::<Group>(&mut conn)
+            .optional()?;
+        Ok(result.is_some())
+    }
 }
