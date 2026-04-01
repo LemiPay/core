@@ -47,7 +47,7 @@ impl GroupRepository for DieselGroupRepository {
             let _user_in_group_result = diesel::insert_into(user_in_group::table)
                 .values(&new_user_in_group)
                 .returning(UserInGroup::as_returning())
-                .get_result(conn);
+                .get_result(conn)?;
             Ok(group_result)
         });
         Ok(result?)
