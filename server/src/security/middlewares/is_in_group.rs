@@ -1,5 +1,4 @@
 use crate::data::state::SharedState;
-use crate::schema::vote::user_id;
 use crate::security::auth_extractor::AuthUser;
 use axum::body::Body;
 use axum::{

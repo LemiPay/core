@@ -1,5 +1,6 @@
 use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
+use crate::models::proposal::Proposal;
 use crate::models::proposals::new_member::NewMemberProposalExpanded;
 use crate::security::auth_extractor::AuthUser;
 use axum::extract::Path;
@@ -50,4 +51,12 @@ pub async fn new_group_member(
             .proposal_service
             .create_new_member_proposal(user.user_id, group_id, payload.user_id);
     Ok(Json(new_proposal?))
+}
+
+pub async fn delete_proposal(
+    State(state): State<SharedState>,
+    Path(proposal_id): Path<Uuid>,
+) -> Result<Json<Proposal>, AppError> {
+    let delete_proposal = state.proposal_service.logic_proposal_delete(proposal_id)?;
+    Ok(Json(delete_proposal))
 }

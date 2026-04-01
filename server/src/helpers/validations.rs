@@ -1,4 +1,6 @@
+use crate::data::error::DbError;
 use crate::errors::app_error::AppError;
+use crate::models::proposal::Proposal;
 use uuid::Uuid;
 
 pub fn require_non_empty(value: Option<String>, field: &str) -> Result<String, AppError> {
@@ -19,4 +21,12 @@ pub fn require_non_empty_uuid(value: Option<Uuid>, field: &str) -> Result<Uuid, 
     }
 
     Ok(value)
+}
+
+pub(crate) fn check_proposal_exists(proposal: Result<Option<Proposal>, DbError>) -> bool {
+    match proposal {
+        Ok(Some(_)) => true,
+        Ok(None) => false,
+        Err(_) => false, // Handle the error as needed
+    }
 }

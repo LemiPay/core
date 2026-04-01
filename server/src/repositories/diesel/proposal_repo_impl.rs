@@ -1,4 +1,7 @@
-use diesel::{Connection, ExpressionMethods, JoinOnDsl, QueryDsl, RunQueryDsl, SelectableHelper};
+use diesel::{
+    Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, RunQueryDsl,
+    SelectableHelper,
+};
 use uuid::Uuid;
 
 use crate::repositories::traits::proposal_repo::ProposalRepository;
@@ -6,7 +9,7 @@ use crate::repositories::traits::proposal_repo::ProposalRepository;
 use crate::data::database::Db;
 use crate::data::error::DbError;
 // Models
-use crate::models::proposal::{NewProposal, Proposal, ProposalType};
+use crate::models::proposal::{NewProposal, Proposal, ProposalType, ProposalUpdate};
 use crate::models::proposals::new_member::{NewMemberProposal, NewMemberProposalExpanded};
 
 // Schema
@@ -68,6 +71,16 @@ impl ProposalRepository for DieselProposalRepository {
         Ok(parsed)
     }
 
+    fn find(&self, proposal_id: Uuid) -> Result<Option<Proposal>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = proposal::table
+            .filter(proposal::id.eq(proposal_id))
+            .first::<Proposal>(&mut conn)
+            .optional()?;
+        Ok(result)
+    }
+
     fn create_new_member_proposal(
         &self,
         new_proposal: NewProposal,
@@ -97,6 +110,20 @@ impl ProposalRepository for DieselProposalRepository {
                 proposal_type: ProposalType::NewMember,
             })
         })?;
+
+        Ok(result)
+    }
+
+    fn update_proposal_status(
+        &self,
+        proposal_id: Uuid,
+        params: ProposalUpdate,
+    ) -> Result<Proposal, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = diesel::update(proposal::table.filter(proposal::id.eq(proposal_id)))
+            .set(params)
+            .get_result::<Proposal>(&mut conn)?;
 
         Ok(result)
     }

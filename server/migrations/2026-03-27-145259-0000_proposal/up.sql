@@ -7,7 +7,10 @@ CREATE TYPE proposal_status AS ENUM (
     'pending',
     'approved',
     'rejected',
-    'executed'
+    'executed',
+    'canceled',
+    'expired',
+    'failed'
 );
 
 CREATE TYPE vote_type AS ENUM (

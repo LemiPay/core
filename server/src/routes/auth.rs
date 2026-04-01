@@ -1,6 +1,6 @@
 use crate::data::state::SharedState;
 use crate::handlers::auth::{get_me, login, register};
-use crate::security::auth_middleware::auth_middleware;
+use crate::security::middlewares::auth::auth_middleware;
 use axum::{
     Router, middleware,
     routing::{get, post},

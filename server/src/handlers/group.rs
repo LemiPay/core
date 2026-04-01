@@ -1,9 +1,7 @@
-use crate::data::state::{AppState, SharedState};
+use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
 use crate::models::group::Group;
-use crate::models::user::User;
 use crate::models::user_in_group::UserInGroup;
-use crate::schema::vote::user_id;
 use crate::security::auth_extractor::AuthUser;
 use axum::{
     Json,

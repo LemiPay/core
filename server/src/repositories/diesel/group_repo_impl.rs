@@ -5,7 +5,6 @@ use crate::models::user_in_group::{MyGroupRole, NewUserInGroup, UserInGroup};
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::schema::group;
 use crate::schema::user_in_group;
-use axum::Json;
 use diesel::prelude::*;
 use uuid::Uuid;
 

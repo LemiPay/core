@@ -1,9 +1,11 @@
 use crate::data::state::SharedState;
-use crate::handlers::proposal::{group_proposals, my_proposals, new_group_member};
-use crate::security::auth_middleware::auth_middleware;
-use crate::security::is_in_group_middleware::{is_group_admin_middleware, is_in_group_middleware};
-use axum::routing::post;
-use axum::{Router, middleware, routing::get};
+use crate::handlers::proposal::{delete_proposal, group_proposals, my_proposals, new_group_member};
+use crate::security::middlewares::auth::auth_middleware;
+use crate::security::middlewares::is_in_group::{
+    is_group_admin_middleware, is_in_group_middleware,
+};
+use axum::routing::{delete, get, post};
+use axum::{Router, middleware};
 
 pub fn proposal_routes(state: SharedState) -> Router {
     Router::new()
@@ -28,6 +30,11 @@ pub fn proposal_routes(state: SharedState) -> Router {
                     is_group_admin_middleware,
                 ))
                 .route_layer(middleware::from_fn(auth_middleware)),
+        )
+        .route(
+            "/{proposal_id}",
+            delete(delete_proposal), // put(update_proposal)
+                                     // El put hay que repensarlo, tiene varias opciones
         )
         .with_state(state)
 }

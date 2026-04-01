@@ -1,7 +1,6 @@
 use crate::data::error::DbError;
 use crate::models::group::Group;
 use crate::models::user_in_group::UserInGroup;
-use axum::Json;
 use uuid::Uuid;
 
 pub trait GroupRepository: Send + Sync {

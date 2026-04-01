@@ -1,15 +1,15 @@
-use crate::models::group::Group;
-use crate::repositories::traits::group_repo::GroupRepository;
-use axum::Json;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::errors::app_error::AppError;
 use crate::handlers::group::NewGroupRequest;
+use crate::models::group::Group;
+use crate::models::user_in_group::UserInGroup;
+use crate::repositories::traits::group_repo::GroupRepository;
 
 use crate::data::pool::DbConn;
+
+use crate::errors::app_error::AppError;
 use crate::helpers::validations::require_non_empty;
-use crate::models::user_in_group::UserInGroup;
 use validator::ValidateLength;
 
 #[derive(Clone)]
