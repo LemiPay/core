@@ -28,6 +28,8 @@ pub enum AppError {
 
     #[error("Invalid credentials")]
     Unauthorized,
+    #[error("Forbidden")]
+    Forbidden,
 }
 
 #[derive(Serialize)]
@@ -44,6 +46,7 @@ impl IntoResponse for AppError {
             AppError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             AppError::PasswordHash(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, self.to_string()),
+            AppError::Forbidden => (StatusCode::FORBIDDEN, self.to_string()),
         };
 
         let body = Json(ErrorResponse { message });
