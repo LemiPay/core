@@ -120,7 +120,7 @@ impl ProposalService {
         proposal_id: Uuid,
         status: MyProposalStatus,
     ) -> Result<Proposal, AppError> {
-        let valid = check_proposal_exists(self.proposal_repo.find(proposal_id));
+        let valid = check_proposal_exists(self.proposal_repo.find(proposal_id))?;
 
         if !valid {
             return Err(AppError::BadRequest("Proposal does not exist".to_string()));
@@ -132,7 +132,7 @@ impl ProposalService {
     }
 
     pub fn logic_proposal_delete(&self, proposal_id: Uuid) -> Result<Proposal, AppError> {
-        let valid = check_proposal_exists(self.proposal_repo.find(proposal_id));
+        let valid = check_proposal_exists(self.proposal_repo.find(proposal_id))?;
 
         if !valid {
             return Err(AppError::BadRequest("Proposal does not exist".to_string()));

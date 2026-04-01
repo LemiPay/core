@@ -8,12 +8,6 @@ use axum::{Json, extract::State};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Deserialize)]
-pub struct GroupProposalRequest {
-    pub email: Option<String>,
-    pub password: Option<String>,
-}
-
 #[derive(Serialize)]
 pub struct ProposalsResponse {
     proposals: Vec<NewMemberProposalExpanded>,

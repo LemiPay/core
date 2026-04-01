@@ -33,8 +33,13 @@ pub fn proposal_routes(state: SharedState) -> Router {
         )
         .route(
             "/{proposal_id}",
-            delete(delete_proposal), // put(update_proposal)
-                                     // El put hay que repensarlo, tiene varias opciones
+            delete(delete_proposal) // put(update_proposal)
+                // El put hay que repensarlo, tiene varias opciones
+                .route_layer(middleware::from_fn_with_state(
+                    state.clone(),
+                    is_group_admin_middleware,
+                ))
+                .route_layer(middleware::from_fn(auth_middleware)),
         )
         .with_state(state)
 }
