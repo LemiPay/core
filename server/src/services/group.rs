@@ -6,10 +6,7 @@ use uuid::Uuid;
 use crate::errors::app_error::AppError;
 use crate::handlers::group::NewGroupRequest;
 
-use crate::data::error::DbError;
-use crate::data::pool::DbConn;
 use crate::helpers::validations::require_non_empty;
-use crate::models::user::User;
 use crate::models::user_in_group::{GroupFromUser, GroupMember, UserInGroup};
 use validator::ValidateLength;
 

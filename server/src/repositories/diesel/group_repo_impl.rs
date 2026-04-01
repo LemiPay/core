@@ -9,7 +9,6 @@ use crate::repositories::traits::group_repo::GroupRepository;
 use crate::schema::group;
 use crate::schema::user;
 use crate::schema::user_in_group;
-use axum::Json;
 use diesel::prelude::*;
 use uuid::Uuid;
 
