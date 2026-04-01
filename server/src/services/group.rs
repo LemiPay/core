@@ -28,7 +28,7 @@ impl GroupService {
         let valid = ValidateLength::validate_length(&name, Some(4), Some(30), None)
             && ValidateLength::validate_length(&description, Some(8), Some(30), None);
         if !valid {
-            return Err(AppError::BadRequest("Invalid registration data".into()));
+            return Err(AppError::BadRequest("Invalid group name or description".into()));
         }
 
         let group = self.group_repo.create_group(name, description, id);
