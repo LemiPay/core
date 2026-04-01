@@ -46,7 +46,7 @@ async fn main() {
     let group_service = GroupService::new(group_repo);
 
     let state = Arc::new(AppState {
-        db: db.clone(),
+       
         user_service,
         auth_service,
         group_service,
