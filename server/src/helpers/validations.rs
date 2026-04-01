@@ -12,19 +12,3 @@ pub fn require_non_empty(value: Option<String>, field: &str) -> Result<String, A
 
     Ok(value)
 }
-
-pub fn is_member(
-    user_id: Uuid,
-    group_id: Uuid,
-    group_repo: Arc<dyn GroupRepository>,
-) -> Result<bool, AppError> {
-    let result = group_repo.is_member(user_id, group_id)?;
-    Ok(result)
-}
-pub fn is_group_active(
-    group_id: Uuid,
-    group_repo: Arc<dyn GroupRepository>,
-) -> Result<bool, AppError> {
-    let result = group_repo.is_group_active(group_id)?;
-    Ok(result)
-}

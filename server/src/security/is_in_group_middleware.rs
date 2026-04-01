@@ -1,6 +1,4 @@
 use crate::data::state::SharedState;
-use crate::helpers::validations::{is_group_active, is_member};
-use crate::schema::vote::user_id;
 use crate::security::auth_extractor::AuthUser;
 use axum::body::Body;
 use axum::{
@@ -19,11 +17,15 @@ pub async fn is_in_group_middleware(
     next: Next,
 ) -> Result<Response, StatusCode> {
     let group_repo = state.group_service.get_group_repo();
-    if !is_group_active(group_id, group_repo.clone()).unwrap_or(false) {
+
+    let is_active = group_repo
+        .is_group_active(group_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if !is_active {
         return Err(StatusCode::FORBIDDEN);
     }
-
-    match is_member(user.user_id, group_id, group_repo) {
+    match group_repo.is_member(user.user_id, group_id) {
         Ok(true) => Ok(next.run(req).await),
         Ok(false) => Err(StatusCode::FORBIDDEN),
         Err(_) => Err(StatusCode::BAD_REQUEST),
@@ -37,7 +39,10 @@ pub async fn is_group_admin_middleware(
     next: Next,
 ) -> Result<Response, StatusCode> {
     let group_repo = state.group_service.get_group_repo();
-    if !is_group_active(group_id, group_repo.clone()).unwrap_or(false) {
+    let is_active = group_repo
+        .is_group_active(group_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if !is_active {
         return Err(StatusCode::FORBIDDEN);
     }
     match group_repo.is_admin(user.user_id, group_id) {

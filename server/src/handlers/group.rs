@@ -31,9 +31,7 @@ pub async fn create_group(
     Json(payload): Json<NewGroupRequest>,
 ) -> Result<Json<NewGroupResponse>, AppError> {
     let conn = state.db.get_conn()?;
-    let group_id = state
-        .group_service
-        .create_group(payload, user.user_id, conn);
+    let group_id = state.group_service.create_group(payload, user.user_id);
     Ok(Json(NewGroupResponse { id: group_id? }))
 }
 pub async fn get_group_by_id(
