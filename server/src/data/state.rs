@@ -9,7 +9,6 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Db,
     pub user_service: UserService,
     pub auth_service: AuthService,
     pub group_service: GroupService,
