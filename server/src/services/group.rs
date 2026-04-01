@@ -1,4 +1,3 @@
-use crate::helpers::validations::is_admin;
 use crate::models::group::Group;
 use crate::repositories::traits::group_repo::GroupRepository;
 use std::sync::Arc;
@@ -25,12 +24,7 @@ impl GroupService {
     pub fn get_group_repo(&self) -> Arc<dyn GroupRepository> {
         self.group_repo.clone()
     }
-    pub fn create_group(
-        &self,
-        group: NewGroupRequest,
-        id: Uuid,
-        conn: DbConn,
-    ) -> Result<Uuid, AppError> {
+    pub fn create_group(&self, group: NewGroupRequest, id: Uuid) -> Result<Uuid, AppError> {
         let name = require_non_empty(group.name, "Name")?;
         let description = require_non_empty(group.description, "Description")?;
 
@@ -53,15 +47,12 @@ impl GroupService {
         Ok(found_group)
     }
     pub fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, AppError> {
-        if is_admin(user_id, group_id, self.group_repo.clone())? {
-            return Err(AppError::Forbidden);
-        }
         let result = self.group_repo.make_admin(user_id, group_id)?;
         Ok(result)
     }
 
     pub fn delete(&self, user_id: Uuid, group_id: Uuid) -> Result<Group, AppError> {
-        if is_admin(user_id, group_id, self.group_repo.clone())? {
+        if (self.group_repo.is_admin(user_id, group_id)?) {
             return Err(AppError::Forbidden);
         }
         let result = self.group_repo.delete_group(group_id)?;
