@@ -49,7 +49,7 @@ impl GroupService {
     }
 
     pub fn delete(&self, user_id: Uuid, group_id: Uuid) -> Result<Group, AppError> {
-        if (self.group_repo.is_admin(user_id, group_id)?) {
+        if !self.group_repo.is_admin(user_id, group_id)? {
             return Err(AppError::Forbidden);
         }
         let result = self.group_repo.delete_group(group_id)?;
