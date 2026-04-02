@@ -63,6 +63,12 @@ impl GroupService {
     }
 
     pub fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, AppError> {
+        // Validate if user in group
+        if !self.group_repo.is_member(user_id, group_id)? {
+            return Err(AppError::BadRequest("User not in group".into()));
+        }
+
+        // Validate if not admin
         if self.is_admin(user_id, group_id)? {
             return Err(AppError::BadRequest("User is already an admin".into()));
         }
