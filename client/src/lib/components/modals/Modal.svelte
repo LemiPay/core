@@ -13,7 +13,17 @@
 		loading?: boolean;
 	}
 
-	const { open, title, description, onclose, children, footer, error, success, loading = false }: Props = $props();
+	const {
+		open,
+		title,
+		description,
+		onclose,
+		children,
+		footer,
+		error,
+		success,
+		loading = false
+	}: Props = $props();
 
 	function handleBackdropClick(e: MouseEvent) {
 		if (loading) return;
@@ -77,12 +87,10 @@
 			<!-- Body / Status / Footer -->
 			<div class="relative">
 				{#if loading}
-					<div class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/70">
-						<svg
-							class="h-5 w-5 animate-spin text-gray-700"
-							viewBox="0 0 24 24"
-							fill="none"
-						>
+					<div
+						class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/70"
+					>
+						<svg class="h-5 w-5 animate-spin text-gray-700" viewBox="0 0 24 24" fill="none">
 							<circle
 								class="opacity-20"
 								cx="12"
@@ -100,7 +108,7 @@
 					</div>
 				{/if}
 
-				<div class="{loading ? 'pointer-events-none select-none opacity-40' : ''}">
+				<div class={loading ? 'pointer-events-none opacity-40 select-none' : ''}>
 					<!-- Body -->
 					<div class="space-y-4">
 						{@render children()}
@@ -108,7 +116,9 @@
 
 					<!-- Status message -->
 					{#if error}
-						<div class="mt-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">
+						<div
+							class="mt-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600"
+						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								class="h-4 w-4 shrink-0"
@@ -126,7 +136,9 @@
 							{error}
 						</div>
 					{:else if success}
-						<div class="mt-4 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-600">
+						<div
+							class="mt-4 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-600"
+						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								class="h-4 w-4 shrink-0"

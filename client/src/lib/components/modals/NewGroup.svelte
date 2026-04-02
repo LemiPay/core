@@ -23,7 +23,7 @@
 
 	async function createGroup() {
 		// TODO: implement group creation
-		console.log(name, description)
+		console.log(name, description);
 	}
 
 	async function handleSubmit(e: SubmitEvent) {
@@ -87,8 +87,14 @@
 	{/snippet}
 
 	{#snippet footer()}
-	    <Button label="Cancel" variant="secondary" onclick={handleClose}/>
-		
-		<Button label="Create group" type="submit" form="new-group-form" disabled={!formValid} {loading} />
+		<Button label="Cancel" variant="secondary" onclick={handleClose} />
+
+		<Button
+			label="Create group"
+			type="submit"
+			form="new-group-form"
+			disabled={!formValid}
+			{loading}
+		/>
 	{/snippet}
 </Modal>
