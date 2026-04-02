@@ -1,9 +1,12 @@
-use crate::schema::user_in_group;
 use chrono::NaiveDateTime;
-use diesel::{Insertable, Queryable, Selectable};
-use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+use diesel::{Insertable, Queryable, Selectable};
+use diesel_derive_enum::DbEnum;
+
+use crate::models::group::MyGroupStatus;
+use crate::schema::user_in_group;
 
 #[derive(Debug, DbEnum, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[db_enum(existing_type_path = "crate::schema::sql_types::GroupRole")]
@@ -38,4 +41,24 @@ pub struct NewUserInGroup {
     pub user_id: Uuid,
     pub group_id: Uuid,
     pub role: Option<MyGroupRole>,
+}
+
+#[derive(Serialize)]
+pub struct GroupMember {
+    pub user_id: Uuid,
+    pub group_id: Uuid,
+    pub name: String,
+    pub email: String,
+    pub status: MyGroupMemberStatus,
+    pub role: MyGroupRole,
+}
+
+#[derive(Serialize)]
+pub struct GroupFromUser {
+    pub user_id: Uuid,
+    pub group_id: Uuid,
+    pub role: Option<MyGroupRole>,
+    pub group_name: String,
+    pub group_description: String,
+    pub status: MyGroupStatus,
 }

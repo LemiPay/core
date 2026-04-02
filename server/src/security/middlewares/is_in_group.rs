@@ -19,7 +19,7 @@ pub async fn is_in_group_middleware(
     match state.group_service.is_member(user.user_id, group_id) {
         Ok(true) => Ok(next.run(req).await),
         Ok(false) => Err(StatusCode::FORBIDDEN),
-        Err(_) => Err(StatusCode::BAD_REQUEST),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 pub async fn is_group_admin_middleware(
@@ -32,6 +32,6 @@ pub async fn is_group_admin_middleware(
     match state.group_service.is_admin(user.user_id, group_id) {
         Ok(true) => Ok(next.run(req).await),
         Ok(false) => Err(StatusCode::FORBIDDEN),
-        Err(_) => Err(StatusCode::BAD_REQUEST),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }

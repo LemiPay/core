@@ -24,6 +24,7 @@ use crate::repositories::diesel::auth_repo_impl::DieselAuthRepository;
 use crate::repositories::diesel::group_repo_impl::DieselGroupRepository;
 use crate::repositories::diesel::proposal_repo_impl::DieselProposalRepository;
 use crate::repositories::diesel::user_repo_impl::DieselUserRepository;
+
 // Services
 use crate::services::auth::AuthService;
 use crate::services::group::GroupService;
@@ -52,7 +53,6 @@ async fn main() {
         ProposalService::new(proposal_repo.clone(), user_repo.clone(), group_repo.clone());
 
     let state = Arc::new(AppState {
-        db: db.clone(),
         user_service,
         auth_service,
         group_service,

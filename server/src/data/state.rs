@@ -1,4 +1,3 @@
-use crate::data::database::Db;
 use crate::services::auth::AuthService;
 use crate::services::group::GroupService;
 use crate::services::proposal::ProposalService;
@@ -11,7 +10,6 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Db,
     pub user_service: UserService,
     pub auth_service: AuthService,
     pub group_service: GroupService,

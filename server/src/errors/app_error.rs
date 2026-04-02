@@ -28,7 +28,8 @@ pub enum AppError {
 
     #[error("Invalid credentials")]
     Unauthorized,
-    #[error("user is already an admin")]
+
+    #[error("Forbidden")]
     Forbidden,
 }
 
