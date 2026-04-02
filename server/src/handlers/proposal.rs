@@ -3,7 +3,7 @@ use crate::errors::app_error::AppError;
 use crate::models::proposal::Proposal;
 use crate::models::proposals::new_member::NewMemberProposalExpanded;
 use crate::security::auth_extractor::AuthUser;
-use axum::extract::Path;
+use axum::extract::{Path, Query};
 use axum::{Json, extract::State};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -47,10 +47,17 @@ pub async fn new_group_member(
     Ok(Json(new_proposal?))
 }
 
+#[derive(Deserialize)]
+pub struct ProposalParams {
+    proposal_id: Uuid,
+}
+
 pub async fn delete_proposal(
     State(state): State<SharedState>,
-    Path(proposal_id): Path<Uuid>,
+    Query(params): Query<ProposalParams>,
 ) -> Result<Json<Proposal>, AppError> {
-    let delete_proposal = state.proposal_service.logic_proposal_delete(proposal_id)?;
+    let delete_proposal = state
+        .proposal_service
+        .logic_proposal_delete(params.proposal_id)?;
     Ok(Json(delete_proposal))
 }
