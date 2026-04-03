@@ -23,7 +23,7 @@ pub fn proposal_routes(state: SharedState) -> Router {
                 .route_layer(middleware::from_fn(auth_middleware)),
         )
         .route(
-            "/new-member/{group_id}",
+            "/new-member/{group_id}", // Para el middleware
             post(new_group_member)
                 .route_layer(middleware::from_fn_with_state(
                     state.clone(),
@@ -32,7 +32,7 @@ pub fn proposal_routes(state: SharedState) -> Router {
                 .route_layer(middleware::from_fn(auth_middleware)),
         )
         .route(
-            "/",
+            "/{group_id}", // Para el middleware
             delete(delete_proposal) // put(update_proposal)
                 // El put hay que repensarlo, tiene varias opciones
                 .route_layer(middleware::from_fn_with_state(
