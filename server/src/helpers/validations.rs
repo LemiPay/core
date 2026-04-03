@@ -1,6 +1,4 @@
-use crate::data::error::DbError;
 use crate::errors::app_error::AppError;
-use crate::models::proposal::Proposal;
 use uuid::Uuid;
 
 pub fn require_non_empty(value: Option<String>, field: &str) -> Result<String, AppError> {
