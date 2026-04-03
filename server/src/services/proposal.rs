@@ -73,6 +73,18 @@ impl ProposalService {
         Ok(result)
     }
 
+    pub fn get_received_proposals(
+        &self,
+        destination: Uuid,
+    ) -> Result<Vec<NewMemberProposalExpanded>, AppError> {
+        let result = self
+            .proposal_repo
+            .find_new_member_received_by(destination)
+            .map_err(AppError::Db)?;
+
+        Ok(result)
+    }
+
     /// # Create new member proposal
     /// Creates a new proposal for a user to join a group. The proposal is created with
     /// the status "pending" and can be accepted or rejected by an admin of the group.

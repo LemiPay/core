@@ -71,6 +71,29 @@ impl ProposalRepository for DieselProposalRepository {
         Ok(parsed)
     }
 
+    fn find_new_member_received_by(
+        &self,
+        destination: Uuid,
+    ) -> Result<Vec<NewMemberProposalExpanded>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = new_member_proposal::table
+            .inner_join(proposal::table.on(nmp::proposal_id.eq(p::id)))
+            .filter(nmp::new_member_id.eq(destination))
+            .load::<(NewMemberProposal, Proposal)>(&mut conn)?;
+
+        let parsed: Vec<NewMemberProposalExpanded> = result
+            .into_iter()
+            .map(|(nmp, p)| NewMemberProposalExpanded {
+                proposal: p,
+                new_member_proposal: nmp,
+                proposal_type: ProposalType::NewMember,
+            })
+            .collect();
+
+        Ok(parsed)
+    }
+
     fn find(&self, proposal_id: Uuid) -> Result<Option<Proposal>, DbError> {
         let mut conn = self.db.get_conn()?;
 

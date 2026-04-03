@@ -9,6 +9,11 @@ pub trait ProposalRepository: Send + Sync {
         &self,
         created_by: Uuid,
     ) -> Result<Vec<NewMemberProposalExpanded>, DbError>;
+
+    fn find_new_member_received_by(
+        &self,
+        destination: Uuid,
+    ) -> Result<Vec<NewMemberProposalExpanded>, DbError>;
     fn find(&self, proposal_id: Uuid) -> Result<Option<Proposal>, DbError>;
 
     fn create_new_member_proposal(

@@ -29,6 +29,16 @@ pub async fn my_proposals(
     Ok(Json(ProposalsResponse { proposals }))
 }
 
+pub async fn received_proposals(
+    State(state): State<SharedState>,
+    user: AuthUser,
+) -> Result<Json<ProposalsResponse>, AppError> {
+    let proposals = state
+        .proposal_service
+        .get_received_proposals(user.user_id)?;
+    Ok(Json(ProposalsResponse { proposals }))
+}
+
 #[derive(Deserialize)]
 pub struct NewMemberRequest {
     pub user_id: Option<Uuid>,
