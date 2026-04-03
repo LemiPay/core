@@ -2,11 +2,11 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::app_error::AppError;
-use crate::helpers::validations::{check_proposal_exists, require_non_empty_uuid};
-
+use crate::helpers::validations::require_non_empty_uuid;
+use crate::models::group::Group;
 use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalUpdate};
 use crate::models::proposals::new_member::NewMemberProposalExpanded;
-
+use crate::models::user::User;
 // Repos
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::repositories::traits::proposal_repo::ProposalRepository;
@@ -104,10 +104,7 @@ impl ProposalService {
         let new_user = require_non_empty_uuid(new_user_id, "New User ID")?;
 
         // validate: new_user in exists
-        let user = self
-            .user_repo
-            .find_by_id(new_user)?
-            .ok_or(AppError::BadRequest("User does not exist".to_string()))?;
+        let user = self.find_user(new_user)?;
 
         // validate: new_user not in group
         if self.group_repo.is_member(user.id, group_id)? {
@@ -132,22 +129,25 @@ impl ProposalService {
         proposal_id: Uuid,
         status: MyProposalStatus,
     ) -> Result<Proposal, AppError> {
-        let valid = check_proposal_exists(self.proposal_repo.find(proposal_id))?;
-
-        if !valid {
-            return Err(AppError::BadRequest("Proposal does not exist".to_string()));
-        }
+        self.find_proposal(proposal_id)?;
 
         self.proposal_repo
             .update_proposal_status(proposal_id, ProposalUpdate { status })
             .map_err(AppError::Db)
     }
 
-    pub fn logic_proposal_delete(&self, proposal_id: Uuid) -> Result<Proposal, AppError> {
-        let valid = check_proposal_exists(self.proposal_repo.find(proposal_id))?;
+    pub fn logic_proposal_delete(
+        &self,
+        proposal_id: Uuid,
+        group_id: Uuid,
+    ) -> Result<Proposal, AppError> {
+        let proposal = self.find_proposal(proposal_id)?;
+        let group = self.find_group(proposal.group_id)?;
 
-        if !valid {
-            return Err(AppError::BadRequest("Proposal does not exist".to_string()));
+        if group.id != group_id {
+            return Err(AppError::BadRequest(
+                "Proposal does not belong to the group".to_string(),
+            ));
         }
 
         self.proposal_repo
@@ -158,5 +158,24 @@ impl ProposalService {
                 },
             )
             .map_err(AppError::Db)
+    }
+
+    // Helpers with validations
+    fn find_proposal(&self, proposal_id: Uuid) -> Result<Proposal, AppError> {
+        self.proposal_repo
+            .find(proposal_id)?
+            .ok_or(AppError::BadRequest("Proposal does not exist".to_string()))
+    }
+
+    fn find_group(&self, group_id: Uuid) -> Result<Group, AppError> {
+        self.group_repo
+            .find_by_id(group_id)?
+            .ok_or(AppError::BadRequest("Group does not exist".to_string()))
+    }
+
+    fn find_user(&self, user_id: Uuid) -> Result<User, AppError> {
+        self.user_repo
+            .find_by_id(user_id)?
+            .ok_or(AppError::BadRequest("User does not exist".to_string()))
     }
 }

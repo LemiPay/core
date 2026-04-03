@@ -65,9 +65,10 @@ pub struct ProposalParams {
 pub async fn delete_proposal(
     State(state): State<SharedState>,
     Query(params): Query<ProposalParams>,
+    Path(group_id): Path<Uuid>,
 ) -> Result<Json<Proposal>, AppError> {
     let delete_proposal = state
         .proposal_service
-        .logic_proposal_delete(params.proposal_id)?;
+        .logic_proposal_delete(params.proposal_id, group_id)?;
     Ok(Json(delete_proposal))
 }

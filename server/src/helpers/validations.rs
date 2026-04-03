@@ -22,13 +22,3 @@ pub fn require_non_empty_uuid(value: Option<Uuid>, field: &str) -> Result<Uuid, 
 
     Ok(value)
 }
-
-pub(crate) fn check_proposal_exists(
-    proposal: Result<Option<Proposal>, DbError>,
-) -> Result<bool, DbError> {
-    match proposal {
-        Ok(Some(_)) => Ok(true),
-        Ok(None) => Ok(false),
-        Err(e) => Err(e), // Handle the error as needed
-    }
-}
