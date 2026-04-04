@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import { me } from '$lib/api/auth';
 import type { AuthState } from '$lib/types/stores/auth.types';
 import { isSuccess } from '$lib/types/client.types';
+import { token } from '$lib/stores/token';
 
 function createAuthStore() {
 	const { subscribe, set, update } = writable<AuthState>({
@@ -16,9 +17,10 @@ function createAuthStore() {
 
 		// --- 🔄 Inicializar desde localStorage ---
 		async init() {
-			const token = localStorage.getItem('token');
+			const storedToken = localStorage.getItem('token');
 
-			if (!token) {
+			if (!storedToken) {
+				token.set(null);
 				set({
 					token: null,
 					isAuthenticated: false,
@@ -28,8 +30,9 @@ function createAuthStore() {
 				return;
 			}
 
+			token.set(storedToken);
 			set({
-				token,
+				token: storedToken,
 				isAuthenticated: true,
 				user: null,
 				loading: true
@@ -39,11 +42,12 @@ function createAuthStore() {
 		},
 
 		// --- 🔐 Login ---
-		async login(token: string) {
-			localStorage.setItem('token', token);
+		async login(newToken: string) {
+			localStorage.setItem('token', newToken);
 
+			token.set(newToken);
 			set({
-				token,
+				token: newToken,
 				isAuthenticated: true,
 				user: null,
 				loading: true
@@ -55,6 +59,7 @@ function createAuthStore() {
 		// --- 🚪 Logout ---
 		logout() {
 			localStorage.removeItem('token');
+			token.set(null);
 
 			set({
 				token: null,

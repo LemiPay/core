@@ -1,4 +1,4 @@
-import { authStore } from '$lib/stores/auth';
+import { token } from '$lib/stores/token';
 import type { ApiResponse } from '$lib/types/client.types';
 
 const API_URL = 'http://localhost:3000';
@@ -38,12 +38,10 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): ApiR
 }
 
 export async function authedApiFetch<T>(path: string, options: RequestInit = {}): ApiResponse<T> {
-	const token = authStore.getToken();
-
 	const res = await fetch(`${API_URL}${path}`, {
 		headers: {
 			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`,
+			Authorization: `Bearer ${token.get()}`,
 			...options.headers
 		},
 		...options
