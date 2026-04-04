@@ -1,7 +1,6 @@
 <script lang="ts">
 	import AuthLayout from '$lib/components/AuthLayout.svelte';
 	import { authStore } from '$lib/stores/auth';
-	import { get } from 'svelte/store';
 </script>
 
 <svelte:head>
