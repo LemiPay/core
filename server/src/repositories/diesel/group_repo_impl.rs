@@ -1,16 +1,18 @@
+use diesel::prelude::*;
+use uuid::Uuid;
+
 use crate::data::database::Db;
 use crate::data::error::DbError;
+
 use crate::models::group::{Group, GroupUpdate, MyGroupStatus, NewGroup};
 use crate::models::user::User;
 use crate::models::user_in_group::{
     GroupFromUser, GroupMember, MyGroupMemberStatus, MyGroupRole, NewUserInGroup, UserInGroup,
 };
+
 use crate::repositories::traits::group_repo::GroupRepository;
-use crate::schema::group;
-use crate::schema::user;
-use crate::schema::user_in_group;
-use diesel::prelude::*;
-use uuid::Uuid;
+
+use crate::schema::{group, user, user_in_group};
 
 pub struct DieselGroupRepository {
     db: Db,
@@ -60,6 +62,7 @@ impl GroupRepository for DieselGroupRepository {
             .optional()?;
         Ok(result)
     }
+
     fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError> {
         let mut conn = self.db.get_conn()?;
         let result = user_in_group::table
@@ -82,6 +85,7 @@ impl GroupRepository for DieselGroupRepository {
             .optional()?;
         Ok(result.is_some())
     }
+
     fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, DbError> {
         let mut conn = self.db.get_conn()?;
 
@@ -93,6 +97,7 @@ impl GroupRepository for DieselGroupRepository {
 
         Ok(result)
     }
+
     fn add_user_to_group(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, DbError> {
         let mut conn = self.db.get_conn()?;
         let new_user_in_group = NewUserInGroup {
@@ -114,6 +119,7 @@ impl GroupRepository for DieselGroupRepository {
             .get_result::<Group>(&mut conn)?;
         Ok(result)
     }
+
     fn is_group_active(&self, group_id: Uuid) -> Result<bool, DbError> {
         let mut conn = self.db.get_conn()?;
         let result = group::table
@@ -161,6 +167,7 @@ impl GroupRepository for DieselGroupRepository {
             .map(|(g, rel)| GroupFromUser {
                 user_id: rel.user_id,
                 group_id: g.id,
+                role: Some(rel.role),
                 group_name: g.name,
                 group_description: g.description,
                 status: g.status,
@@ -169,6 +176,7 @@ impl GroupRepository for DieselGroupRepository {
 
         Ok(groups)
     }
+
     fn update_group_info(
         &self,
         group_id: Uuid,

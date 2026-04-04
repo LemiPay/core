@@ -16,16 +16,7 @@ pub async fn is_in_group_middleware(
     req: Request<Body>,
     next: Next,
 ) -> Result<Response, StatusCode> {
-    let group_repo = state.group_service.get_group_repo();
-
-    let is_active = group_repo
-        .is_group_active(group_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    if !is_active {
-        return Err(StatusCode::FORBIDDEN);
-    }
-    match group_repo.is_member(user.user_id, group_id) {
+    match state.group_service.is_member(user.user_id, group_id) {
         Ok(true) => Ok(next.run(req).await),
         Ok(false) => Err(StatusCode::FORBIDDEN),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -38,14 +29,7 @@ pub async fn is_group_admin_middleware(
     req: Request<Body>,
     next: Next,
 ) -> Result<Response, StatusCode> {
-    let group_repo = state.group_service.get_group_repo();
-    let is_active = group_repo
-        .is_group_active(group_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    if !is_active {
-        return Err(StatusCode::FORBIDDEN);
-    }
-    match group_repo.is_admin(user.user_id, group_id) {
+    match state.group_service.is_admin(user.user_id, group_id) {
         Ok(true) => Ok(next.run(req).await),
         Ok(false) => Err(StatusCode::FORBIDDEN),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),

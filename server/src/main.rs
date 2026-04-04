@@ -22,10 +22,13 @@ use crate::data::state::AppState;
 // Repos
 use crate::repositories::diesel::auth_repo_impl::DieselAuthRepository;
 use crate::repositories::diesel::group_repo_impl::DieselGroupRepository;
+use crate::repositories::diesel::proposal_repo_impl::DieselProposalRepository;
 use crate::repositories::diesel::user_repo_impl::DieselUserRepository;
+
 // Services
 use crate::services::auth::AuthService;
 use crate::services::group::GroupService;
+use crate::services::proposal::ProposalService;
 use crate::services::user::UserService;
 
 #[tokio::main]
@@ -40,15 +43,20 @@ async fn main() {
     let user_repo = Arc::new(DieselUserRepository::new(db.clone()));
     let auth_repo = Arc::new(DieselAuthRepository::new(db.clone()));
     let group_repo = Arc::new(DieselGroupRepository::new(db.clone()));
+    let proposal_repo = Arc::new(DieselProposalRepository::new(db.clone()));
+
     // 🧠 Service
-    let user_service = UserService::new(user_repo);
-    let auth_service = AuthService::new(auth_repo);
-    let group_service = GroupService::new(group_repo);
+    let user_service = UserService::new(user_repo.clone());
+    let auth_service = AuthService::new(auth_repo.clone());
+    let group_service = GroupService::new(group_repo.clone());
+    let proposal_service =
+        ProposalService::new(proposal_repo.clone(), user_repo.clone(), group_repo.clone());
 
     let state = Arc::new(AppState {
         user_service,
         auth_service,
         group_service,
+        proposal_service,
     });
 
     // 🚏 Router
