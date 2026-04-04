@@ -36,7 +36,10 @@ if git diff --cached --name-only | grep '^client/.*$' > /dev/null; then
     echo "❌ Svelte formatting failed."
     echo "💨 Running Svelte fmt..."
     pnpm run format
-    git -C .. add client
+    client_staged_files=$(git -C .. diff --cached --name-only | grep '^client/.*$' || true)
+    if [ -n "$client_staged_files" ]; then
+      printf '%s\n' "$client_staged_files" | xargs git -C .. add --
+    fi
   }
 
   echo "🧠 Running Svelte checks..."
