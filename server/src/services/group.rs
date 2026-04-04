@@ -1,13 +1,19 @@
-use crate::models::group::Group;
-use crate::repositories::traits::group_repo::GroupRepository;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::errors::app_error::AppError;
+// Handlers
 use crate::handlers::group::NewGroupRequest;
 
-use crate::helpers::validations::require_non_empty;
+// Models
+use crate::models::group::Group;
 use crate::models::user_in_group::{GroupFromUser, GroupMember, UserInGroup};
+
+// Repos
+use crate::repositories::traits::group_repo::GroupRepository;
+
+// Utils
+use crate::errors::app_error::AppError;
+use crate::helpers::validations::require_non_empty;
 use validator::ValidateLength;
 
 #[derive(Clone)]
@@ -18,15 +24,14 @@ impl GroupService {
     pub fn new(group_repo: Arc<dyn GroupRepository>) -> Self {
         Self { group_repo }
     }
-    pub fn get_group_repo(&self) -> Arc<dyn GroupRepository> {
-        self.group_repo.clone()
-    }
+
     pub fn create_group(&self, group: NewGroupRequest, id: Uuid) -> Result<Uuid, AppError> {
         let name = require_non_empty(group.name, "Name")?;
         let description = require_non_empty(group.description, "Description")?;
 
         let valid = ValidateLength::validate_length(&name, Some(4), Some(30), None)
             && ValidateLength::validate_length(&description, Some(8), Some(30), None);
+
         if !valid {
             return Err(AppError::BadRequest(
                 "Invalid group name or description".into(),
@@ -38,6 +43,7 @@ impl GroupService {
 
         Ok(group_id)
     }
+
     pub fn get_group_by_id(&self, group_id: Uuid) -> Result<Group, AppError> {
         let found_group = self
             .group_repo
@@ -45,15 +51,37 @@ impl GroupService {
             .ok_or(AppError::NotFound)?;
         Ok(found_group)
     }
+
+    pub fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, AppError> {
+        let result = self.group_repo.is_member(user_id, group_id)?;
+        Ok(result)
+    }
+
+    pub fn is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, AppError> {
+        let result = self.group_repo.is_admin(user_id, group_id)?;
+        Ok(result)
+    }
+
     pub fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, AppError> {
+        // Validate if user in group
+        if !self.group_repo.is_member(user_id, group_id)? {
+            return Err(AppError::BadRequest("User not in group".into()));
+        }
+
+        // Validate if not admin
+        if self.is_admin(user_id, group_id)? {
+            return Err(AppError::BadRequest("User is already an admin".into()));
+        }
+
         let result = self.group_repo.make_admin(user_id, group_id)?;
         Ok(result)
     }
 
     pub fn delete(&self, user_id: Uuid, group_id: Uuid) -> Result<Group, AppError> {
-        if !self.group_repo.is_admin(user_id, group_id)? {
+        if !self.is_admin(user_id, group_id)? {
             return Err(AppError::Forbidden);
         }
+
         let result = self.group_repo.delete_group(group_id)?;
         Ok(result)
     }
@@ -69,5 +97,5 @@ impl GroupService {
         Ok(result)
     }
 
-    //todo update_group_info fn required -> alta paja ahora
+    // TODO: update_group_info fn required -> alta paja ahora
 }

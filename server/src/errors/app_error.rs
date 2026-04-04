@@ -28,6 +28,7 @@ pub enum AppError {
 
     #[error("Invalid credentials")]
     Unauthorized,
+
     #[error("Forbidden")]
     Forbidden,
 }

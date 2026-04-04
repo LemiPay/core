@@ -15,14 +15,12 @@ pub struct NewGroupRequest {
     pub name: Option<String>,
     pub description: Option<String>,
 }
+
 #[derive(Serialize)]
 pub struct NewGroupResponse {
     id: Uuid,
 }
-#[derive(Deserialize)]
-pub struct NewMakeAdminRequest {
-    pub new_user_id: Uuid,
-}
+
 pub async fn create_group(
     State(state): State<SharedState>,
     user: AuthUser,
@@ -31,12 +29,18 @@ pub async fn create_group(
     let group_id = state.group_service.create_group(payload, user.user_id);
     Ok(Json(NewGroupResponse { id: group_id? }))
 }
+
 pub async fn get_group_by_id(
     State(state): State<SharedState>,
     Path(group_id): Path<Uuid>,
 ) -> Result<Json<Group>, AppError> {
     let group = state.group_service.get_group_by_id(group_id);
     Ok(Json(group?))
+}
+
+#[derive(Deserialize)]
+pub struct NewMakeAdminRequest {
+    pub new_user_id: Uuid,
 }
 
 pub async fn make_group_admin(
@@ -56,6 +60,7 @@ pub async fn get_group_members(
     let result = state.group_service.get_group_members(group_id)?;
     Ok(Json(result))
 }
+
 pub async fn get_user_groups(
     State(state): State<SharedState>,
     user: AuthUser,

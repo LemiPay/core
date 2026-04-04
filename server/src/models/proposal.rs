@@ -1,6 +1,6 @@
 use crate::schema::{proposal, vote};
 use chrono::NaiveDateTime;
-use diesel::{Insertable, Queryable, Selectable};
+use diesel::{AsChangeset, Insertable, Queryable, Selectable};
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -12,6 +12,9 @@ pub enum MyProposalStatus {
     Approved,
     Rejected,
     Executed,
+    Canceled,
+    Expired,
+    Failed,
 }
 
 #[derive(Debug, DbEnum, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -20,6 +23,11 @@ pub enum MyVoteType {
     Yes,
     No,
     Abstain,
+}
+
+#[derive(Serialize)]
+pub enum ProposalType {
+    NewMember,
 }
 
 #[derive(Queryable, Serialize, Selectable)]
@@ -57,4 +65,10 @@ pub struct NewVote {
     pub proposal_id: Uuid,
     pub user_id: Uuid,
     pub value: MyVoteType,
+}
+
+#[derive(Deserialize, AsChangeset)]
+#[diesel(table_name = proposal)]
+pub struct ProposalUpdate {
+    pub status: MyProposalStatus,
 }

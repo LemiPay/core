@@ -2,5 +2,5 @@
 DROP TABLE IF EXISTS vote;
 DROP TABLE IF EXISTS proposal;
 
-DROP TYPE IF EXISTS proposal_status;
-DROP TYPE IF EXISTS vote_type;
+DROP TYPE IF EXISTS proposal_status CASCADE;
+DROP TYPE IF EXISTS vote_type CASCADE;
