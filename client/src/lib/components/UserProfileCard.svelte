@@ -10,7 +10,7 @@
 </script>
 
 <div
-	class="flex w-full max-w-sm items-center justify-between rounded-md border border-gray-300 bg-white p-3 shadow-sm"
+	class="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white p-3 shadow-sm"
 >
 	<div class="flex items-center gap-3">
 		<div

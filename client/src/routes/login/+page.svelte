@@ -25,7 +25,7 @@
 			return;
 		}
 
-		authStore.login(response.body.token);
+		await authStore.login(response.body.token);
 		status = null;
 
 		data = {
@@ -34,7 +34,7 @@
 		};
 
 		setTimeout(() => {
-			window.location.href = '/';
+			window.location.href = '/dashboard';
 		}, 1000);
 	}
 </script>
