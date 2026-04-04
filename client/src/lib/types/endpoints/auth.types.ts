@@ -17,3 +17,11 @@ export type NewUser = {
 	password: string;
 	name: string;
 };
+//este componente hay que modificarlo para agregar lo que necesitemos en el perfil y eso
+export type UserInfo = {
+	id: string;
+	name: string;
+	wallet: string; //para tener algo hardcodeado ahora
+	email: string;
+	balance: Number; //lo mismo
+};

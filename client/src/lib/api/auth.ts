@@ -1,7 +1,7 @@
 import { apiFetch, authedApiFetch } from './client';
 
-import type { ApiResponse } from '$lib/types/client.types';
-import type { RegisterData, LoginData, User } from '$lib/types/endpoints/auth.types';
+import { type ApiResponse, isSuccess } from '$lib/types/client.types';
+import type { RegisterData, LoginData, User, UserInfo } from '$lib/types/endpoints/auth.types';
 
 export async function register(data: RegisterData): ApiResponse<User> {
 	return apiFetch('/auth/register', {
@@ -18,12 +18,19 @@ export function login(data: LoginData): ApiResponse<{ token: string }> {
 }
 
 export async function me(): ApiResponse<{ id: string }> {
-	return await authedApiFetch('/auth/me', {
+	return authedApiFetch('/auth/me', {
 		method: 'GET'
 	});
 }
+export async function user_info(id: string): ApiResponse<User> {
+	return authedApiFetch(`/users/${id}`, {
+		method: 'GET'
+	});
+}
+
 export default {
 	register,
 	login,
-	me
+	me,
+	user_info
 };

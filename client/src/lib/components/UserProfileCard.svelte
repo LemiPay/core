@@ -1,12 +1,47 @@
 <script lang="ts">
-	// Mock data para el MVP.
-	// Más adelante puedes reemplazar esto con los props o el estado global de tu app.
-	const user = {
-		name: 'Pepe',
-		wallet: '0xF5a...3b21',
-		balance: '0.00',
-		currency: 'USDC'
-	};
+	import { onMount } from 'svelte';
+	import api, { user_info } from '$lib/api/auth';
+	import { authStore } from '$lib/stores/auth';
+	import { isSuccess } from '$lib/types/client.types';
+	import type { User } from '$lib/types/endpoints/auth.types';
+
+	const wallet = 'Wallet';
+	const balance = '0.00';
+	const currency = 'USDC';
+
+	let userData = $state<User | null>(null);
+	let isLoading = $state(true);
+	let error = $state('');
+
+	async function loadUserProfile() {
+		isLoading = true;
+		error = '';
+		const meResponse = await api.me();
+		if (!isSuccess(meResponse)) {
+			error = meResponse.message || 'Error al validar sesión.';
+			isLoading = false;
+			return;
+		}
+
+		const userId = meResponse.body.id;
+		console.log(userId);
+
+		const infoResponse = await api.user_info(userId);
+		if (!isSuccess(infoResponse)) {
+			error = infoResponse.message || 'Error al obtener datos del usuario.';
+			isLoading = false;
+			return;
+		}
+		userData = infoResponse.body;
+		isLoading = false;
+	}
+	$effect(() => {
+		if ($authStore.token) {
+			loadUserProfile();
+		} else {
+			isLoading = true;
+		}
+	});
 </script>
 
 <div
@@ -33,12 +68,12 @@
 		</div>
 
 		<div class="flex flex-col">
-			<span class="text-sm font-medium text-black">{user.name}</span>
-			<span class="text-xs text-gray-500">{user.wallet}</span>
+			<span class="text-sm font-medium text-black">{userData ? userData.name : error}</span>
+			<span class="text-xs text-gray-500">{wallet}</span>
 		</div>
 	</div>
 
 	<div class="text-sm font-semibold text-black">
-		${user.balance} <span class="text-xs font-normal text-gray-500">{user.currency}</span>
+		${balance} <span class="text-xs font-normal text-gray-500">{currency}</span>
 	</div>
 </div>
