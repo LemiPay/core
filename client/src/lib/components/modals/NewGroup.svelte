@@ -26,8 +26,8 @@
 
 	async function createGroup() {
 		const params: NewGroupData = {
-			name,
-			description
+			name: name.trim(),
+			description: description.trim()
 		};
 
 		loading = true;
