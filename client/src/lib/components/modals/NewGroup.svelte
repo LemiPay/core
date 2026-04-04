@@ -37,7 +37,7 @@
 		loading = false;
 
 		if (response.status !== 200) {
-			error = response.message || 'An error occurred while registering.';
+			error = response.message || 'An error occurred while creating the group.';
 			return;
 		}
 
