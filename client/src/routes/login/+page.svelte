@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { login } from '$lib/api/auth';
-	import type { SuccessResponse } from '$lib/types/auth.types';
+	import api from '$lib/api/auth';
+	import { authStore } from '$lib/stores/auth';
+	import { isSuccess } from '$lib/types/client.types';
 	import AuthLayout from '$lib/components/AuthLayout.svelte';
 
 	let data = $state({
@@ -8,20 +9,23 @@
 		password: ''
 	});
 
+	// false: idle | true: loading | null: end
 	let status: boolean | null = $state(false);
 	let error = $state('');
 
 	async function login_user() {
+		error = '';
 		status = true;
-		const response = await login(data);
 
-		if (response.status !== 200) {
+		const response = await api.login(data);
+
+		if (!isSuccess(response)) {
 			error = response.message || 'Invalid credentials.';
 			status = null;
 			return;
 		}
 
-		localStorage.setItem('token', (response as SuccessResponse<{ token: string }>).body.token);
+		authStore.login(response.body.token);
 		status = null;
 
 		data = {
@@ -36,7 +40,7 @@
 </script>
 
 <AuthLayout title="Log in to your account" description="Enter your details to access the platform.">
-	<form onsubmit={login_user} class="flex flex-col space-y-6">
+	<form onsubmit={login_user} onchange={() => (status = false)} class="flex flex-col space-y-6">
 		<!-- Success Message -->
 		{#if status === null && !error}
 			<div
