@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { register } from '$lib/api/auth';
 	import AuthLayout from '$lib/components/AuthLayout.svelte';
+	import { isSuccess } from '$lib/types/client.types';
 
 	let data = $state({
 		name: '',
@@ -17,14 +18,13 @@
 
 		const response = await register(data);
 
-		if (response.status !== 200) {
+		if (!isSuccess(response)) {
 			error = response.message || 'An error occurred while registering.';
 			status = null;
 			return;
 		}
 
 		status = null;
-
 		data = {
 			name: '',
 			email: '',

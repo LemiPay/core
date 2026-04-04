@@ -3,8 +3,9 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import Button from '../Button.svelte';
 
-	import type { NewGroupData } from '$lib/types/groups.types';
-	import { create_group } from '$lib/api/groups';
+	import type { NewGroupData } from '$lib/types/endpoints/groups.types';
+	import { createGroup } from '$lib/api/endpoints/groups';
+	import { isSuccess } from '$lib/types/client.types';
 
 	interface Props {
 		open: boolean;
@@ -24,7 +25,7 @@
 	const descValid = $derived(description.trim().length >= 8 && description.trim().length <= 30);
 	const formValid = $derived(nameValid && descValid);
 
-	async function createGroup() {
+	async function handleCreateGroup() {
 		const params: NewGroupData = {
 			name: name.trim(),
 			description: description.trim()
@@ -33,11 +34,11 @@
 		loading = true;
 		error = '';
 
-		const response = await create_group(params);
+		const response = await createGroup(params);
 		loading = false;
 
-		if (response.status !== 200) {
-			error = response.message || 'An error occurred while creating the group.';
+		if (!isSuccess(response)) {
+			error = response.message || 'An error occurred while registering.';
 			return;
 		}
 
@@ -56,7 +57,7 @@
 		success = '';
 		loading = true;
 		try {
-			await createGroup();
+			await handleCreateGroup();
 		} finally {
 			loading = false;
 		}

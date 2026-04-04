@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { login } from '$lib/api/auth';
-	import type { SuccessResponse } from '$lib/types/client.types';
+	import api from '$lib/api/auth';
+	import { authStore } from '$lib/stores/auth';
+	import { isSuccess } from '$lib/types/client.types';
 	import AuthLayout from '$lib/components/AuthLayout.svelte';
 
 	let data = $state({
@@ -13,17 +14,15 @@
 
 	async function login_user() {
 		status = true;
-		const response = await login(data);
+		const response = await api.login(data);
 
-		if (response.status !== 200) {
+		if (!isSuccess(response)) {
 			error = response.message || 'Invalid credentials.';
 			status = null;
 			return;
 		}
 
-		const token = (response as SuccessResponse<{ token: string }>).body.token;
-		localStorage.setItem('token', token);
-		status = null;
+		authStore.login(response.body.token);
 
 		data = {
 			email: '',

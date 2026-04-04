@@ -1,25 +1,6 @@
 <script lang="ts">
-	import { isAuthenticated, logout } from '$lib/stores/store';
 	import AuthLayout from '$lib/components/AuthLayout.svelte';
-	import { me } from '$lib/api/auth';
-
-	import type { SuccessResponse } from '$lib/types/client.types';
-
-	let my_id = $state('');
-	isAuthenticated.subscribe(async (value) => {
-		if (value) {
-			let response = await me();
-
-			if (response.status !== 200) {
-				console.error(response.message);
-				logout();
-				return;
-			}
-
-			my_id = (response as SuccessResponse<{ id: string }>).body.id;
-			console.log(my_id);
-		}
-	});
+	import { authStore } from '$lib/stores/auth';
 </script>
 
 <svelte:head>
@@ -45,9 +26,9 @@
 			Create account
 		</a>
 
-		{#if $isAuthenticated}
+		{#if $authStore.isAuthenticated}
 			<button
-				onclick={logout}
+				onclick={authStore.logout}
 				class="w-full rounded-md border border-red-200 bg-white px-4 py-2 font-medium text-red-500 transition hover:border-red-400 hover:bg-red-50"
 			>
 				Log out
@@ -55,10 +36,10 @@
 		{/if}
 	</div>
 
-	{#if $isAuthenticated}
+	{#if $authStore.isAuthenticated}
 		<div class="rounded-lg border border-gray-200 bg-gray-50 p-3 text-center">
 			<p class="text-sm font-medium text-black">
-				You are currently logged in as {my_id}
+				You are currently logged in as {authStore.getUserId()}
 			</p>
 		</div>
 	{/if}
