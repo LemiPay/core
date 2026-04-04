@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { register } from '$lib/api/auth';
-	import { goto, invalidateAll } from '$app/navigation';
 	import AuthLayout from '$lib/components/AuthLayout.svelte';
 
 	let data = $state({

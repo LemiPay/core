@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { login } from '$lib/api/auth';
-	import type { SuccessResponse } from '$lib/types/auth.types';
+	import type { SuccessResponse } from '$lib/types/client.types';
 	import AuthLayout from '$lib/components/AuthLayout.svelte';
 
 	let data = $state({
@@ -21,7 +21,8 @@
 			return;
 		}
 
-		localStorage.setItem('token', (response as SuccessResponse<{ token: string }>).body.token);
+		const token = (response as SuccessResponse<{ token: string }>).body.token;
+		localStorage.setItem('token', token);
 		status = null;
 
 		data = {

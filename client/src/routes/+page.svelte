@@ -1,13 +1,25 @@
 <script lang="ts">
-	import { isAuthenticated } from '$lib/stores/store';
+	import { isAuthenticated, logout } from '$lib/stores/store';
 	import AuthLayout from '$lib/components/AuthLayout.svelte';
+	import { me } from '$lib/api/auth';
 
-	async function logoutUser() {
-		localStorage.removeItem('token');
-		window.location.href = '/';
-	}
+	import type { SuccessResponse } from '$lib/types/client.types';
 
-	const me = 'dsada0d9sa-d8asd89sa-d3nnd3-da9d9sa';
+	let my_id = $state('');
+	isAuthenticated.subscribe(async (value) => {
+		if (value) {
+			let response = await me();
+
+			if (response.status !== 200) {
+				console.error(response.message);
+				logout();
+				return;
+			}
+
+			my_id = (response as SuccessResponse<{ id: string }>).body.id;
+			console.log(my_id);
+		}
+	});
 </script>
 
 <svelte:head>
@@ -35,7 +47,7 @@
 
 		{#if $isAuthenticated}
 			<button
-				onclick={logoutUser}
+				onclick={logout}
 				class="w-full rounded-md border border-red-200 bg-white px-4 py-2 font-medium text-red-500 transition hover:border-red-400 hover:bg-red-50"
 			>
 				Log out
@@ -46,7 +58,7 @@
 	{#if $isAuthenticated}
 		<div class="rounded-lg border border-gray-200 bg-gray-50 p-3 text-center">
 			<p class="text-sm font-medium text-black">
-				You are currently logged in as {me}
+				You are currently logged in as {my_id}
 			</p>
 		</div>
 	{/if}

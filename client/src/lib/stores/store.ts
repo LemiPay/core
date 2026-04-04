@@ -9,6 +9,10 @@ export const checkAuth = () => {
 	isAuthenticated.set(!!token); // Convierte el token (string o null) a booleano (true o false)
 };
 
+export const getToken = () => {
+	return isAuthenticated ? localStorage.getItem('token') : '';
+};
+
 // 3. Limpieza de seguridad
 export const logout = () => {
 	localStorage.removeItem('token');
