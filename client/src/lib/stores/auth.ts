@@ -34,7 +34,7 @@ function createAuthStore() {
 				user: null,
 				loading: true
 			});
-
+			
 			await this.fetchMe();
 		},
 

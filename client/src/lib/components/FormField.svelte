@@ -49,6 +49,8 @@
 			bind:value
 			{placeholder}
 			{rows}
+			minlength={minLength}
+			maxlength={maxLength}
 			onblur={() => (touched = true)}
 			class="w-full resize-none rounded-md border px-3 py-2 text-sm text-black placeholder-gray-400 transition focus:ring-0 focus:outline-none
 				{showFeedback
@@ -63,6 +65,8 @@
 			{type}
 			bind:value
 			{placeholder}
+			minlength={minLength}
+			maxlength={maxLength}
 			onblur={() => (touched = true)}
 			class="w-full rounded-md border px-3 py-2 text-sm text-black placeholder-gray-400 transition focus:ring-0 focus:outline-none
 				{showFeedback

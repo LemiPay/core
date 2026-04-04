@@ -1,6 +1,7 @@
 <script lang="ts">
 	import AuthLayout from '$lib/components/AuthLayout.svelte';
 	import { authStore } from '$lib/stores/auth';
+	import { get } from 'svelte/store';
 </script>
 
 <svelte:head>
@@ -39,7 +40,7 @@
 	{#if $authStore.isAuthenticated}
 		<div class="rounded-lg border border-gray-200 bg-gray-50 p-3 text-center">
 			<p class="text-sm font-medium text-black">
-				You are currently logged in as {authStore.getUserId()}
+				You are currently logged in as {$authStore.user?.id}
 			</p>
 		</div>
 	{/if}
