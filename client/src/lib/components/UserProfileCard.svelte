@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import api, { user_info } from '$lib/api/auth';
+	import api from '$lib/api/auth';
 	import { authStore } from '$lib/stores/auth';
 	import { isSuccess } from '$lib/types/client.types';
 	import type { User } from '$lib/types/endpoints/auth.types';
@@ -24,7 +23,6 @@
 		}
 
 		const userId = meResponse.body.id;
-		console.log(userId);
 
 		const infoResponse = await api.user_info(userId);
 		if (!isSuccess(infoResponse)) {
