@@ -10,7 +10,7 @@ export const checkAuth = () => {
 };
 
 export const getToken = () => {
-	return isAuthenticated ? localStorage.getItem('token') : '';
+	return localStorage.getItem('token') ?? '';
 };
 
 // 3. Limpieza de seguridad
