@@ -1,5 +1,5 @@
 <script lang="ts">
-	import AuthLayout from '$lib/components/AuthLayout.svelte';
+	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
 	import { authStore } from '$lib/stores/auth';
 </script>
 

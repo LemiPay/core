@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IconButton from '$lib/components/IconButton.svelte';
+	import IconButton from '$lib/components/ui/IconButton.svelte';
 	import NewGroup from '$lib/components/modals/NewGroup.svelte';
 
 	let showNewGroup = $state(false);

@@ -2,7 +2,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::data::error::DbError;
-use crate::models::user::User;
+use crate::models::user::{User, UserSummary};
 use crate::repositories::traits::user_repo::UserRepository;
 
 use crate::errors::app_error::AppError;
@@ -29,7 +29,7 @@ impl UserService {
         Ok(user)
     }
 
-    pub fn get_user(&self, id: Uuid) -> Result<Option<User>, DbError> {
+    pub fn get_user(&self, id: Uuid) -> Result<Option<UserSummary>, DbError> {
         self.repo.find_by_id(id)
     }
 

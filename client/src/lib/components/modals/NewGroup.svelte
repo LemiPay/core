@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Modal from './Modal.svelte';
-	import FormField from '$lib/components/FormField.svelte';
-	import Button from '../Button.svelte';
+	import FormField from '$lib/components/ui/FormField.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
 
 	import type { NewGroupData } from '$lib/types/endpoints/groups.types';
 	import { createGroup } from '$lib/api/endpoints/groups';
@@ -45,7 +45,7 @@
 		success = 'Group created successfully!';
 
 		setTimeout(() => {
-			window.location.href = '/groups';
+			window.location.href = `/groups/${response.body.id}`;
 		}, 1000);
 	}
 
