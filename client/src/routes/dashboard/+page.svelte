@@ -6,10 +6,13 @@
 
 	import { getMyGroups } from '$lib/api/endpoints/groups';
 	import { isSuccess } from '$lib/types/client.types';
+	import IconButton from '$lib/components/ui/IconButton.svelte';
+	import NewGroup from '$lib/components/modals/NewGroup.svelte';
 
 	let isLoading = $state(true);
 	let error = $state('');
 	let misGrupos = $state<GroupSummary[]>([]);
+	let showNewGroup = $state(false);
 
 	async function load_my_groups() {
 		isLoading = true;
@@ -38,6 +41,24 @@
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 pt-8">
 	<div class="w-full">
 		<UserProfileCard />
+	</div>
+	<div>
+		<IconButton variant="primary" ariaLabel="Create group" onclick={() => (showNewGroup = true)}>
+			{#snippet icon()}
+				<svg
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<line x1="12" y1="5" x2="12" y2="19" />
+					<line x1="5" y1="12" x2="19" y2="12" />
+				</svg>
+			{/snippet}
+		</IconButton>
+		<NewGroup open={showNewGroup} onclose={() => (showNewGroup = false)} />
 	</div>
 
 	<div class="flex w-full flex-col gap-4">

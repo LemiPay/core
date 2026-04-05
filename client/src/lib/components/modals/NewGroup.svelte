@@ -45,7 +45,7 @@
 		success = 'Group created successfully!';
 
 		setTimeout(() => {
-			window.location.href = '/groups';
+			window.location.href = `/groups/${response.body.id}`;
 		}, 1000);
 	}
 
