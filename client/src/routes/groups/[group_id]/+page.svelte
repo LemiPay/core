@@ -2,12 +2,12 @@
 	import api from '$lib/api/endpoints/groups';
 	import { page } from '$app/state';
 	import { isSuccess } from '$lib/types/client.types';
-	import { onMount } from 'svelte';
 	import type { Group } from '$lib/types/endpoints/groups.types';
 
 	let loading = $state(true);
 	let groupExists = $state(true);
 	let groupData = $state({} as Group);
+
 	async function loadGroupData() {
 		let groupId = page.params.group_id as string;
 		const res = await api.getGroup(groupId);
@@ -22,9 +22,8 @@
 		groupData = res.body;
 		loading = false;
 	}
-	onMount(() => {
-		loadGroupData();
-	});
+
+	loadGroupData();
 </script>
 
 <svelte:head>

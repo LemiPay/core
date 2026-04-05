@@ -1,6 +1,5 @@
 <script lang="ts">
-	import api from '$lib/api/auth';
-	import { authStore } from '$lib/stores/auth';
+	import { me, userInfo } from '$lib/api/auth';
 	import { isSuccess } from '$lib/types/client.types';
 	import type { UserInfo } from '$lib/types/endpoints/auth.types';
 
@@ -15,7 +14,7 @@
 	async function loadUserProfile() {
 		isLoading = true;
 		error = '';
-		const meResponse = await api.me();
+		const meResponse = await me();
 		if (!isSuccess(meResponse)) {
 			error = meResponse.message || 'Error al validar sesión.';
 			isLoading = false;
@@ -24,7 +23,7 @@
 
 		const userId = meResponse.body.id;
 
-		const infoResponse = await api.user_info(userId);
+		const infoResponse = await userInfo(userId);
 		if (!isSuccess(infoResponse)) {
 			error = infoResponse.message || 'Error al obtener datos del usuario.';
 			isLoading = false;
@@ -39,13 +38,8 @@
 		};
 		isLoading = false;
 	}
-	$effect(() => {
-		if ($authStore.token) {
-			loadUserProfile();
-		} else {
-			isLoading = true;
-		}
-	});
+
+	loadUserProfile();
 </script>
 
 <div

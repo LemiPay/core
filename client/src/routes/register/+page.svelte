@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { register } from '$lib/api/auth';
-	import AuthLayout from '$lib/components/AuthLayout.svelte';
+	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
 	import { isSuccess } from '$lib/types/client.types';
 
 	let data = $state({

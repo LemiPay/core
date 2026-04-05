@@ -1,0 +1,36 @@
+<script lang="ts">
+	import { page } from '$app/state';
+
+	interface NavLink {
+		label: string;
+		href: string;
+	}
+
+	const links: NavLink[] = [
+		{ label: 'Home', href: '/' },
+		{ label: 'Dashboard', href: '/dashboard' }
+	];
+</script>
+
+<nav class="w-full border-b border-gray-200 bg-white">
+	<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
+		<a href="/" class="text-sm font-bold tracking-tight text-black">Lemipay</a>
+
+		<div class="flex items-center gap-6">
+			{#each links as link}
+				{@const isActive = page.url.pathname === link.href}
+				<a
+					href={link.href}
+					class={[
+						'text-sm font-medium transition-colors',
+						isActive
+							? 'border-b-2 border-black pb-0.5 text-black'
+							: 'text-gray-500 hover:text-black'
+					].join(' ')}
+				>
+					{link.label}
+				</a>
+			{/each}
+		</div>
+	</div>
+</nav>

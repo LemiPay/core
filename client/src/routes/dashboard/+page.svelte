@@ -1,39 +1,40 @@
 <script lang="ts">
+	import type { GroupSummary } from '$lib/types/endpoints/groups.types';
+
 	import UserProfileCard from '$lib/components/UserProfileCard.svelte';
 	import GroupSummaryCard from '$lib/components/GroupSummaryCard.svelte';
-	import type { GroupSummary } from '$lib/types/endpoints/groups.types';
-	import groups from '$lib/api/endpoints/groups';
-	import { authStore } from '$lib/stores/auth';
+
+	import { getMyGroups } from '$lib/api/endpoints/groups';
 	import { isSuccess } from '$lib/types/client.types';
 
 	let isLoading = $state(true);
 	let error = $state('');
 	let misGrupos = $state<GroupSummary[]>([]);
+
 	async function load_my_groups() {
 		isLoading = true;
 		error = '';
-		const res = await groups.getMyGroups();
+
+		const res = await getMyGroups();
+
 		if (!isSuccess(res)) {
 			error = res.message || 'Error al buscar grupos';
 			isLoading = false;
+			console.error(error);
 			return;
 		}
+
 		misGrupos = res.body;
 		isLoading = false;
 	}
 
-	$effect(() => {
-		if ($authStore.token) {
-			load_my_groups();
-		} else {
-			isLoading = true;
-		}
-	});
+	load_my_groups();
 </script>
 
 <svelte:head>
 	<title>Lemipay - Home</title>
 </svelte:head>
+
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 pt-8">
 	<div class="w-full">
 		<UserProfileCard />

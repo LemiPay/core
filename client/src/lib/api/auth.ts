@@ -32,5 +32,5 @@ export default {
 	register,
 	login,
 	me,
-	user_info: userInfo
+	userInfo
 };

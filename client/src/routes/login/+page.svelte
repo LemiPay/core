@@ -2,7 +2,7 @@
 	import api from '$lib/api/auth';
 	import { authStore } from '$lib/stores/auth';
 	import { isSuccess } from '$lib/types/client.types';
-	import AuthLayout from '$lib/components/AuthLayout.svelte';
+	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
 
 	let data = $state({
 		email: '',
