@@ -42,13 +42,13 @@ impl UserRepository for DieselUserRepository {
 
         let result = user::table
             .filter(user::id.eq(id))
-            .select(User::as_select())
-            .first::<User>(&mut conn)
+            .select((user::id, user::email, user::name))
+            .first::<(Uuid, String, String)>(&mut conn)
             .optional()?;
-        let user_summary = result.map(|u| UserSummary {
-            id: u.id,
-            email: u.email,
-            name: u.name,
+        let user_summary = result.map(|(id, email, name)| UserSummary {
+            id,
+            email,
+            name,
         });
 
         Ok(user_summary)
