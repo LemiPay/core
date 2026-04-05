@@ -1,8 +1,7 @@
 import { authedApiFetch } from '../client';
 
 import type { ApiResponse } from '$lib/types/client.types';
-import type { GroupSummary, NewGroupData } from '$lib/types/endpoints/groups.types';
-import { login, me, register, user_info } from '$lib/api/auth';
+import type { Group, GroupSummary, NewGroupData } from '$lib/types/endpoints/groups.types';
 
 export async function createGroup(data: NewGroupData): ApiResponse<{ id: string }> {
 	return authedApiFetch('/group/create', {
@@ -16,8 +15,13 @@ export async function getMyGroups(): ApiResponse<GroupSummary[]> {
 		method: 'GET'
 	});
 }
-
+export async function getGroup(group_id: string): ApiResponse<Group> {
+	return authedApiFetch(`/group/${group_id}`, {
+		method: 'GET'
+	});
+}
 export default {
 	createGroup,
-	getMyGroups
+	getMyGroups,
+	getGroup
 };

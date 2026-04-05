@@ -11,3 +11,12 @@ export type GroupSummary = {
 	group_description: string;
 	status: string;
 };
+
+export type Group = {
+	id: string;
+	name: string;
+	description: string;
+	status: string;
+	created_at: string;
+	updated_at: string;
+};

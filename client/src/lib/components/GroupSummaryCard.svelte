@@ -14,7 +14,7 @@
 </script>
 
 <a
-	href="/group/{group.group_id}"
+	href="/groups/{group.group_id}"
 	class="block w-full rounded-md border border-gray-300 bg-white p-4 shadow-sm transition hover:border-gray-400 hover:bg-gray-50 focus:ring-2 focus:ring-black focus:outline-none"
 >
 	<div class="flex items-start justify-between">
