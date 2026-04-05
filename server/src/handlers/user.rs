@@ -1,6 +1,6 @@
 use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
-use crate::models::user::User;
+use crate::models::user::{User, UserSummary};
 use axum::{
     Json,
     extract::{Path, State},
@@ -18,7 +18,7 @@ pub struct CreateUserRequest {
 pub async fn get_user(
     State(state): State<SharedState>,
     Path(id): Path<Uuid>,
-) -> Result<Json<User>, AppError> {
+) -> Result<Json<UserSummary>, AppError> {
     let user = state.user_service.get_user(id)?.ok_or(AppError::NotFound)?;
 
     Ok(Json(user))

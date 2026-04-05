@@ -6,7 +6,7 @@ use crate::helpers::validations::require_non_empty_uuid;
 use crate::models::group::Group;
 use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalUpdate};
 use crate::models::proposals::new_member::NewMemberProposalExpanded;
-use crate::models::user::User;
+use crate::models::user::UserSummary;
 // Repos
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::repositories::traits::proposal_repo::ProposalRepository;
@@ -173,7 +173,7 @@ impl ProposalService {
             .ok_or(AppError::BadRequest("Group does not exist".to_string()))
     }
 
-    fn find_user(&self, user_id: Uuid) -> Result<User, AppError> {
+    fn find_user(&self, user_id: Uuid) -> Result<UserSummary, AppError> {
         self.user_repo
             .find_by_id(user_id)?
             .ok_or(AppError::BadRequest("User does not exist".to_string()))
