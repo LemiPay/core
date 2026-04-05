@@ -2,13 +2,13 @@
 	import api from '$lib/api/auth';
 	import { authStore } from '$lib/stores/auth';
 	import { isSuccess } from '$lib/types/client.types';
-	import type { User } from '$lib/types/endpoints/auth.types';
+	import type { UserInfo } from '$lib/types/endpoints/auth.types';
 
 	const wallet = 'Wallet';
-	const balance = '0.00';
+	const balance = 0.0;
 	const currency = 'USDC';
 
-	let userData = $state<User | null>(null);
+	let userData = $state<UserInfo | null>(null);
 	let isLoading = $state(true);
 	let error = $state('');
 
@@ -30,7 +30,13 @@
 			isLoading = false;
 			return;
 		}
-		userData = infoResponse.body;
+		userData = {
+			id: infoResponse.body.id,
+			name: infoResponse.body.name,
+			email: infoResponse.body.email,
+			wallet: wallet,
+			balance: balance
+		};
 		isLoading = false;
 	}
 	$effect(() => {
