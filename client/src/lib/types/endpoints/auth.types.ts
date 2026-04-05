@@ -23,5 +23,5 @@ export type UserInfo = {
 	name: string;
 	wallet: string; //para tener algo hardcodeado ahora
 	email: string;
-	balance: Number; //lo mismo
+	balance: number; //lo mismo
 };
