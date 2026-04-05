@@ -22,7 +22,7 @@ export async function me(): ApiResponse<{ id: string }> {
 		method: 'GET'
 	});
 }
-export async function user_info(id: string): ApiResponse<UserInfo> {
+export async function userInfo(id: string): ApiResponse<UserInfo> {
 	return authedApiFetch(`/users/${id}`, {
 		method: 'GET'
 	});
@@ -32,5 +32,5 @@ export default {
 	register,
 	login,
 	me,
-	user_info
+	user_info: userInfo
 };
