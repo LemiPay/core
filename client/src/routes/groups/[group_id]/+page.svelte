@@ -64,7 +64,11 @@
 					{/snippet}
 				</Button>
 
-				<InviteUserToGroup open={showNewMemberModal} onclose={() => (showNewMemberModal = false)} />
+				<InviteUserToGroup
+					group_id={groupData.id}
+					open={showNewMemberModal}
+					onclose={() => (showNewMemberModal = false)}
+				/>
 			</div>
 		{/if}
 	{/if}

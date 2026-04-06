@@ -3,12 +3,17 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Modal from '$lib/components/modals/Modal.svelte';
 
+	import type { NewMemberData } from '$lib/types/endpoints/proposals';
+	import { createNewMemberProposal } from '$lib/api/endpoints/proposals';
+	import { isSuccess } from '$lib/types/client.types';
+
 	interface Props {
 		open: boolean;
 		onclose: () => void;
+		group_id: string;
 	}
 
-	const { open, onclose }: Props = $props();
+	const { open, onclose, group_id }: Props = $props();
 
 	let email = $state('');
 
@@ -20,7 +25,32 @@
 	const emailValid = $derived(email.trim().length >= 4 && email.trim().length <= 30);
 	const formValid = $derived(emailValid);
 
-	async function handleCreateInvite() {}
+	async function handleCreateInvite() {
+		const params: NewMemberData = {
+			group_id: group_id,
+			email: email
+		};
+
+		loading = true;
+		error = '';
+
+		const response = await createNewMemberProposal(params);
+		loading = false;
+
+		if (!isSuccess(response)) {
+			error = response.message ?? 'Failed to send invite';
+			return;
+		}
+
+		success = 'Invite sent successfully';
+
+		email = '';
+		attempted = false;
+
+		setTimeout(() => {
+			handleClose();
+		}, 3000);
+	}
 
 	function handleClose() {
 		email = '';
