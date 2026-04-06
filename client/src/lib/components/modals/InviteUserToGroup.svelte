@@ -3,7 +3,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Modal from '$lib/components/modals/Modal.svelte';
 
-	import type { NewMemberData } from '$lib/types/endpoints/proposals';
+	import type { NewMemberData } from '$lib/types/endpoints/proposals.types';
 	import { createNewMemberProposal } from '$lib/api/endpoints/proposals';
 	import { isSuccess } from '$lib/types/client.types';
 
