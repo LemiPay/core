@@ -1,14 +1,8 @@
 type Uuid = string;
 
-enum ProposalStatus {
-	Pending = 'Pending',
-	Approved = 'Approved',
-	Rejected = 'Rejected'
-}
+type ProposalStatus = 'Pending' | 'Approved' | 'Rejected';
 
-enum ProposalType {
-	NewMember = 'NewMember'
-}
+type ProposalType = 'NewMember';
 
 type DateTime = string;
 
