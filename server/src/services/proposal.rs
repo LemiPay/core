@@ -2,6 +2,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::app_error::AppError;
+use crate::handlers::proposal::NewMemberRequest;
 use crate::helpers::validations::require_non_empty_uuid;
 use crate::models::group::Group;
 use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalUpdate};
@@ -85,26 +86,25 @@ impl ProposalService {
         Ok(result)
     }
 
-    /// # Create new member proposal
-    /// Creates a new proposal for a user to join a group. The proposal is created with
-    /// the status "pending" and can be accepted or rejected by an admin of the group.
-    /// ### Errors
-    ///
-    /// This function can return the following errors:
-    /// - [`AppError::Db`]:
-    ///   Returned if a database error occurs
-    /// - [`AppError::BadRequest`]:
-    ///   Returned if user not found or already in group
     pub fn create_new_member_proposal(
         &self,
         created_by: Uuid,
         group_id: Uuid,
-        new_user_id: Option<Uuid>,
+        payload: NewMemberRequest,
     ) -> Result<NewMemberProposalExpanded, AppError> {
-        let new_user = require_non_empty_uuid(new_user_id, "New User ID")?;
+        let id = if let Some(email) = payload.user_email {
+            self.user_repo
+                .find_by_email(email)?
+                .map(|u| u.id)
+                .ok_or(AppError::BadRequest("User not found".to_string()))?
+        } else {
+            payload
+                .user_id
+                .ok_or(AppError::BadRequest("User id is required".to_string()))?
+        };
 
         // validate: new_user in exists
-        let user = self.find_user(new_user)?;
+        let user = self.find_user(id)?;
 
         // validate: new_user not in group
         if self.group_repo.is_member(user.id, group_id)? {
@@ -118,8 +118,13 @@ impl ProposalService {
                 group_id,
                 created_by,
             },
-            new_user,
+            user.id,
         )?;
+
+        // TODO: Handle voting and only add user to group if proposal is accepted
+        // === REMOVE LATER ===
+        self.group_repo.add_user_to_group(user.id, group_id)?;
+        // === REMOVE LATER ===
 
         Ok(result)
     }

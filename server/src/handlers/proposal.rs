@@ -42,6 +42,7 @@ pub async fn received_proposals(
 #[derive(Deserialize)]
 pub struct NewMemberRequest {
     pub user_id: Option<Uuid>,
+    pub user_email: Option<String>,
 }
 
 pub async fn new_group_member(
@@ -50,10 +51,17 @@ pub async fn new_group_member(
     user: AuthUser,
     Json(payload): Json<NewMemberRequest>,
 ) -> Result<Json<NewMemberProposalExpanded>, AppError> {
+    if payload.user_email.is_none() && payload.user_id.is_none() {
+        return Err(AppError::BadRequest(
+            "Either user_id or user_email must be provided".into(),
+        ));
+    }
+
     let new_proposal =
         state
             .proposal_service
-            .create_new_member_proposal(user.user_id, group_id, payload.user_id);
+            .create_new_member_proposal(user.user_id, group_id, payload);
+
     Ok(Json(new_proposal?))
 }
 

@@ -9,7 +9,9 @@ use crate::repositories::traits::proposal_repo::ProposalRepository;
 use crate::data::database::Db;
 use crate::data::error::DbError;
 // Models
-use crate::models::proposal::{NewProposal, Proposal, ProposalType, ProposalUpdate};
+use crate::models::proposal::{
+    MyProposalStatus, NewProposal, Proposal, ProposalType, ProposalUpdate,
+};
 use crate::models::proposals::new_member::{NewMemberProposal, NewMemberProposalExpanded};
 
 // Schema
@@ -112,7 +114,7 @@ impl ProposalRepository for DieselProposalRepository {
         let mut conn = self.db.get_conn()?;
 
         let result = conn.transaction::<NewMemberProposalExpanded, DbError, _>(|this_conn| {
-            let proposal = diesel::insert_into(proposal::table)
+            let mut proposal = diesel::insert_into(proposal::table)
                 .values(&new_proposal)
                 .returning(Proposal::as_returning())
                 .get_result(this_conn)?;
@@ -126,6 +128,16 @@ impl ProposalRepository for DieselProposalRepository {
                 .values(&params)
                 .returning(NewMemberProposal::as_returning())
                 .get_result(this_conn)?;
+
+            // TODO: Handle voting system
+            // For now, update to Approved.
+            // === REMOVE LATER ===
+            proposal = diesel::update(proposal::table.filter(proposal::id.eq(proposal.id)))
+                .set(ProposalUpdate {
+                    status: MyProposalStatus::Approved,
+                })
+                .get_result(this_conn)?;
+            // === REMOVE LATER ===
 
             Ok(NewMemberProposalExpanded {
                 proposal,
