@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { isSuccess } from '$lib/types/client.types';
 	import type { Group } from '$lib/types/endpoints/groups.types';
+	import { CircleUser } from 'lucide-svelte';
 
 	let loading = $state(true);
 	let groupExists = $state(true);
@@ -35,6 +36,7 @@
 			<h1>404 group not found</h1>
 		{:else}
 			<h1>{groupData.name}</h1>
+			<CircleUser />
 		{/if}
 	{/if}
 </div>
