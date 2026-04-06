@@ -91,19 +91,15 @@ impl ProposalService {
         group_id: Uuid,
         payload: NewMemberRequest,
     ) -> Result<NewMemberProposalExpanded, AppError> {
-        let id = if let Some(email) = payload.user_email {
+        let user = if let Some(email) = payload.user_email {
             self.user_repo
                 .find_by_email(email)?
-                .map(|u| u.id)
                 .ok_or(AppError::BadRequest("User not found".to_string()))?
         } else {
-            payload
-                .user_id
+            self.user_repo
+                .find_user(payload.user_id)
                 .ok_or(AppError::BadRequest("User id is required".to_string()))?
         };
-
-        // validate: new_user in exists
-        let user = self.find_user(id)?;
 
         // validate: new_user not in group
         if self.group_repo.is_member(user.id, group_id)? {
