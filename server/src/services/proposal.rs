@@ -3,7 +3,6 @@ use uuid::Uuid;
 
 use crate::errors::app_error::AppError;
 use crate::handlers::proposal::NewMemberRequest;
-use crate::helpers::validations::require_non_empty_uuid;
 use crate::models::group::Group;
 use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalUpdate};
 use crate::models::proposals::new_member::NewMemberProposalExpanded;
