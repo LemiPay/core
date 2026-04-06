@@ -25,3 +25,9 @@ export type UserInfo = {
 	email: string;
 	balance: number; //lo mismo
 };
+
+export type UserBadge = {
+	user_id: string;
+	name: string;
+	role: string;
+};
