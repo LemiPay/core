@@ -31,11 +31,9 @@
 			email: email
 		};
 
-		loading = true;
 		error = '';
 
 		const response = await createNewMemberProposal(params);
-		loading = false;
 
 		if (!isSuccess(response)) {
 			error = response.message ?? 'Failed to send invite';
