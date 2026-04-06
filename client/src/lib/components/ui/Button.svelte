@@ -1,10 +1,13 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+
 	type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 	type Size = 'sm' | 'md' | 'lg';
 	type ButtonType = 'button' | 'submit' | 'reset';
 
 	interface Props {
 		label: string;
+		icon?: Snippet;
 		onclick?: () => void;
 		variant?: Variant;
 		size?: Size;
@@ -17,6 +20,7 @@
 
 	let {
 		label,
+		icon,
 		onclick,
 		variant = 'primary',
 		size = 'md',
@@ -69,6 +73,10 @@
 			<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
 			<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
 		</svg>
+	{:else if icon}
+		<span class="h-4 w-4" aria-hidden="true">
+			{@render icon()}
+		</span>
 	{/if}
 	{label}
 </button>
