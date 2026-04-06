@@ -51,12 +51,6 @@ pub async fn new_group_member(
     user: AuthUser,
     Json(payload): Json<NewMemberRequest>,
 ) -> Result<Json<NewMemberProposalExpanded>, AppError> {
-    if payload.user_email.is_none() && payload.user_id.is_none() {
-        return Err(AppError::BadRequest(
-            "Either user_id or user_email must be provided".into(),
-        ));
-    }
-
     let new_proposal =
         state
             .proposal_service
