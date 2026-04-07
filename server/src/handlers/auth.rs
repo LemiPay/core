@@ -1,7 +1,8 @@
+use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
 use crate::models::user::User;
+use crate::models::user::UserSummary;
 use crate::security::auth_extractor::AuthUser;
-use crate::{data::state::SharedState, models::user::UserSummary};
 use axum::{Json, extract::State};
 use serde::{Deserialize, Serialize};
 
@@ -41,8 +42,6 @@ pub async fn login(
     let jwt = state.auth_service.login_user(payload)?;
     Ok(Json(LoginResponse { token: jwt }))
 }
-
-/// Get my Uuid
 
 pub async fn get_me(
     State(state): State<SharedState>,
