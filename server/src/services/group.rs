@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::handlers::group::NewGroupRequest;
 
 // Models
-use crate::models::group::Group;
+use crate::models::group::{Group, GroupUpdate};
 use crate::models::user_in_group::{GroupFromUser, GroupMember, UserInGroup};
 
 // Repos
@@ -97,5 +97,37 @@ impl GroupService {
         Ok(result)
     }
 
-    // TODO: update_group_info fn required -> alta paja ahora
+    pub fn update_group(
+        &self,
+        user_id: Uuid,
+        group_id: Uuid,
+        update: GroupUpdate,
+    ) -> Result<Group, AppError> {
+        if !self.is_admin(user_id, group_id)? {
+            return Err(AppError::Forbidden);
+        }
+
+        if update.name.is_none() && update.description.is_none() {
+            return Err(AppError::BadRequest("No fields to update".into()));
+        }
+
+        if let Some(ref name) = update.name {
+            if !ValidateLength::validate_length(name, Some(4), Some(30), None) {
+                return Err(AppError::BadRequest(
+                    "Invalid group name: must be 4–30 characters".into(),
+                ));
+            }
+        }
+
+        if let Some(ref description) = update.description {
+            if !ValidateLength::validate_length(description, Some(8), Some(30), None) {
+                return Err(AppError::BadRequest(
+                    "Invalid group description: must be 8–30 characters".into(),
+                ));
+            }
+        }
+
+        let result = self.group_repo.update_group_info(group_id, update)?;
+        Ok(result)
+    }
 }

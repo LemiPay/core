@@ -1,6 +1,7 @@
 use crate::data::state::SharedState;
 use crate::handlers::group::{
-    create_group, get_group_by_id, get_group_members, get_user_groups, make_group_admin,
+    create_group, delete_group, get_group_by_id, get_group_members, get_user_groups,
+    make_group_admin, update_group,
 };
 
 use crate::security::middlewares::auth::auth_middleware;
@@ -10,7 +11,7 @@ use crate::security::middlewares::is_in_group::{
 
 use axum::{
     Router, middleware,
-    routing::{get, post},
+    routing::{delete, get, post, put},
 };
 
 pub fn group_routes(state: SharedState) -> Router {
@@ -22,6 +23,15 @@ pub fn group_routes(state: SharedState) -> Router {
                 state.clone(),
                 is_in_group_middleware,
             )),
+        )
+        .route(
+            "/{id}",
+            delete(delete_group)
+                .put(update_group)
+                .route_layer(middleware::from_fn_with_state(
+                    state.clone(),
+                    is_group_admin_middleware,
+                )),
         )
         .route(
             "/{id}/make_admin",
