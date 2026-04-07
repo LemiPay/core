@@ -4,6 +4,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 
 	import type { Group } from '$lib/types/endpoints/groups.types';
+	import { untrack } from 'svelte';
 
 	interface Props {
 		open: boolean;
@@ -14,8 +15,9 @@
 
 	const { open, group, onclose, onedit }: Props = $props();
 
-	let name = $derived(group.name);
-	let description = $derived(group.description);
+	let name = $state(untrack(() => group.name));
+	let description = $state(untrack(() => group.description));
+
 	let attempted = $state(false);
 	let error = $state('');
 	let success = $state('');
@@ -34,15 +36,16 @@
 		loading = true;
 		try {
 			await onedit({ name: name.trim(), description: description.trim() });
+
 			success = 'Group updated successfully!';
-		} catch (err: unknown) {
-			error = err instanceof Error ? err.message : 'An error occurred while updating the group.';
-		} finally {
-			loading = false;
 
 			setTimeout(() => {
 				handleClose();
 			}, 2000);
+		} catch (err: unknown) {
+			error = err instanceof Error ? err.message : 'An error occurred while updating the group.';
+		} finally {
+			loading = false;
 		}
 	}
 

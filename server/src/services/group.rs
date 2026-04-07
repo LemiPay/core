@@ -112,7 +112,7 @@ impl GroupService {
         }
 
         if let Some(ref name) = update.name {
-            if !ValidateLength::validate_length(name, Some(4), Some(30), None) {
+            if !ValidateLength::validate_length(name.trim(), Some(4), Some(30), None) {
                 return Err(AppError::BadRequest(
                     "Invalid group name: must be 4–30 characters".into(),
                 ));
@@ -120,7 +120,7 @@ impl GroupService {
         }
 
         if let Some(ref description) = update.description {
-            if !ValidateLength::validate_length(description, Some(8), Some(30), None) {
+            if !ValidateLength::validate_length(description.trim(), Some(8), Some(30), None) {
                 return Err(AppError::BadRequest(
                     "Invalid group description: must be 8–30 characters".into(),
                 ));
