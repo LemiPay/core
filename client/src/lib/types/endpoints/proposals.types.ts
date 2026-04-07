@@ -30,3 +30,11 @@ export type NewMemberData = {
 	group_id: string;
 	email: string;
 };
+
+export type ReceivedProposalSummary = {
+	user_id: Uuid;
+	group_id: Uuid;
+	userName: string;
+	groupName: string;
+	new_member_proposal: NewMemberProposal;
+};
