@@ -128,6 +128,7 @@
 					group_id={groupData.id}
 					open={showNewMemberModal}
 					onclose={() => (showNewMemberModal = false)}
+					onsuccess={loadMembersData}
 				/>
 			</div>
 

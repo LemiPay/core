@@ -10,10 +10,11 @@
 	interface Props {
 		open: boolean;
 		onclose: () => void;
+		onsuccess?: () => void;
 		group_id: string;
 	}
 
-	const { open, onclose, group_id }: Props = $props();
+	const { open, onclose, onsuccess, group_id }: Props = $props();
 
 	let email = $state('');
 
@@ -46,8 +47,9 @@
 		attempted = false;
 
 		setTimeout(() => {
+			onsuccess?.();
 			handleClose();
-		}, 3000);
+		}, 2000);
 	}
 
 	function handleClose() {
