@@ -14,8 +14,8 @@
 
 	const { open, group, onclose, onedit }: Props = $props();
 
-	let name = $state(group.name);
-	let description = $state(group.description);
+	let name = $derived(group.name);
+	let description = $derived(group.description);
 	let attempted = $state(false);
 	let error = $state('');
 	let success = $state('');

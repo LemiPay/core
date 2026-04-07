@@ -49,15 +49,15 @@ pub struct NewProposal {
     pub created_by: Uuid,
 }
 
-#[derive(Queryable, Serialize, Selectable)]
-#[diesel(table_name = vote)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct Vote {
-    pub proposal_id: Uuid,
-    pub user_id: Uuid,
-    pub value: MyVoteType,
-    pub created_at: NaiveDateTime,
-}
+// #[derive(Queryable, Serialize, Selectable)]
+// #[diesel(table_name = vote)]
+// #[diesel(check_for_backend(diesel::pg::Pg))]
+// pub struct Vote {
+//     pub proposal_id: Uuid,
+//     pub user_id: Uuid,
+//     pub value: MyVoteType,
+//     pub created_at: NaiveDateTime,
+// }
 
 #[derive(Insertable, Deserialize)]
 #[diesel(table_name = vote)]

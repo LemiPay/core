@@ -11,7 +11,7 @@ use crate::security::middlewares::is_in_group::{
 
 use axum::{
     Router, middleware,
-    routing::{delete, get, post, put},
+    routing::{get, post, put},
 };
 
 pub fn group_routes(state: SharedState) -> Router {
@@ -26,8 +26,8 @@ pub fn group_routes(state: SharedState) -> Router {
         )
         .route(
             "/{id}",
-            delete(delete_group)
-                .put(update_group)
+            put(update_group)
+                .delete(delete_group)
                 .route_layer(middleware::from_fn_with_state(
                     state.clone(),
                     is_group_admin_middleware,
