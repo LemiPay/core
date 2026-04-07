@@ -1,12 +1,23 @@
 <script lang="ts">
-	import { getGroup, getGroupMembers } from '$lib/api/endpoints/groups';
+	import { Trash2, Pencil } from 'lucide-svelte';
 	import { page } from '$app/state';
+
+	// Api
+	import { getGroup, getGroupMembers, updateGroup, deleteGroup } from '$lib/api/endpoints/groups';
+
+	// Helpers
 	import { isSuccess } from '$lib/types/client.types';
+
+	// Types
 	import type { Group } from '$lib/types/endpoints/groups.types';
-	import UserIconBadge from '$lib/components/UserIconBadge.svelte';
 	import type { UserBadge } from '$lib/types/endpoints/auth.types';
+
+	// Components
+	import UserIconBadge from '$lib/components/UserIconBadge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import InviteUserToGroup from '$lib/components/modals/InviteUserToGroup.svelte';
+	import Confirm from '$lib/components/modals/Confirm.svelte';
+	import EditGroup from '$lib/components/modals/EditGroup.svelte';
 
 	let loading = $state(true);
 	let loadingMembers = $state(true);
@@ -16,6 +27,31 @@
 	const groupId = page.params.group_id as string;
 
 	let showNewMemberModal = $state(false);
+	let showDeleteModal = $state(false);
+	let showEditModal = $state(false);
+
+	let deleteLoading = $state(false);
+	let deleteError = $state('');
+
+	async function handleEditGroup(data: { name: string; description: string }) {
+		const res = await updateGroup(groupId, data);
+		if (!isSuccess(res)) {
+			throw new Error(res.message || 'Failed to update group.');
+		}
+		groupData = res.body;
+	}
+
+	async function handleDeleteGroup() {
+		deleteLoading = true;
+		deleteError = '';
+		const res = await deleteGroup(groupId);
+		deleteLoading = false;
+		if (!isSuccess(res)) {
+			deleteError = res.message || 'Failed to delete group.';
+			return;
+		}
+		window.location.href = '/dashboard';
+	}
 
 	async function loadGroupData() {
 		const res = await getGroup(groupId);
@@ -67,13 +103,29 @@
 				<div class="flex items-start justify-between gap-4">
 					<h1 class="text-2xl font-bold tracking-tight text-black">{groupData.name}</h1>
 
-					{#if groupData.status}
-						<span
-							class="rounded border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600"
+					<div class="flex items-center gap-2">
+						{#if groupData.status}
+							<span
+								class="rounded border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600"
+							>
+								{groupData.status}
+							</span>
+						{/if}
+						<button
+							onclick={() => (showEditModal = true)}
+							class="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+							aria-label="Edit group"
 						>
-							{groupData.status}
-						</span>
-					{/if}
+							<Pencil class="h-5 w-5" />
+						</button>
+						<button
+							onclick={() => (showDeleteModal = true)}
+							class="rounded-md p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+							aria-label="Delete group"
+						>
+							<Trash2 class="h-5 w-5" />
+						</button>
+					</div>
 				</div>
 
 				{#if groupData.description}
@@ -131,6 +183,27 @@
 					onsuccess={loadMembersData}
 				/>
 			</div>
+
+			<EditGroup
+				open={showEditModal}
+				group={groupData}
+				onclose={() => (showEditModal = false)}
+				onedit={handleEditGroup}
+			/>
+
+			<Confirm
+				open={showDeleteModal}
+				title="Delete group"
+				description="This action cannot be undone."
+				message="Are you sure you want to delete this group?"
+				onclose={() => {
+					showDeleteModal = false;
+					deleteError = '';
+				}}
+				onconfirm={handleDeleteGroup}
+				loading={deleteLoading}
+				error={deleteError}
+			/>
 
 			<div class="pt-4">
 				<a
