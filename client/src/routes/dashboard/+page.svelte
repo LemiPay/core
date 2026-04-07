@@ -14,6 +14,18 @@
 	let misGrupos = $state<GroupSummary[]>([]);
 	let showNewGroup = $state(false);
 
+	let filterRole = $state<'all' | 'Admin' | 'Member'>('all');
+	let filterStatus = $state<'all' | 'Active' | 'Ended'>('Active');
+
+	const gruposFiltrados = $derived(
+		misGrupos.filter((g) => {
+			const roleMatch = filterRole === 'all' || g.role.toLowerCase() === filterRole.toLowerCase();
+			const statusMatch =
+				filterStatus === 'all' || g.status.toLowerCase() === filterStatus.toLowerCase();
+			return roleMatch && statusMatch;
+		})
+	);
+
 	async function load_my_groups() {
 		isLoading = true;
 		error = '';
@@ -64,12 +76,51 @@
 	<div class="flex w-full flex-col gap-4">
 		<h2 class="text-xl font-bold text-black">Mis Grupos</h2>
 
-		{#each misGrupos as grupo (grupo.group_id)}
+		<!-- Filtros -->
+		<div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+			<div class="flex items-center gap-2">
+				<span class="text-xs font-medium text-gray-500">Rol</span>
+				<div class="flex gap-1">
+					{#each [['all', 'Todos'], ['Admin', 'Admin'], ['Member', 'Miembro']] as [val, label]}
+						<button
+							onclick={() => (filterRole = val as typeof filterRole)}
+							class={filterRole === val
+								? 'rounded-full bg-black px-3 py-1 text-xs font-medium text-white'
+								: 'rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-500 transition hover:border-gray-400 hover:text-black'}
+						>
+							{label}
+						</button>
+					{/each}
+				</div>
+			</div>
+
+			<div class="flex items-center gap-2">
+				<span class="text-xs font-medium text-gray-500">Estado</span>
+				<div class="flex gap-1">
+					{#each [['all', 'Todos'], ['Active', 'Activo'], ['Ended', 'Finalizado']] as [val, label]}
+						<button
+							onclick={() => (filterStatus = val as typeof filterStatus)}
+							class={filterStatus === val
+								? 'rounded-full bg-black px-3 py-1 text-xs font-medium text-white'
+								: 'rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-500 transition hover:border-gray-400 hover:text-black'}
+						>
+							{label}
+						</button>
+					{/each}
+				</div>
+			</div>
+		</div>
+
+		{#each gruposFiltrados as grupo (grupo.group_id)}
 			<GroupSummaryCard group={grupo} />
 		{/each}
 
-		{#if misGrupos.length === 0 && !isLoading}
-			<p class="text-sm text-gray-500">Aún no tienes grupos.</p>
+		{#if gruposFiltrados.length === 0 && !isLoading}
+			<p class="text-sm text-gray-500">
+				{misGrupos.length === 0
+					? 'Aún no tienes grupos.'
+					: 'No hay grupos que coincidan con los filtros.'}
+			</p>
 		{/if}
 	</div>
 </div>
