@@ -1,7 +1,13 @@
 type Uuid = string;
 
-type ProposalStatus = 'Pending' | 'Approved' | 'Rejected';
-
+type ProposalStatus =
+	| 'Pending'
+	| 'Approved'
+	| 'Rejected'
+	| 'Executed'
+	| 'Canceled'
+	| 'Expired'
+	| 'Failed';
 type ProposalType = 'NewMember';
 
 type DateTime = string;

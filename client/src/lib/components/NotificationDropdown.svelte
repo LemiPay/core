@@ -6,17 +6,17 @@
 	import { isSuccess } from '$lib/types/client.types';
 	import type { ReceivedNewMemberProposalExpanded } from '$lib/types/endpoints/proposals.types';
 
-	interface NotificationData {
+	type NotificationData = {
 		groupId: string;
 		senderName: string;
 		groupName: string;
-	}
+	};
 
-	interface Notification {
+	type Notification = {
 		id: string;
 		type: string;
 		data: NotificationData;
-	}
+	};
 
 	const clickOutside: Action<HTMLElement, () => void> = (node, callback) => {
 		const handleClick = (event: MouseEvent) => {

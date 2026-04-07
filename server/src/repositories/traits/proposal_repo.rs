@@ -2,9 +2,8 @@ use crate::data::error::DbError;
 use crate::errors::app_error::AppError;
 use crate::models::proposal::{NewProposal, Proposal, ProposalUpdate};
 use crate::models::proposals::new_member::{
-    NewMemberProposal, NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
+    NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
 };
-use crate::schema::vote::{proposal_id, user_id};
 use uuid::Uuid;
 
 pub trait ProposalRepository: Send + Sync {

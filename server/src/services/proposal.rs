@@ -13,7 +13,6 @@ use crate::models::user::UserSummary;
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::repositories::traits::proposal_repo::ProposalRepository;
 use crate::repositories::traits::user_repo::UserRepository;
-use crate::schema::sql_types::ProposalStatus;
 
 #[derive(Clone)]
 pub struct ProposalService {
@@ -158,15 +157,6 @@ impl ProposalService {
         new_member_proposal_id: Uuid,
         payload: RespondToNewMemberRequest,
     ) -> Result<NewMemberProposalExpanded, AppError> {
-        /* match (self.proposal_repo.respond_to_new_member_proposal(
-            new_member_proposal_id,
-            destination,
-            payload.response,
-        )) {
-            Ok(proposal) => Ok(proposal),
-            Err(e) => Err(AppError::BadRequest("invalid request".parse().unwrap())),
-        }*/
-
         self.proposal_repo.respond_to_new_member_proposal(
             new_member_proposal_id,
             destination,
