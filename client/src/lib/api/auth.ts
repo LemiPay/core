@@ -17,7 +17,7 @@ export function login(data: LoginData): ApiResponse<{ token: string }> {
 	});
 }
 
-export async function me(): ApiResponse<{ id: string }> {
+export async function me(): ApiResponse<UserInfo> {
 	return authedApiFetch('/auth/me', {
 		method: 'GET'
 	});

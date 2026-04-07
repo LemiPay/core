@@ -38,8 +38,9 @@
 
 	{#if $authStore.isAuthenticated}
 		<div class="rounded-lg border border-gray-200 bg-gray-50 p-3 text-center">
-			<p class="text-sm font-medium text-black">
-				You are currently logged in as {$authStore.user?.id}
+			<p class="flex flex-col text-sm font-medium text-black">
+				You are currently logged in as {$authStore.user?.name}
+				<span class="text-xs text-gray-500">{$authStore.user?.email}</span>
 			</p>
 		</div>
 	{/if}
