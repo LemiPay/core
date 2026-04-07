@@ -8,7 +8,6 @@ use crate::repositories::traits::proposal_repo::ProposalRepository;
 
 use crate::data::database::Db;
 use crate::data::error::DbError;
-use crate::errors::app_error::AppError;
 // Models
 use crate::models::proposal::{
     MyProposalStatus, NewProposal, Proposal, ProposalType, ProposalUpdate,
@@ -79,46 +78,24 @@ impl ProposalRepository for DieselProposalRepository {
         &self,
         new_member_proposal_id: Uuid,
         destination: Uuid,
-        approve: bool,
-    ) -> Result<NewMemberProposalExpanded, AppError> {
+        next_status: MyProposalStatus,
+    ) -> Result<NewMemberProposalExpanded, DbError> {
         let mut conn = self.db.get_conn()?;
-        //busco la proposal
-        let (current_proposal, nmp) = proposal::table
-            .inner_join(
-                new_member_proposal::table.on(new_member_proposal::proposal_id.eq(proposal::id)),
-            )
-            .filter(proposal::id.eq(new_member_proposal_id))
-            .first::<(Proposal, NewMemberProposal)>(&mut conn)
-            .map_err(|err| match err {
-                diesel::result::Error::NotFound => AppError::NotFound,
-                _ => AppError::NotFound,
-            })?;
 
-        //veo que el destination sea el mismo
-        if nmp.new_member_id != destination {
-            return Err(AppError::Unauthorized);
-        }
-        //veo que este approved
-        if current_proposal.status != MyProposalStatus::Approved {
-            return Err(AppError::Forbidden);
-        }
-
-        //elijo nuevo status
-        let next_status = if approve {
-            MyProposalStatus::Executed
-        } else {
-            MyProposalStatus::Rejected
-        };
         //transaction
         let updated_proposal = conn
-            .transaction::<Proposal, diesel::result::Error, _>(|this_conn| {
+            .transaction::<NewMemberProposalExpanded, diesel::result::Error, _>(|this_conn| {
+                let nmp = new_member_proposal::table
+                    .filter(new_member_proposal::proposal_id.eq(new_member_proposal_id))
+                    .find(new_member_proposal_id)
+                    .get_result::<NewMemberProposal>(this_conn)?;
                 //update el status
                 let updated =
                     diesel::update(proposal::table.filter(proposal::id.eq(new_member_proposal_id)))
                         .set(proposal::status.eq(&next_status))
                         .get_result::<Proposal>(this_conn)?;
-                //si era un true agrego al tipo en el grupo
-                if approve {
+
+                if next_status.eq(&MyProposalStatus::Approved) {
                     let new_user_in_group = NewUserInGroup {
                         user_id: destination,
                         group_id: updated.group_id,
@@ -131,18 +108,16 @@ impl ProposalRepository for DieselProposalRepository {
                         .get_result::<UserInGroup>(this_conn)?;
                 }
 
-                Ok(updated)
-            })
-            .map_err(|err| match err {
-                diesel::result::Error::NotFound => AppError::NotFound,
-                _ => AppError::NotFound,
+                Ok(NewMemberProposalExpanded {
+                    proposal: updated,
+                    new_member_proposal: nmp,
+                    proposal_type: ProposalType::NewMember,
+                })
+
+                //Ok(updated)
             })?;
 
-        Ok(NewMemberProposalExpanded {
-            proposal: updated_proposal,
-            new_member_proposal: nmp,
-            proposal_type: ProposalType::NewMember,
-        })
+        Ok(updated_proposal)
     }
     fn find_new_member_received_by(
         &self,
@@ -189,7 +164,7 @@ impl ProposalRepository for DieselProposalRepository {
             .optional()?;
         Ok(result)
     }
-    fn find_new_member_proposal(
+    fn find_new_member_proposal_by_destination_and_group_id(
         &self,
         destination: Uuid,
         group_id: Uuid,
@@ -210,6 +185,13 @@ impl ProposalRepository for DieselProposalRepository {
         });
 
         Ok(parsed)
+    }
+
+    fn find_new_member_proposal_by_proposal_id(
+        &self,
+        proposal_id: Uuid,
+    ) -> Result<NewMemberProposalExpanded, DbError> {
+        todo!()
     }
 
     fn create_new_member_proposal(

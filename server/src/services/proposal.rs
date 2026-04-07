@@ -119,8 +119,8 @@ impl ProposalService {
 
         let result = self
             .proposal_repo
-            .find_new_member_proposal(user.id, group_id)?;
-        if (result.is_some()) {
+            .find_new_member_proposal_by_destination_and_group_id(user.id, group_id)?;
+        if result.is_some() {
             //TODO when we have votes this should be placed as pending
             let proposal_update = ProposalUpdate {
                 status: MyProposalStatus::Approved,
@@ -131,7 +131,7 @@ impl ProposalService {
             )?;
             return self
                 .proposal_repo
-                .find_new_member_proposal(user.id, group_id)?
+                .find_new_member_proposal_by_destination_and_group_id(user.id, group_id)?
                 .ok_or(AppError::Internal);
         }
 
@@ -157,11 +157,30 @@ impl ProposalService {
         new_member_proposal_id: Uuid,
         payload: RespondToNewMemberRequest,
     ) -> Result<NewMemberProposalExpanded, AppError> {
-        self.proposal_repo.respond_to_new_member_proposal(
+        let approve = payload.response;
+        let search_proposal = self
+            .proposal_repo
+            .find_new_member_proposal_by_proposal_id(new_member_proposal_id)?;
+        if search_proposal.new_member_proposal.proposal_id != destination {
+            return Err(AppError::Forbidden);
+        }
+        if search_proposal.proposal.status != MyProposalStatus::Approved {
+            return Err(AppError::Forbidden);
+        }
+        let next_status = if approve {
+            MyProposalStatus::Executed
+        } else {
+            MyProposalStatus::Rejected
+        };
+
+        match self.proposal_repo.respond_to_new_member_proposal(
             new_member_proposal_id,
             destination,
-            payload.response,
-        )
+            next_status,
+        ) {
+            Ok(proposal) => Ok(proposal),
+            Err(_) => Err(AppError::BadRequest("invalid request".parse().unwrap())),
+        }
     }
 
     pub fn update_proposal_status(

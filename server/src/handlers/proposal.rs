@@ -14,10 +14,6 @@ use uuid::Uuid;
 pub struct ProposalsResponse {
     proposals: Vec<NewMemberProposalExpanded>,
 }
-#[derive(Serialize)]
-pub struct ReceivedNewMemberProposalResponse {
-    proposals: Vec<ReceivedNewMemberProposalExpanded>,
-}
 
 pub async fn group_proposals(
     State(state): State<SharedState>,
