@@ -38,11 +38,11 @@ pub async fn my_proposals(
 pub async fn received_proposals(
     State(state): State<SharedState>,
     user: AuthUser,
-) -> Result<Json<ReceivedNewMemberProposalResponse>, AppError> {
+) -> Result<Json<Vec<ReceivedNewMemberProposalExpanded>>, AppError> {
     let proposals = state
         .proposal_service
         .get_received_proposals(user.user_id)?;
-    Ok(Json(ReceivedNewMemberProposalResponse { proposals }))
+    Ok(Json(proposals))
 }
 
 #[derive(Deserialize)]

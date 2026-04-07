@@ -24,7 +24,7 @@
 	<div class="mt-1 flex gap-2">
 		<button
 			onclick={onAccept}
-			class="flex flex-1 items-center justify-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+			class="flex flex-1 items-center justify-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200"
 		>
 			<Check size={14} strokeWidth={3} /> Aceptar
 		</button>
