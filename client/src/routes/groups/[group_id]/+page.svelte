@@ -5,6 +5,8 @@
 	import type { Group } from '$lib/types/endpoints/groups.types';
 	import UserIconBadge from '$lib/components/UserIconBadge.svelte';
 	import type { UserBadge } from '$lib/types/endpoints/auth.types';
+	import Button from '$lib/components/ui/Button.svelte';
+	import InviteUserToGroup from '$lib/components/modals/InviteUserToGroup.svelte';
 
 	let loading = $state(true);
 	let loadingMembers = $state(true);
@@ -12,6 +14,8 @@
 	let groupData = $state({} as Group);
 	let members = $state([] as UserBadge[]);
 	const groupId = page.params.group_id as string;
+
+	let showNewMemberModal = $state(false);
 
 	async function loadGroupData() {
 		const res = await getGroup(groupId);
@@ -91,6 +95,36 @@
 				{:else}
 					<p class="text-sm text-gray-400">No members yet.</p>
 				{/if}
+			</div>
+			<div class="mt-4">
+				<Button
+					label="Invitar miembro"
+					variant="primary"
+					onclick={() => (showNewMemberModal = true)}
+				>
+					{#snippet icon()}
+						<svg
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M16 21v-2a4 4 0 0 0-3-3.87" />
+							<path d="M8 21v-2a4 4 0 0 1 3-3.87" />
+							<circle cx="12" cy="7" r="4" />
+							<line x1="19" y1="8" x2="19" y2="14" />
+							<line x1="22" y1="11" x2="16" y2="11" />
+						</svg>
+					{/snippet}
+				</Button>
+
+				<InviteUserToGroup
+					group_id={groupData.id}
+					open={showNewMemberModal}
+					onclose={() => (showNewMemberModal = false)}
+				/>
 			</div>
 
 			<div class="pt-4">

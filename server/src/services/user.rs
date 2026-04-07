@@ -33,6 +33,10 @@ impl UserService {
         self.repo.find_by_id(id)
     }
 
+    pub fn get_user_by_email(&self, email: String) -> Result<Option<UserSummary>, DbError> {
+        self.repo.find_by_email(email)
+    }
+
     pub fn list_users(&self) -> Result<Vec<User>, DbError> {
         self.repo.list()
     }

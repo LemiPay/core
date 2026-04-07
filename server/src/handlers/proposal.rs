@@ -42,6 +42,7 @@ pub async fn received_proposals(
 #[derive(Deserialize)]
 pub struct NewMemberRequest {
     pub user_id: Option<Uuid>,
+    pub user_email: Option<String>,
 }
 
 pub async fn new_group_member(
@@ -53,7 +54,8 @@ pub async fn new_group_member(
     let new_proposal =
         state
             .proposal_service
-            .create_new_member_proposal(user.user_id, group_id, payload.user_id);
+            .create_new_member_proposal(user.user_id, group_id, payload);
+
     Ok(Json(new_proposal?))
 }
 

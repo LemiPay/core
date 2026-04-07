@@ -45,11 +45,21 @@ impl UserRepository for DieselUserRepository {
             .select((user::id, user::email, user::name))
             .first::<(Uuid, String, String)>(&mut conn)
             .optional()?;
-        let user_summary = result.map(|(id, email, name)| UserSummary {
-            id,
-            email,
-            name,
-        });
+        let user_summary = result.map(|(id, email, name)| UserSummary { id, email, name });
+
+        Ok(user_summary)
+    }
+
+    fn find_by_email(&self, email: String) -> Result<Option<UserSummary>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = user::table
+            .filter(user::email.eq(email))
+            .select((user::id, user::email, user::name))
+            .first::<(Uuid, String, String)>(&mut conn)
+            .optional()?;
+
+        let user_summary = result.map(|(id, email, name)| UserSummary { id, email, name });
 
         Ok(user_summary)
     }
