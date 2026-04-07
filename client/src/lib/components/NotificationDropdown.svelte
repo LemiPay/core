@@ -5,7 +5,6 @@
 	import { getReceivedProposals, respondToReceivedProposal } from '$lib/api/endpoints/proposals';
 	import { isSuccess } from '$lib/types/client.types';
 	import type { ReceivedNewMemberProposalExpanded } from '$lib/types/endpoints/proposals.types';
-	import { invalidate } from '$app/navigation';
 
 	interface NotificationData {
 		groupId: string;
@@ -77,16 +76,18 @@
 		isOpen = false;
 	}
 
-	function handleAccept(proposalId: string, groupId: string) {
-		respondToReceivedProposal(true, proposalId);
+	async function handleAccept(proposalId: string, groupId: string) {
+		await respondToReceivedProposal(true, proposalId);
 		closeDropdown();
 		window.location.href = `/groups/${groupId}`;
 	}
 
-	function handleDecline(proposalId: string) {
-		respondToReceivedProposal(false, proposalId);
-		loadNotifications();
-		closeDropdown();
+	async function handleDecline(proposalId: string) {
+		// 1. Lo borramos localmente del estado para que desaparezca al instante (Optimistic update)
+		//notifications = notifications.filter((n) => n.id !== proposalId);
+
+		await respondToReceivedProposal(false, proposalId);
+		await loadNotifications();
 	}
 </script>
 

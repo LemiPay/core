@@ -189,6 +189,28 @@ impl ProposalRepository for DieselProposalRepository {
             .optional()?;
         Ok(result)
     }
+    fn find_new_member_proposal(
+        &self,
+        destination: Uuid,
+        group_id: Uuid,
+    ) -> Result<Option<NewMemberProposalExpanded>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let query_result = new_member_proposal::table
+            .inner_join(proposal::table.on(new_member_proposal::proposal_id.eq(proposal::id)))
+            .filter(new_member_proposal::new_member_id.eq(destination))
+            .filter(proposal::group_id.eq(group_id))
+            .first::<(NewMemberProposal, Proposal)>(&mut conn)
+            .optional()?;
+
+        let parsed = query_result.map(|(nmp, p)| NewMemberProposalExpanded {
+            proposal: p,
+            new_member_proposal: nmp,
+            proposal_type: ProposalType::NewMember,
+        });
+
+        Ok(parsed)
+    }
 
     fn create_new_member_proposal(
         &self,

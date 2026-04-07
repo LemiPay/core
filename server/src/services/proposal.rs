@@ -13,6 +13,7 @@ use crate::models::user::UserSummary;
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::repositories::traits::proposal_repo::ProposalRepository;
 use crate::repositories::traits::user_repo::UserRepository;
+use crate::schema::sql_types::ProposalStatus;
 
 #[derive(Clone)]
 pub struct ProposalService {
@@ -117,6 +118,24 @@ impl ProposalService {
             ));
         }
 
+        let result = self
+            .proposal_repo
+            .find_new_member_proposal(user.id, group_id)?;
+        if (result.is_some()) {
+            //TODO when we have votes this should be placed as pending
+            let proposal_update = ProposalUpdate {
+                status: MyProposalStatus::Approved,
+            };
+            self.proposal_repo.update_proposal_status(
+                result.unwrap().new_member_proposal.proposal_id,
+                proposal_update,
+            )?;
+            return self
+                .proposal_repo
+                .find_new_member_proposal(user.id, group_id)?
+                .ok_or(AppError::Internal);
+        }
+
         let result = self.proposal_repo.create_new_member_proposal(
             NewProposal {
                 group_id,
@@ -145,7 +164,7 @@ impl ProposalService {
             payload.response,
         )) {
             Ok(proposal) => Ok(proposal),
-            Err(e) => Err(AppError::Internal),
+            Err(e) => Err(AppError::BadRequest("invalid request".parse().unwrap())),
         }
     }
 
