@@ -1,12 +1,13 @@
 <script lang="ts">
 	import type { GroupSummary } from '$lib/types/endpoints/groups.types';
+	import { Plus } from 'lucide-svelte';
 
 	import UserProfileCard from '$lib/components/UserProfileCard.svelte';
 	import GroupSummaryCard from '$lib/components/GroupSummaryCard.svelte';
 
 	import { getMyGroups } from '$lib/api/endpoints/groups';
 	import { isSuccess } from '$lib/types/client.types';
-	import IconButton from '$lib/components/ui/IconButton.svelte';
+	import FAB from '$lib/components/ui/FAB.svelte';
 	import NewGroup from '$lib/components/modals/NewGroup.svelte';
 
 	let isLoading = $state(true);
@@ -54,24 +55,13 @@
 	<div class="w-full">
 		<UserProfileCard />
 	</div>
-	<div>
-		<IconButton variant="primary" ariaLabel="Create group" onclick={() => (showNewGroup = true)}>
-			{#snippet icon()}
-				<svg
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2.5"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<line x1="12" y1="5" x2="12" y2="19" />
-					<line x1="5" y1="12" x2="19" y2="12" />
-				</svg>
-			{/snippet}
-		</IconButton>
-		<NewGroup open={showNewGroup} onclose={() => (showNewGroup = false)} />
-	</div>
+	<NewGroup open={showNewGroup} onclose={() => (showNewGroup = false)} />
+
+	<FAB ariaLabel="Create group" onclick={() => (showNewGroup = true)}>
+		{#snippet icon()}
+			<Plus />
+		{/snippet}
+	</FAB>
 
 	<div class="flex w-full flex-col gap-4">
 		<h2 class="text-xl font-bold text-black">Mis Grupos</h2>
@@ -97,14 +87,18 @@
 			<div class="flex items-center gap-2">
 				<span class="text-xs font-medium text-gray-500">Estado</span>
 				<div class="flex gap-1">
-					{#each [['all', 'Todos'], ['Active', 'Activo'], ['Ended', 'Finalizado']] as [val, label]}
+					{#each [{ val: 'all', label: 'Todos', dot: '', active: 'bg-black text-white border-transparent', inactive: 'border-gray-200 text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-black' }, { val: 'Active', label: 'Activo', dot: 'bg-green-500', active: 'text-green-800 bg-green-200 border-green-600', inactive: 'border-green-200 text-green-600 hover:bg-green-100 hover:border-green-400 hover:text-green-800' }, { val: 'Ended', label: 'Finalizado', dot: 'bg-red-400', active: 'bg-red-200 border-red-400 text-red-700', inactive: 'border-red-200 text-red-400 hover:bg-red-100 hover:border-red-400 hover:text-red-700' }] as opt}
 						<button
-							onclick={() => (filterStatus = val as typeof filterStatus)}
-							class={filterStatus === val
-								? 'rounded-full bg-black px-3 py-1 text-xs font-medium text-white'
-								: 'rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-500 transition hover:border-gray-400 hover:text-black'}
+							onclick={() => (filterStatus = opt.val as typeof filterStatus)}
+							class="flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition {filterStatus ===
+							opt.val
+								? opt.active
+								: opt.inactive}"
 						>
-							{label}
+							{#if opt.dot}
+								<span class="h-1.5 w-1.5 rounded-full {opt.dot}"></span>
+							{/if}
+							{opt.label}
 						</button>
 					{/each}
 				</div>
