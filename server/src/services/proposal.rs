@@ -158,14 +158,20 @@ impl ProposalService {
         new_member_proposal_id: Uuid,
         payload: RespondToNewMemberRequest,
     ) -> Result<NewMemberProposalExpanded, AppError> {
-        match (self.proposal_repo.respond_to_new_member_proposal(
+        /* match (self.proposal_repo.respond_to_new_member_proposal(
             new_member_proposal_id,
             destination,
             payload.response,
         )) {
             Ok(proposal) => Ok(proposal),
             Err(e) => Err(AppError::BadRequest("invalid request".parse().unwrap())),
-        }
+        }*/
+
+        self.proposal_repo.respond_to_new_member_proposal(
+            new_member_proposal_id,
+            destination,
+            payload.response,
+        )
     }
 
     pub fn update_proposal_status(
