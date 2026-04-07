@@ -31,12 +31,16 @@
 		loading = false;
 	}
 	async function loadMembersData() {
-		const res = await getGroupMembers(groupId);
-		if (!isSuccess(res)) {
-			return;
+		try {
+			const res = await getGroupMembers(groupId);
+			if (!isSuccess(res)) {
+				members = [];
+				return;
+			}
+			members = res.body;
+		} finally {
+			loadingMembers = false;
 		}
-		members = res.body;
-		loadingMembers = false;
 	}
 
 	loadGroupData();
