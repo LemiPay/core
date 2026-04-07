@@ -7,5 +7,6 @@ pub trait UserRepository: Send + Sync {
 
     fn find_by_id(&self, id: Uuid) -> Result<Option<UserSummary>, DbError>;
 
+    fn find_by_email(&self, email: String) -> Result<Option<UserSummary>, DbError>;
     fn list(&self) -> Result<Vec<User>, DbError>;
 }
