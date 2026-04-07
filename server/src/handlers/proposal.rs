@@ -51,6 +51,11 @@ pub struct NewMemberRequest {
     pub user_email: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct RespondToNewMemberRequest {
+    pub response: bool,
+}
+
 pub async fn new_group_member(
     State(state): State<SharedState>,
     Path(group_id): Path<Uuid>,
@@ -79,4 +84,17 @@ pub async fn delete_proposal(
         .proposal_service
         .logic_proposal_delete(params.proposal_id, group_id)?;
     Ok(Json(delete_proposal))
+}
+
+pub async fn respond_to_user_proposal(
+    State(state): State<SharedState>,
+    user: AuthUser,
+    Path(proposal_id): Path<Uuid>,
+    Json(payload): Json<RespondToNewMemberRequest>,
+) -> Result<Json<NewMemberProposalExpanded>, AppError> {
+    let update_proposal =
+        state
+            .proposal_service
+            .respond_new_member_proposal(user.user_id, proposal_id, payload)?;
+    Ok(Json(update_proposal))
 }

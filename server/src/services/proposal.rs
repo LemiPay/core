@@ -2,7 +2,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::app_error::AppError;
-use crate::handlers::proposal::NewMemberRequest;
+use crate::handlers::proposal::{NewMemberRequest, RespondToNewMemberRequest};
 use crate::models::group::Group;
 use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalUpdate};
 use crate::models::proposals::new_member::{
@@ -124,13 +124,29 @@ impl ProposalService {
             },
             user.id,
         )?;
-
+        /*
         // TODO: Handle voting and only add user to group if proposal is accepted
         // === REMOVE LATER ===
         self.group_repo.add_user_to_group(user.id, group_id)?;
         // === REMOVE LATER ===
-
+        */
         Ok(result)
+    }
+
+    pub fn respond_new_member_proposal(
+        &self,
+        destination: Uuid,
+        new_member_proposal_id: Uuid,
+        payload: RespondToNewMemberRequest,
+    ) -> Result<NewMemberProposalExpanded, AppError> {
+        match (self.proposal_repo.respond_to_new_member_proposal(
+            new_member_proposal_id,
+            destination,
+            payload.response,
+        )) {
+            Ok(proposal) => Ok(proposal),
+            Err(e) => Err(AppError::Internal),
+        }
     }
 
     pub fn update_proposal_status(

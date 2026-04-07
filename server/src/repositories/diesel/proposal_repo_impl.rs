@@ -8,6 +8,7 @@ use crate::repositories::traits::proposal_repo::ProposalRepository;
 
 use crate::data::database::Db;
 use crate::data::error::DbError;
+use crate::errors::app_error::AppError;
 // Models
 use crate::models::proposal::{
     MyProposalStatus, NewProposal, Proposal, ProposalType, ProposalUpdate,
@@ -15,11 +16,11 @@ use crate::models::proposal::{
 use crate::models::proposals::new_member::{
     NewMemberProposal, NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
 };
-
+use crate::models::user_in_group::{MyGroupRole, NewUserInGroup, UserInGroup};
 // Schema
 use crate::schema::new_member_proposal::dsl as nmp;
 use crate::schema::proposal::dsl as p;
-use crate::schema::{group, new_member_proposal, proposal, user};
+use crate::schema::{group, new_member_proposal, proposal, user, user_in_group};
 
 pub struct DieselProposalRepository {
     db: Db,
@@ -57,7 +58,6 @@ impl ProposalRepository for DieselProposalRepository {
         created_by: Uuid,
     ) -> Result<Vec<NewMemberProposalExpanded>, DbError> {
         let mut conn = self.db.get_conn()?;
-
         let result = new_member_proposal::table
             .inner_join(proposal::table.on(nmp::proposal_id.eq(p::id)))
             .filter(p::created_by.eq(created_by))
@@ -75,6 +75,75 @@ impl ProposalRepository for DieselProposalRepository {
         Ok(parsed)
     }
 
+    fn respond_to_new_member_proposal(
+        &self,
+        new_member_proposal_id: Uuid,
+        destination: Uuid,
+        approve: bool,
+    ) -> Result<NewMemberProposalExpanded, AppError> {
+        let mut conn = self.db.get_conn()?;
+        //busco la proposal
+        let (current_proposal, nmp) = proposal::table
+            .inner_join(
+                new_member_proposal::table.on(new_member_proposal::proposal_id.eq(proposal::id)),
+            )
+            .filter(proposal::id.eq(new_member_proposal_id))
+            .first::<(Proposal, NewMemberProposal)>(&mut conn)
+            .map_err(|err| match err {
+                diesel::result::Error::NotFound => AppError::NotFound,
+                _ => AppError::NotFound,
+            })?;
+
+        //veo que el destination sea el mismo
+        if nmp.new_member_id != destination {
+            return Err(AppError::Unauthorized);
+        }
+        //veo que este approved
+        if current_proposal.status != MyProposalStatus::Approved {
+            return Err(AppError::Forbidden);
+        }
+
+        //elijo nuevo status
+        let next_status = if approve {
+            MyProposalStatus::Executed
+        } else {
+            MyProposalStatus::Rejected
+        };
+        //transaction
+        let updated_proposal = conn
+            .transaction::<Proposal, diesel::result::Error, _>(|this_conn| {
+                //update el status
+                let updated =
+                    diesel::update(proposal::table.filter(proposal::id.eq(new_member_proposal_id)))
+                        .set(proposal::status.eq(&next_status))
+                        .get_result::<Proposal>(this_conn)?;
+                //si era un true agrego al tipo en el grupo
+                if approve {
+                    let new_user_in_group = NewUserInGroup {
+                        user_id: destination,
+                        group_id: updated.group_id,
+                        role: Some(MyGroupRole::Member),
+                    };
+
+                    diesel::insert_into(user_in_group::table)
+                        .values(&new_user_in_group)
+                        .returning(UserInGroup::as_returning())
+                        .get_result::<UserInGroup>(this_conn)?;
+                }
+
+                Ok(updated)
+            })
+            .map_err(|err| match err {
+                diesel::result::Error::NotFound => AppError::NotFound,
+                _ => AppError::NotFound,
+            })?;
+
+        Ok(NewMemberProposalExpanded {
+            proposal: updated_proposal,
+            new_member_proposal: nmp,
+            proposal_type: ProposalType::NewMember,
+        })
+    }
     fn find_new_member_received_by(
         &self,
         destination: Uuid,
@@ -86,6 +155,7 @@ impl ProposalRepository for DieselProposalRepository {
             .inner_join(user::table.on(proposal::created_by.eq(user::id)))
             .inner_join(group::table.on(proposal::group_id.eq(group::id)))
             .filter(new_member_proposal::new_member_id.eq(destination))
+            .filter(proposal::status.eq(MyProposalStatus::Approved))
             .select((
                 new_member_proposal::all_columns,
                 proposal::all_columns,

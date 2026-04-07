@@ -1,9 +1,10 @@
-use axum::routing::{delete, get, post};
+use axum::routing::{delete, get, post, put};
 use axum::{Router, middleware};
 
 use crate::data::state::SharedState;
 use crate::handlers::proposal::{
     delete_proposal, group_proposals, my_proposals, new_group_member, received_proposals,
+    respond_to_user_proposal,
 };
 
 use crate::security::middlewares::auth::auth_middleware;
@@ -42,6 +43,10 @@ pub fn proposal_routes(state: SharedState) -> Router {
                     state.clone(),
                     is_group_admin_middleware,
                 )),
+        )
+        .route(
+            "/respond_proposal/{proposal_id}",
+            put(respond_to_user_proposal),
         )
         .route_layer(middleware::from_fn(auth_middleware))
         .with_state(state)
