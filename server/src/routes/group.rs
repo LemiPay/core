@@ -19,18 +19,12 @@ pub fn group_routes(state: SharedState) -> Router {
         .route("/create", post(create_group))
         .route(
             "/{id}",
-            get(get_group_by_id).route_layer(middleware::from_fn_with_state(
-                state.clone(),
-                is_in_group_middleware,
-            )),
-        )
-        .route(
-            "/{id}",
-            put(update_group)
+            get(get_group_by_id)
+                .put(update_group)
                 .delete(delete_group)
                 .route_layer(middleware::from_fn_with_state(
                     state.clone(),
-                    is_group_admin_middleware,
+                    is_in_group_middleware,
                 )),
         )
         .route(

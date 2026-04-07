@@ -5,10 +5,15 @@ export type LoginData = {
 	password: string;
 };
 
+export type PostUser = {
+	email: string;
+	password: string;
+	name: string;
+};
+
 export type User = {
 	id: string;
 	email: string;
-	password: string;
 	name: string;
 };
 
@@ -17,6 +22,7 @@ export type NewUser = {
 	password: string;
 	name: string;
 };
+
 //este componente hay que modificarlo para agregar lo que necesitemos en el perfil y eso
 export type UserInfo = {
 	id: string;

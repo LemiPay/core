@@ -8,7 +8,7 @@
 		description?: string;
 		message?: string;
 		onclose: () => void;
-		onconfirm: () => void;
+		onconfirm: () => Promise<void>;
 		loading?: boolean;
 		error?: string;
 	}
