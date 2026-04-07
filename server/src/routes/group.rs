@@ -11,7 +11,7 @@ use crate::security::middlewares::is_in_group::{
 
 use axum::{
     Router, middleware,
-    routing::{get, post, put},
+    routing::{get, post},
 };
 
 pub fn group_routes(state: SharedState) -> Router {
