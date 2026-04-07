@@ -19,3 +19,12 @@ export async function getReceivedProposals(): ApiResponse<ReceivedNewMemberPropo
 		method: 'GET'
 	});
 }
+export async function respondToReceivedProposal(
+	response: boolean,
+	proposal_id: string
+): ApiResponse<ExpandedProposal> {
+	return authedApiFetch(`/proposal/respond_proposal/${proposal_id}`, {
+		method: 'PUT',
+		body: JSON.stringify({ response })
+	});
+}

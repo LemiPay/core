@@ -2,11 +2,13 @@
 	import { Bell } from 'lucide-svelte';
 	import GroupInvite from './GroupInvite.svelte';
 	import type { Action } from 'svelte/action';
-	import { getReceivedProposals } from '$lib/api/endpoints/proposals';
+	import { getReceivedProposals, respondToReceivedProposal } from '$lib/api/endpoints/proposals';
 	import { isSuccess } from '$lib/types/client.types';
 	import type { ReceivedNewMemberProposalExpanded } from '$lib/types/endpoints/proposals.types';
+	import { invalidate } from '$app/navigation';
 
 	interface NotificationData {
+		groupId: string;
 		senderName: string;
 		groupName: string;
 	}
@@ -54,6 +56,7 @@
 					id: p.proposal?.id || p.new_member_proposal?.proposal_id,
 					type: 'group_invite',
 					data: {
+						groupId: p.proposal.group_id,
 						senderName: p.sender_name,
 						groupName: p.group_name
 					}
@@ -74,12 +77,16 @@
 		isOpen = false;
 	}
 
-	function handleAccept(proposalId: string) {
-		notifications = notifications.filter((n) => n.id !== proposalId);
+	function handleAccept(proposalId: string, groupId: string) {
+		respondToReceivedProposal(true, proposalId);
+		closeDropdown();
+		window.location.href = `/groups/${groupId}`;
 	}
 
 	function handleDecline(proposalId: string) {
-		notifications = notifications.filter((n) => n.id !== proposalId);
+		respondToReceivedProposal(false, proposalId);
+		loadNotifications();
+		closeDropdown();
 	}
 </script>
 
@@ -120,7 +127,7 @@
 								<GroupInvite
 									senderName={notif.data.senderName}
 									groupName={notif.data.groupName}
-									onAccept={() => handleAccept(notif.id)}
+									onAccept={() => handleAccept(notif.id, notif.data.groupId)}
 									onDecline={() => handleDecline(notif.id)}
 								/>
 							{/if}
