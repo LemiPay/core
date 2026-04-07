@@ -4,7 +4,7 @@
 
 	let { user }: { user: UserBadge } = $props();
 
-	const isAdmin = user.role === 'Admin';
+	const isAdmin = $derived(user.role === 'Admin');
 </script>
 
 <a href="/users/{user.user_id}">
