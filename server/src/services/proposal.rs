@@ -5,7 +5,9 @@ use crate::errors::app_error::AppError;
 use crate::handlers::proposal::NewMemberRequest;
 use crate::models::group::Group;
 use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalUpdate};
-use crate::models::proposals::new_member::NewMemberProposalExpanded;
+use crate::models::proposals::new_member::{
+    NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
+};
 use crate::models::user::UserSummary;
 // Repos
 use crate::repositories::traits::group_repo::GroupRepository;
@@ -76,7 +78,7 @@ impl ProposalService {
     pub fn get_received_proposals(
         &self,
         destination: Uuid,
-    ) -> Result<Vec<NewMemberProposalExpanded>, AppError> {
+    ) -> Result<Vec<ReceivedNewMemberProposalExpanded>, AppError> {
         let result = self
             .proposal_repo
             .find_new_member_received_by(destination)

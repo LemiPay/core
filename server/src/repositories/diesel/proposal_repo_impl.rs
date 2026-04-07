@@ -12,12 +12,14 @@ use crate::data::error::DbError;
 use crate::models::proposal::{
     MyProposalStatus, NewProposal, Proposal, ProposalType, ProposalUpdate,
 };
-use crate::models::proposals::new_member::{NewMemberProposal, NewMemberProposalExpanded};
+use crate::models::proposals::new_member::{
+    NewMemberProposal, NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
+};
 
 // Schema
 use crate::schema::new_member_proposal::dsl as nmp;
 use crate::schema::proposal::dsl as p;
-use crate::schema::{new_member_proposal, proposal};
+use crate::schema::{group, new_member_proposal, proposal, user};
 
 pub struct DieselProposalRepository {
     db: Db,
@@ -76,21 +78,33 @@ impl ProposalRepository for DieselProposalRepository {
     fn find_new_member_received_by(
         &self,
         destination: Uuid,
-    ) -> Result<Vec<NewMemberProposalExpanded>, DbError> {
+    ) -> Result<Vec<ReceivedNewMemberProposalExpanded>, DbError> {
         let mut conn = self.db.get_conn()?;
 
         let result = new_member_proposal::table
-            .inner_join(proposal::table.on(nmp::proposal_id.eq(p::id)))
-            .filter(nmp::new_member_id.eq(destination))
-            .load::<(NewMemberProposal, Proposal)>(&mut conn)?;
+            .inner_join(proposal::table.on(new_member_proposal::proposal_id.eq(proposal::id)))
+            .inner_join(user::table.on(proposal::created_by.eq(user::id)))
+            .inner_join(group::table.on(proposal::group_id.eq(group::id)))
+            .filter(new_member_proposal::new_member_id.eq(destination))
+            .select((
+                new_member_proposal::all_columns,
+                proposal::all_columns,
+                user::name,
+                group::name,
+            ))
+            .load::<(NewMemberProposal, Proposal, String, String)>(&mut conn)?;
 
-        let parsed: Vec<NewMemberProposalExpanded> = result
+        let parsed: Vec<ReceivedNewMemberProposalExpanded> = result
             .into_iter()
-            .map(|(nmp, p)| NewMemberProposalExpanded {
-                proposal: p,
-                new_member_proposal: nmp,
-                proposal_type: ProposalType::NewMember,
-            })
+            .map(
+                |(nmp, p, sender_name, group_name)| ReceivedNewMemberProposalExpanded {
+                    sender_name,
+                    group_name,
+                    proposal: p,
+                    new_member_proposal: nmp,
+                    proposal_type: ProposalType::NewMember,
+                },
+            )
             .collect();
 
         Ok(parsed)

@@ -1,7 +1,9 @@
 use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
 use crate::models::proposal::Proposal;
-use crate::models::proposals::new_member::NewMemberProposalExpanded;
+use crate::models::proposals::new_member::{
+    NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
+};
 use crate::security::auth_extractor::AuthUser;
 use axum::extract::{Path, Query};
 use axum::{Json, extract::State};
@@ -11,6 +13,10 @@ use uuid::Uuid;
 #[derive(Serialize)]
 pub struct ProposalsResponse {
     proposals: Vec<NewMemberProposalExpanded>,
+}
+#[derive(Serialize)]
+pub struct ReceivedNewMemberProposalResponse {
+    proposals: Vec<ReceivedNewMemberProposalExpanded>,
 }
 
 pub async fn group_proposals(
@@ -32,11 +38,11 @@ pub async fn my_proposals(
 pub async fn received_proposals(
     State(state): State<SharedState>,
     user: AuthUser,
-) -> Result<Json<ProposalsResponse>, AppError> {
+) -> Result<Json<ReceivedNewMemberProposalResponse>, AppError> {
     let proposals = state
         .proposal_service
         .get_received_proposals(user.user_id)?;
-    Ok(Json(ProposalsResponse { proposals }))
+    Ok(Json(ReceivedNewMemberProposalResponse { proposals }))
 }
 
 #[derive(Deserialize)]
