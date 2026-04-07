@@ -34,6 +34,6 @@
 
 	{#snippet footer()}
 		<Button label="Cancel" variant="secondary" onclick={onclose} />
-		<Button label="Confirm" onclick={onconfirm} {loading} />
+		<Button label="Confirm" onclick={() => void onconfirm()} {loading} />
 	{/snippet}
 </Modal>

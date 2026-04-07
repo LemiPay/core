@@ -1,13 +1,7 @@
 import { apiFetch, authedApiFetch } from './client';
 
 import { type ApiResponse } from '$lib/types/client.types';
-import type {
-	RegisterData,
-	LoginData,
-	PostUser,
-	UserInfo,
-	User
-} from '$lib/types/endpoints/auth.types';
+import type { RegisterData, LoginData, PostUser, User } from '$lib/types/endpoints/auth.types';
 
 export async function register(data: RegisterData): ApiResponse<PostUser> {
 	return apiFetch('/auth/register', {
