@@ -87,7 +87,6 @@ impl ProposalRepository for DieselProposalRepository {
             .transaction::<NewMemberProposalExpanded, diesel::result::Error, _>(|this_conn| {
                 let nmp = new_member_proposal::table
                     .filter(new_member_proposal::proposal_id.eq(new_member_proposal_id))
-                    .find(new_member_proposal_id)
                     .get_result::<NewMemberProposal>(this_conn)?;
                 //update el status
                 let updated =
@@ -95,7 +94,7 @@ impl ProposalRepository for DieselProposalRepository {
                         .set(proposal::status.eq(&next_status))
                         .get_result::<Proposal>(this_conn)?;
 
-                if next_status.eq(&MyProposalStatus::Approved) {
+                if next_status.eq(&MyProposalStatus::Executed) {
                     let new_user_in_group = NewUserInGroup {
                         user_id: destination,
                         group_id: updated.group_id,

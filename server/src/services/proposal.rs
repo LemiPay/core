@@ -162,10 +162,10 @@ impl ProposalService {
             .proposal_repo
             .find_new_member_proposal_by_proposal_id(new_member_proposal_id)?;
         if search_proposal.new_member_proposal.new_member_id != destination {
-            return Err(AppError::BadRequest("el id".to_string()));
+            return Err(AppError::Forbidden);
         }
         if search_proposal.proposal.status != MyProposalStatus::Approved {
-            return Err(AppError::BadRequest("el status".to_string()));
+            return Err(AppError::Forbidden);
         }
         let next_status = if approve {
             MyProposalStatus::Executed
