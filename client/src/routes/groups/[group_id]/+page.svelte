@@ -58,9 +58,9 @@
 		if (!isSuccess(res)) {
 			groupExists = false;
 			loading = false;
-			setTimeout(() => {
+			/*setTimeout(() => {
 				window.location.href = '/dashboard';
-			}, 2000);
+			}, 2000);*/
 			return;
 		}
 		groupData = res.body;

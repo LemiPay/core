@@ -1,7 +1,9 @@
 use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
 use crate::models::proposal::Proposal;
-use crate::models::proposals::new_member::NewMemberProposalExpanded;
+use crate::models::proposals::new_member::{
+    NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
+};
 use crate::security::auth_extractor::AuthUser;
 use axum::extract::{Path, Query};
 use axum::{Json, extract::State};
@@ -32,17 +34,22 @@ pub async fn my_proposals(
 pub async fn received_proposals(
     State(state): State<SharedState>,
     user: AuthUser,
-) -> Result<Json<ProposalsResponse>, AppError> {
+) -> Result<Json<Vec<ReceivedNewMemberProposalExpanded>>, AppError> {
     let proposals = state
         .proposal_service
         .get_received_proposals(user.user_id)?;
-    Ok(Json(ProposalsResponse { proposals }))
+    Ok(Json(proposals))
 }
 
 #[derive(Deserialize)]
 pub struct NewMemberRequest {
     pub user_id: Option<Uuid>,
     pub user_email: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct RespondToNewMemberRequest {
+    pub response: bool,
 }
 
 pub async fn new_group_member(
@@ -73,4 +80,17 @@ pub async fn delete_proposal(
         .proposal_service
         .logic_proposal_delete(params.proposal_id, group_id)?;
     Ok(Json(delete_proposal))
+}
+
+pub async fn respond_to_user_proposal(
+    State(state): State<SharedState>,
+    user: AuthUser,
+    Path(proposal_id): Path<Uuid>,
+    Json(payload): Json<RespondToNewMemberRequest>,
+) -> Result<Json<NewMemberProposalExpanded>, AppError> {
+    let update_proposal =
+        state
+            .proposal_service
+            .respond_new_member_proposal(user.user_id, proposal_id, payload)?;
+    Ok(Json(update_proposal))
 }

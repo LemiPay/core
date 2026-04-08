@@ -4,12 +4,20 @@
 
 	// Creamos una variable derivada que calcula el color correcto.
 	// Usamos toLowerCase() por las dudas de que el backend mande "active" o "Active".
-	let statusColorClass = $derived(
+	let statusClasses = $derived(
 		group.status.toLowerCase() === 'active'
-			? 'text-green-600'
+			? 'bg-green-50 text-green-700 border border-green-200'
 			: group.status.toLowerCase() === 'ended'
-				? 'text-red-600'
-				: 'text-black font-semibold' // "negrito" por defecto
+				? 'bg-red-50 text-red-600 border border-red-200'
+				: 'bg-gray-50 text-gray-600 border border-gray-200'
+	);
+
+	let dotClass = $derived(
+		group.status.toLowerCase() === 'active'
+			? 'bg-green-500'
+			: group.status.toLowerCase() === 'ended'
+				? 'bg-red-400'
+				: 'bg-gray-400'
 	);
 </script>
 
@@ -28,7 +36,10 @@
 				{group.role}
 			</span>
 
-			<span class="text-xs font-medium {statusColorClass}">
+			<span
+				class="flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium {statusClasses}"
+			>
+				<span class="h-1.5 w-1.5 rounded-full {dotClass}"></span>
 				{group.status}
 			</span>
 		</div>

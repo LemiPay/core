@@ -1,6 +1,8 @@
 use crate::data::error::DbError;
-use crate::models::proposal::{NewProposal, Proposal, ProposalUpdate};
-use crate::models::proposals::new_member::NewMemberProposalExpanded;
+use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalUpdate};
+use crate::models::proposals::new_member::{
+    NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
+};
 use uuid::Uuid;
 
 pub trait ProposalRepository: Send + Sync {
@@ -10,11 +12,28 @@ pub trait ProposalRepository: Send + Sync {
         created_by: Uuid,
     ) -> Result<Vec<NewMemberProposalExpanded>, DbError>;
 
+    fn respond_to_new_member_proposal(
+        &self,
+        new_member_proposal_id: Uuid,
+        user_id: Uuid,
+        next_status: MyProposalStatus,
+    ) -> Result<NewMemberProposalExpanded, DbError>;
+
     fn find_new_member_received_by(
         &self,
         destination: Uuid,
-    ) -> Result<Vec<NewMemberProposalExpanded>, DbError>;
+    ) -> Result<Vec<ReceivedNewMemberProposalExpanded>, DbError>;
     fn find(&self, proposal_id: Uuid) -> Result<Option<Proposal>, DbError>;
+
+    fn find_new_member_proposal_by_destination_and_group_id(
+        &self,
+        destination: Uuid,
+        group_id: Uuid,
+    ) -> Result<Option<NewMemberProposalExpanded>, DbError>;
+    fn find_new_member_proposal_by_proposal_id(
+        &self,
+        proposal_id: Uuid,
+    ) -> Result<NewMemberProposalExpanded, DbError>;
 
     fn create_new_member_proposal(
         &self,

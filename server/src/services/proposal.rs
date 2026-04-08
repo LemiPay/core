@@ -2,11 +2,13 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::app_error::AppError;
-use crate::handlers::proposal::NewMemberRequest;
+use crate::handlers::proposal::{NewMemberRequest, RespondToNewMemberRequest};
 use crate::models::group::Group;
 use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalUpdate};
-use crate::models::proposals::new_member::NewMemberProposalExpanded;
-
+use crate::models::proposals::new_member::{
+    NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
+};
+use crate::models::user::UserSummary;
 // Repos
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::repositories::traits::proposal_repo::ProposalRepository;
@@ -76,7 +78,7 @@ impl ProposalService {
     pub fn get_received_proposals(
         &self,
         destination: Uuid,
-    ) -> Result<Vec<NewMemberProposalExpanded>, AppError> {
+    ) -> Result<Vec<ReceivedNewMemberProposalExpanded>, AppError> {
         let result = self
             .proposal_repo
             .find_new_member_received_by(destination)
@@ -115,6 +117,24 @@ impl ProposalService {
             ));
         }
 
+        let result = self
+            .proposal_repo
+            .find_new_member_proposal_by_destination_and_group_id(user.id, group_id)?;
+        if result.is_some() {
+            //TODO when we have votes this should be placed as pending
+            let proposal_update = ProposalUpdate {
+                status: MyProposalStatus::Approved,
+            };
+            self.proposal_repo.update_proposal_status(
+                result.unwrap().new_member_proposal.proposal_id,
+                proposal_update,
+            )?;
+            return self
+                .proposal_repo
+                .find_new_member_proposal_by_destination_and_group_id(user.id, group_id)?
+                .ok_or(AppError::Internal);
+        }
+
         let result = self.proposal_repo.create_new_member_proposal(
             NewProposal {
                 group_id,
@@ -122,13 +142,45 @@ impl ProposalService {
             },
             user.id,
         )?;
-
+        /*
         // TODO: Handle voting and only add user to group if proposal is accepted
         // === REMOVE LATER ===
         self.group_repo.add_user_to_group(user.id, group_id)?;
         // === REMOVE LATER ===
-
+        */
         Ok(result)
+    }
+
+    pub fn respond_new_member_proposal(
+        &self,
+        destination: Uuid,
+        new_member_proposal_id: Uuid,
+        payload: RespondToNewMemberRequest,
+    ) -> Result<NewMemberProposalExpanded, AppError> {
+        let approve = payload.response;
+        let search_proposal = self
+            .proposal_repo
+            .find_new_member_proposal_by_proposal_id(new_member_proposal_id)?;
+        if search_proposal.new_member_proposal.new_member_id != destination {
+            return Err(AppError::Forbidden);
+        }
+        if search_proposal.proposal.status != MyProposalStatus::Approved {
+            return Err(AppError::Forbidden);
+        }
+        let next_status = if approve {
+            MyProposalStatus::Executed
+        } else {
+            MyProposalStatus::Rejected
+        };
+
+        match self.proposal_repo.respond_to_new_member_proposal(
+            new_member_proposal_id,
+            destination,
+            next_status,
+        ) {
+            Ok(proposal) => Ok(proposal),
+            Err(_) => Err(AppError::BadRequest("invalid request".parse().unwrap())),
+        }
     }
 
     pub fn update_proposal_status(
