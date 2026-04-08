@@ -231,10 +231,4 @@ impl ProposalService {
             .find_by_id(group_id)?
             .ok_or(AppError::BadRequest("Group does not exist".to_string()))
     }
-
-    fn find_user(&self, user_id: Uuid) -> Result<UserSummary, AppError> {
-        self.user_repo
-            .find_by_id(user_id)?
-            .ok_or(AppError::BadRequest("User does not exist".to_string()))
-    }
 }

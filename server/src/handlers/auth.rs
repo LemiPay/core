@@ -1,10 +1,10 @@
 use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
 use crate::models::user::User;
+use crate::models::user::UserSummary;
 use crate::security::auth_extractor::AuthUser;
 use axum::{Json, extract::State};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Deserialize)]
 pub struct RegisterRequest {
@@ -43,13 +43,19 @@ pub async fn login(
     Ok(Json(LoginResponse { token: jwt }))
 }
 
-/// Get my Uuid
-#[derive(Serialize)]
-pub struct MeResponse {
-    id: Uuid,
-}
-
-pub async fn get_me(user: AuthUser) -> Result<Json<MeResponse>, AppError> {
+pub async fn get_me(
+    State(state): State<SharedState>,
+    user: AuthUser,
+) -> Result<Json<UserSummary>, AppError> {
     // El parámetro es un User, pero que ya fue validado que esté authed
-    Ok(Json(MeResponse { id: user.user_id }))
+    let found_user = state
+        .user_service
+        .get_user(user.user_id)?
+        .ok_or(AppError::NotFound)?;
+
+    Ok(Json(UserSummary {
+        id: found_user.id,
+        name: found_user.name,
+        email: found_user.email,
+    }))
 }

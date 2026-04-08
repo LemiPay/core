@@ -21,7 +21,7 @@ pub struct NewUser {
     pub password: String,
     pub name: String,
 }
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct UserSummary {
     pub id: Uuid,
     pub email: String,

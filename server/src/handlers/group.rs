@@ -1,6 +1,6 @@
 use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
-use crate::models::group::Group;
+use crate::models::group::{Group, GroupUpdate};
 use crate::models::user_in_group::{GroupFromUser, GroupMember, UserInGroup};
 use crate::security::auth_extractor::AuthUser;
 use axum::{
@@ -66,5 +66,37 @@ pub async fn get_user_groups(
     user: AuthUser,
 ) -> Result<Json<Vec<GroupFromUser>>, AppError> {
     let result = state.group_service.get_user_groups(user.user_id)?;
+    Ok(Json(result))
+}
+
+pub async fn delete_group(
+    State(state): State<SharedState>,
+    user: AuthUser,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Group>, AppError> {
+    let result = state.group_service.delete(user.user_id, group_id)?;
+    Ok(Json(result))
+}
+
+#[derive(Deserialize)]
+pub struct UpdateGroupRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+}
+
+pub async fn update_group(
+    State(state): State<SharedState>,
+    user: AuthUser,
+    Path(group_id): Path<Uuid>,
+    Json(payload): Json<UpdateGroupRequest>,
+) -> Result<Json<Group>, AppError> {
+    let update = GroupUpdate {
+        name: payload.name,
+        description: payload.description,
+        status: None,
+    };
+    let result = state
+        .group_service
+        .update_group(user.user_id, group_id, update)?;
     Ok(Json(result))
 }

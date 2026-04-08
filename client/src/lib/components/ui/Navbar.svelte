@@ -15,7 +15,11 @@
 
 <nav class="w-full border-b border-gray-200 bg-white">
 	<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-		<a href="/" class="text-sm font-bold tracking-tight text-black">Lemipay</a>
+		<a href="/" class="flex items-center">
+			<img src="/logo.png" alt="Lemipay" class="h-8 w-auto" />
+
+			<span class="ml-2 text-sm font-bold tracking-tight text-black"> LemiPay </span>
+		</a>
 
 		<div class="flex items-center gap-6">
 			<div class="flex items-center gap-6">

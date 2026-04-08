@@ -1,7 +1,8 @@
 // lo que devuelve el /me
 export type MyUser = {
 	id: string;
-	// después podés agregar name, email, etc
+	name: string;
+	email: string;
 };
 
 export type AuthState = {

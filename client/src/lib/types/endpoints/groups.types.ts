@@ -3,6 +3,11 @@ export type NewGroupData = {
 	description: string;
 };
 
+export type UpdateGroupData = {
+	name?: string;
+	description?: string;
+};
+
 export type GroupSummary = {
 	user_id: string;
 	group_id: string;
