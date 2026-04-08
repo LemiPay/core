@@ -113,8 +113,6 @@ impl ProposalRepository for DieselProposalRepository {
                     new_member_proposal: nmp,
                     proposal_type: ProposalType::NewMember,
                 })
-
-                //Ok(updated)
             })?;
 
         Ok(updated_proposal)
