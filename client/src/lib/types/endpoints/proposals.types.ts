@@ -1,7 +1,13 @@
 type Uuid = string;
 
-type ProposalStatus = 'Pending' | 'Approved' | 'Rejected';
-
+type ProposalStatus =
+	| 'Pending'
+	| 'Approved'
+	| 'Rejected'
+	| 'Executed'
+	| 'Canceled'
+	| 'Expired'
+	| 'Failed';
 type ProposalType = 'NewMember';
 
 type DateTime = string;
@@ -29,4 +35,11 @@ export type ExpandedProposal = {
 export type NewMemberData = {
 	group_id: string;
 	email: string;
+};
+export type ReceivedNewMemberProposalExpanded = {
+	sender_name: string;
+	group_name: string;
+	proposal: Proposal;
+	new_member_proposal: NewMemberProposal;
+	proposal_type: ProposalType;
 };

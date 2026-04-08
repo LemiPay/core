@@ -18,3 +18,12 @@ pub struct NewMemberProposalExpanded {
     pub new_member_proposal: NewMemberProposal,
     pub proposal_type: ProposalType,
 }
+
+#[derive(Serialize)]
+pub struct ReceivedNewMemberProposalExpanded {
+    pub sender_name: String,
+    pub group_name: String,
+    pub proposal: Proposal,
+    pub new_member_proposal: NewMemberProposal,
+    pub proposal_type: ProposalType,
+}
