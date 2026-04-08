@@ -191,7 +191,20 @@ impl ProposalRepository for DieselProposalRepository {
         &self,
         proposal_id: Uuid,
     ) -> Result<NewMemberProposalExpanded, DbError> {
-        todo!()
+        let mut conn = self.db.get_conn()?;
+        let nmp = new_member_proposal::table
+            .filter(new_member_proposal::proposal_id.eq(proposal_id))
+            .get_result::<NewMemberProposal>(&mut conn)?;
+
+        let proposal = proposal::table
+            .filter(proposal::id.eq(proposal_id))
+            .get_result::<Proposal>(&mut conn)?;
+
+        Ok(NewMemberProposalExpanded {
+            proposal,
+            new_member_proposal: nmp,
+            proposal_type: ProposalType::NewMember,
+        })
     }
 
     fn create_new_member_proposal(
@@ -218,14 +231,11 @@ impl ProposalRepository for DieselProposalRepository {
                 .get_result(this_conn)?;
 
             // TODO: Handle voting system
-            // For now, update to Approved.
-            // === REMOVE LATER ===
             proposal = diesel::update(proposal::table.filter(proposal::id.eq(proposal.id)))
                 .set(ProposalUpdate {
                     status: MyProposalStatus::Approved,
                 })
                 .get_result(this_conn)?;
-            // === REMOVE LATER ===
 
             Ok(NewMemberProposalExpanded {
                 proposal,
