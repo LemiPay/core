@@ -23,6 +23,14 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    currency (currency_id) {
+        currency_id -> Uuid,
+        name -> Text,
+        ticker -> Text,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::GroupStatus;
 
@@ -103,6 +111,7 @@ diesel::joinable!(vote -> proposal (proposal_id));
 diesel::joinable!(vote -> user (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    currency,
     group,
     new_member_proposal,
     proposal,
