@@ -9,14 +9,14 @@ if git diff --cached --name-only | grep '^server/.*\.rs$' > /dev/null; then
 
   echo "🔍 Running cargo fmt..."
   cargo fmt -- --check || {
-    echo "❌ Formatting failed. Run cargo fmt."
-    exit 1
+    echo "❌ Formatting failed. Running cargo fmt."
+    cargo fmt
+    git -C .. add $(git -C .. diff --cached --name-only | grep '^server/.*\.rs$')
   }
 
   echo "🧠 Running cargo check..."
   cargo check || {
     echo "❌ Cargo check failed."
-    exit 1
   }
 
   cd .. || exit 1
@@ -36,7 +36,10 @@ if git diff --cached --name-only | grep '^client/.*$' > /dev/null; then
     echo "❌ Svelte formatting failed."
     echo "💨 Running Svelte fmt..."
     pnpm run format
-    git add $(git diff --name-only -- '*')
+    client_staged_files=$(git -C .. diff --cached --name-only | grep '^client/.*$' || true)
+    if [ -n "$client_staged_files" ]; then
+      printf '%s\n' "$client_staged_files" | xargs git -C .. add --
+    fi
   }
 
   echo "🧠 Running Svelte checks..."

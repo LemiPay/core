@@ -1,6 +1,6 @@
 use crate::data::state::SharedState;
 use crate::handlers::user::{get_user, list_users};
-use crate::security::auth_middleware::auth_middleware;
+use crate::security::middlewares::auth::auth_middleware;
 use axum::{Router, middleware, routing::get};
 
 pub fn user_routes(state: SharedState) -> Router {

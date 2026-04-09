@@ -1,7 +1,6 @@
 use crate::security::jwt::decode_jwt;
 use axum::body::Body;
 use axum::{
-    extract::State,
     http::{Request, StatusCode},
     middleware::Next,
     response::Response,
@@ -10,11 +9,7 @@ use axum::{
 ///
 /// Validates request JWT
 ///
-pub async fn auth_middleware(
-    State(_): State<()>,
-    mut req: Request<Body>,
-    next: Next,
-) -> Result<Response, StatusCode> {
+pub async fn auth_middleware(mut req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
     // 1. Obtener header
     let auth_header = req
         .headers()
