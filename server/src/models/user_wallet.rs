@@ -20,6 +20,5 @@ pub struct UserWallet {
 pub struct NewUserWallet {
     pub address: String,
     pub user_id: Uuid,
-    pub balance: BigDecimal,
     pub currency_id: Uuid,
 }

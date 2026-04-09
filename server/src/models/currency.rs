@@ -16,7 +16,6 @@ pub struct Currency {
 #[derive(Insertable, Deserialize)]
 #[diesel(table_name = currency)]
 pub struct NewCurrency {
-    pub currency_id: Uuid,
     pub name: String,
     pub ticker: String,
 }
