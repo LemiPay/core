@@ -7,6 +7,7 @@ use crate::schema::currency;
 #[derive(Queryable, Selectable, Serialize)]
 #[diesel(table_name = currency)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[allow(dead_code)] // TODO: remove after implemented
 pub struct Currency {
     pub currency_id: Uuid,
     pub name: String,

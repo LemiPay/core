@@ -90,11 +90,14 @@ diesel::table! {
 }
 
 diesel::table! {
-    user_wallet (address) {
+    user_wallet (id) {
+        id -> Uuid,
         address -> Text,
         user_id -> Uuid,
-        balance -> Numeric,
         currency_id -> Uuid,
+        balance -> Numeric,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 

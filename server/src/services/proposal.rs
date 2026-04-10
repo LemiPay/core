@@ -8,6 +8,7 @@ use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalU
 use crate::models::proposals::new_member::{
     NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
 };
+
 // Repos
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::repositories::traits::proposal_repo::ProposalRepository;
