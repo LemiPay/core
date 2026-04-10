@@ -13,8 +13,8 @@ pub struct GroupWallet {
     pub id: Uuid,
     pub address: String,
     pub group_id: Uuid,
-    pub balance: BigDecimal,
     pub currency_id: Uuid,
+    pub balance: BigDecimal,
     pub created_at: chrono::NaiveDateTime,
     pub updated_at: chrono::NaiveDateTime,
 }
