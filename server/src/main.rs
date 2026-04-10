@@ -21,15 +21,18 @@ use crate::data::state::AppState;
 
 // Repos
 use crate::repositories::diesel::auth_repo_impl::DieselAuthRepository;
+use crate::repositories::diesel::currency_repo_impl::DieselCurrencyRepository;
 use crate::repositories::diesel::group_repo_impl::DieselGroupRepository;
 use crate::repositories::diesel::proposal_repo_impl::DieselProposalRepository;
 use crate::repositories::diesel::user_repo_impl::DieselUserRepository;
+use crate::repositories::diesel::user_wallet_repo_impl::DieselUserWalletRepository;
 
 // Services
 use crate::services::auth::AuthService;
 use crate::services::group::GroupService;
 use crate::services::proposal::ProposalService;
 use crate::services::user::UserService;
+use crate::services::user_wallet::UserWalletService;
 
 #[tokio::main]
 async fn main() {
@@ -44,6 +47,8 @@ async fn main() {
     let auth_repo = Arc::new(DieselAuthRepository::new(db.clone()));
     let group_repo = Arc::new(DieselGroupRepository::new(db.clone()));
     let proposal_repo = Arc::new(DieselProposalRepository::new(db.clone()));
+    let user_wallet_repo = Arc::new(DieselUserWalletRepository::new(db.clone()));
+    let currency_repo = Arc::new(DieselCurrencyRepository::new(db.clone()));
 
     // 🧠 Service
     let user_service = UserService::new(user_repo.clone());
@@ -51,12 +56,17 @@ async fn main() {
     let group_service = GroupService::new(group_repo.clone());
     let proposal_service =
         ProposalService::new(proposal_repo.clone(), user_repo.clone(), group_repo.clone());
+    let user_wallet_service = Arc::new(UserWalletService::new(
+        user_wallet_repo.clone(),
+        currency_repo.clone(),
+    ));
 
     let state = Arc::new(AppState {
         user_service,
         auth_service,
         group_service,
         proposal_service,
+        user_wallet_service,
     });
 
     // 🚏 Router

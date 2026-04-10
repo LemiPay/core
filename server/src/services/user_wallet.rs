@@ -3,28 +3,45 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::app_error::AppError;
+use crate::handlers::user_wallet::NewWalletRequest;
 use crate::models::user_wallet::{NewUserWallet, UserWallet};
-
-use crate::repositories::traits::user_wallet_repo;
+use crate::repositories::traits::currency_repo::CurrencyRepository;
 use crate::repositories::traits::user_wallet_repo::UserWalletRepository;
 
 #[derive(Clone)]
 pub struct UserWalletService {
     user_wallet_repo: Arc<dyn UserWalletRepository>,
+    currency_repo: Arc<dyn CurrencyRepository>,
 }
 impl UserWalletService {
-    pub fn new(user_wallet_repo: Arc<dyn UserWalletRepository>) -> Self {
-        Self { user_wallet_repo }
+    pub fn new(
+        user_wallet_repo: Arc<dyn UserWalletRepository>,
+        currency_repo: Arc<dyn CurrencyRepository>,
+    ) -> Self {
+        Self {
+            user_wallet_repo,
+            currency_repo,
+        }
     }
 
-    pub fn create_wallet(&self, new_user_wallet: NewUserWallet) -> Result<UserWallet, AppError> {
+    pub fn create_wallet(
+        &self,
+        wallet_request: NewWalletRequest,
+        user_id: Uuid,
+    ) -> Result<UserWallet, AppError> {
         //esta validación deberia irse cuando permitamos mas wallets por usuario
-        let check_if_has_wallet = self
-            .user_wallet_repo
-            .get_user_wallet_address(new_user_wallet.user_id)?;
-        if (check_if_has_wallet.is_some()) {
+        let check_if_has_wallet = self.user_wallet_repo.get_user_wallet_address(user_id)?;
+        if check_if_has_wallet.is_some() {
             return Err(AppError::Forbidden);
         }
+        let check_currency = self
+            .currency_repo
+            .check_if_currency_exist(wallet_request.currency_ticker.clone())?;
+        let new_user_wallet = NewUserWallet {
+            address: wallet_request.address,
+            user_id,
+            currency_id: check_currency,
+        };
         self.user_wallet_repo
             .create(new_user_wallet)
             .map_err(AppError::Db)
