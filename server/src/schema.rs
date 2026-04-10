@@ -119,6 +119,8 @@ diesel::joinable!(proposal -> group (group_id));
 diesel::joinable!(proposal -> user (created_by));
 diesel::joinable!(user_in_group -> group (group_id));
 diesel::joinable!(user_in_group -> user (user_id));
+diesel::joinable!(user_wallet -> currency (currency_id));
+diesel::joinable!(user_wallet -> user (user_id));
 diesel::joinable!(vote -> proposal (proposal_id));
 diesel::joinable!(vote -> user (user_id));
 

@@ -19,10 +19,10 @@ CREATE TABLE IF NOT EXISTS user_wallet(
     CONSTRAINT fk_user
         FOREIGN KEY (user_id)
         REFERENCES "user"(id)
-        ON DELETE RESTRICT,
+        ON DELETE CASCADE,
 
     CONSTRAINT fk_currency
         FOREIGN KEY (currency_id)
-        REFERENCES "currency"(id)
+        REFERENCES "currency"(currency_id)
         ON DELETE RESTRICT
 );
