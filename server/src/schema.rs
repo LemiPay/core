@@ -23,6 +23,14 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    currency (currency_id) {
+        currency_id -> Uuid,
+        name -> Text,
+        ticker -> Text,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::GroupStatus;
 
@@ -82,6 +90,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    user_wallet (id) {
+        id -> Uuid,
+        address -> Text,
+        user_id -> Uuid,
+        currency_id -> Uuid,
+        balance -> Numeric,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::VoteType;
 
@@ -99,14 +119,18 @@ diesel::joinable!(proposal -> group (group_id));
 diesel::joinable!(proposal -> user (created_by));
 diesel::joinable!(user_in_group -> group (group_id));
 diesel::joinable!(user_in_group -> user (user_id));
+diesel::joinable!(user_wallet -> currency (currency_id));
+diesel::joinable!(user_wallet -> user (user_id));
 diesel::joinable!(vote -> proposal (proposal_id));
 diesel::joinable!(vote -> user (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    currency,
     group,
     new_member_proposal,
     proposal,
     user,
     user_in_group,
+    user_wallet,
     vote,
 );
