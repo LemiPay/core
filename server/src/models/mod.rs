@@ -1,3 +1,4 @@
+pub mod currency;
 pub mod group;
 pub mod group_wallet;
 pub mod proposal;
