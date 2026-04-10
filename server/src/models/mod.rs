@@ -1,4 +1,5 @@
 pub mod group;
+pub mod group_wallet;
 pub mod proposal;
 pub mod proposals;
 pub mod user;
