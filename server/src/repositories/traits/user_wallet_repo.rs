@@ -6,12 +6,13 @@ use uuid::Uuid;
 pub trait UserWalletRepository: Send + Sync {
     fn create(&self, user_wallet: NewUserWallet) -> Result<UserWallet, DbError>;
     fn get_balance_by_address(&self, address: &str) -> Result<BigDecimal, DbError>;
-    fn add_money_to_wallet(&self, address: &str, amount: BigDecimal) -> Result<Uuid, DbError>;
+    fn add_money_to_wallet(&self, address: &str, amount: BigDecimal)
+    -> Result<UserWallet, DbError>;
     fn take_money_by_address(
         &self,
         address: &str,
         amount: BigDecimal,
-    ) -> Result<BigDecimal, DbError>;
+    ) -> Result<UserWallet, DbError>;
     fn make_transfer_between_addresses(
         &self,
         sender_address: &str,
@@ -22,5 +23,5 @@ pub trait UserWalletRepository: Send + Sync {
     /**
     # This method will be deprecated the moment we allow multiple wallets per user
     */
-    fn get_user_address(&self, user_id: Uuid) -> Result<String, DbError>;
+    fn get_user_wallet_address(&self, user_id: Uuid) -> Result<Option<UserWallet>, DbError>;
 }

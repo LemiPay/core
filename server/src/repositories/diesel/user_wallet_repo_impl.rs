@@ -38,35 +38,37 @@ impl UserWalletRepository for DieselUserWalletRepository {
         Ok(result)
     }
 
-    fn add_money_to_wallet(&self, address: &str, amount: BigDecimal) -> Result<Uuid, DbError> {
+    fn add_money_to_wallet(
+        &self,
+        address: &str,
+        amount: BigDecimal,
+    ) -> Result<UserWallet, DbError> {
         let mut conn = self.db.get_conn()?;
 
-        let updated_wallet_id =
+        let updated_wallet =
             diesel::update(user_wallet::table.filter(user_wallet::address.eq(address)))
                 .set(user_wallet::balance.eq(user_wallet::balance + amount))
-                .returning(user_wallet::user_id)
-                .get_result::<Uuid>(&mut conn)?;
+                .get_result::<UserWallet>(&mut conn)?;
 
-        Ok(updated_wallet_id)
+        Ok(updated_wallet)
     }
 
     fn take_money_by_address(
         &self,
         target_address: &str,
         amount: BigDecimal,
-    ) -> Result<BigDecimal, DbError> {
+    ) -> Result<UserWallet, DbError> {
         let mut conn = self.db.get_conn()?;
 
-        let new_balance = diesel::update(
+        let updated_wallet = diesel::update(
             user_wallet::table
                 .filter(user_wallet::address.eq(target_address))
                 .filter(user_wallet::balance.ge(amount.clone())),
         )
         .set(user_wallet::balance.eq(user_wallet::balance - amount))
-        .returning(user_wallet::balance)
-        .get_result::<BigDecimal>(&mut conn)?;
+        .get_result::<UserWallet>(&mut conn)?;
 
-        Ok(new_balance)
+        Ok(updated_wallet)
     }
     fn make_transfer_between_addresses(
         &self,
@@ -77,20 +79,23 @@ impl UserWalletRepository for DieselUserWalletRepository {
         let mut conn = self.db.get_conn()?;
 
         let success = conn.transaction::<bool, DbError, _>(|this_conn| {
-            diesel::update(
+            let sender_currency = diesel::update(
                 user_wallet::table
                     .filter(user_wallet::address.eq(sender_address))
-                    //filtro para el que el balance sea mayor a amount sino pincha porque no encuentra tupla
                     .filter(user_wallet::balance.ge(amount.clone())),
             )
             .set(user_wallet::balance.eq(user_wallet::balance - amount.clone()))
+            .returning(user_wallet::currency_id)
+            .get_result::<Uuid>(this_conn)?;
+
+            diesel::update(
+                user_wallet::table
+                    .filter(user_wallet::address.eq(receiver_address))
+                    .filter(user_wallet::currency_id.eq(sender_currency)),
+            )
+            .set(user_wallet::balance.eq(user_wallet::balance + amount))
             .returning(user_wallet::address)
             .get_result::<String>(this_conn)?;
-
-            diesel::update(user_wallet::table.filter(user_wallet::address.eq(receiver_address)))
-                .set(user_wallet::balance.eq(user_wallet::balance + amount))
-                .returning(user_wallet::address)
-                .get_result::<String>(this_conn)?;
 
             Ok(true)
         })?;
@@ -115,14 +120,14 @@ impl UserWalletRepository for DieselUserWalletRepository {
         Ok(wallet.is_some())
     }
 
-    fn get_user_address(&self, target_user_id: Uuid) -> Result<String, DbError> {
+    fn get_user_wallet_address(&self, user_id: Uuid) -> Result<Option<UserWallet>, DbError> {
         let mut conn = self.db.get_conn()?;
 
-        let address = user_wallet::table
-            .filter(user_wallet::user_id.eq(target_user_id))
-            .select(user_wallet::address)
-            .first::<String>(&mut conn)?;
+        let wallet = user_wallet::table
+            .filter(user_wallet::user_id.eq(user_id))
+            .first::<UserWallet>(&mut conn)
+            .optional()?;
 
-        Ok(address)
+        Ok(wallet)
     }
 }
