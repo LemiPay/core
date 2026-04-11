@@ -57,7 +57,6 @@ impl UserWalletService {
             }
         }
 
-        // 4. Pasó todas las validaciones de negocio. ¡La creamos!
         let new_user_wallet = NewUserWallet {
             address: wallet_request.address,
             user_id,
