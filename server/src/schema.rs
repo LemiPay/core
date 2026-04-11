@@ -45,6 +45,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    group_wallet (id) {
+        id -> Uuid,
+        address -> Text,
+        group_id -> Uuid,
+        currency_id -> Uuid,
+        balance -> Numeric,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     new_member_proposal (proposal_id) {
         proposal_id -> Uuid,
         new_member_id -> Uuid,
@@ -113,6 +125,8 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(group_wallet -> currency (currency_id));
+diesel::joinable!(group_wallet -> group (group_id));
 diesel::joinable!(new_member_proposal -> proposal (proposal_id));
 diesel::joinable!(new_member_proposal -> user (new_member_id));
 diesel::joinable!(proposal -> group (group_id));
@@ -127,6 +141,7 @@ diesel::joinable!(vote -> user (user_id));
 diesel::allow_tables_to_appear_in_same_query!(
     currency,
     group,
+    group_wallet,
     new_member_proposal,
     proposal,
     user,
