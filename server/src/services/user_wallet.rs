@@ -1,12 +1,12 @@
-use bigdecimal::BigDecimal;
-use std::sync::Arc;
-use uuid::Uuid;
-
+use crate::data::error::DbError;
 use crate::errors::app_error::AppError;
 use crate::handlers::user_wallet::NewWalletRequest;
 use crate::models::user_wallet::{NewUserWallet, UserWallet};
 use crate::repositories::traits::currency_repo::CurrencyRepository;
 use crate::repositories::traits::user_wallet_repo::UserWalletRepository;
+use bigdecimal::BigDecimal;
+use std::sync::Arc;
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct UserWalletService {
@@ -29,25 +29,51 @@ impl UserWalletService {
         wallet_request: NewWalletRequest,
         user_id: Uuid,
     ) -> Result<UserWallet, AppError> {
-        //esta validación deberia irse cuando permitamos mas wallets por usuario
-        let check_if_has_wallet = self.user_wallet_repo.get_user_wallet_address(user_id)?;
-        if check_if_has_wallet.is_some() {
-            return Err(AppError::Forbidden);
-        }
-        let check_currency = self
+        let currency_id = self
             .currency_repo
             .check_if_currency_exist(wallet_request.currency_ticker.clone())?;
+
+        let owner_opt = self
+            .user_wallet_repo
+            .get_owner_of_address(&wallet_request.address)
+            .map_err(AppError::Db)?;
+
+        if let Some(owner_id) = owner_opt {
+            if owner_id != user_id {
+                return Err(AppError::Unauthorized);
+            }
+        }
+
+        let existing_currency_wallet = self
+            .user_wallet_repo
+            .get_wallet_id_by_address_and_currency(&wallet_request.address, currency_id);
+        match existing_currency_wallet {
+            Ok(_) => {
+                return Err(AppError::Forbidden);
+            }
+            Err(DbError::Diesel(diesel::result::Error::NotFound)) => {}
+            Err(e) => {
+                return Err(AppError::Db(e));
+            }
+        }
+
+        // 4. Pasó todas las validaciones de negocio. ¡La creamos!
         let new_user_wallet = NewUserWallet {
             address: wallet_request.address,
             user_id,
-            currency_id: check_currency,
+            currency_id,
         };
+
         self.user_wallet_repo
             .create(new_user_wallet)
             .map_err(AppError::Db)
     }
 
-    pub fn get_user_wallet(&self, user_id: Uuid) -> Result<UserWallet, AppError> {
+    pub fn get_user_wallet_by_currency(
+        &self,
+        user_id: Uuid,
+        currency_id: Uuid,
+    ) -> Result<UserWallet, AppError> {
         self.user_wallet_repo
             .get_user_wallet_address(user_id)
             .map_err(AppError::Db)?
@@ -113,7 +139,7 @@ impl UserWalletService {
             return Err(AppError::Forbidden);
         }
         self.user_wallet_repo
-            .make_transfer_between_addresses(&*sender_address, &*receiver_address, amount.clone())
+            .make_transfer_between_wallets(&*sender_address, &*receiver_address, amount.clone())
             .map_err(AppError::Db)
     }
     /**

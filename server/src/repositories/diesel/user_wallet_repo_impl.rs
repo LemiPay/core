@@ -19,61 +19,10 @@ impl DieselUserWalletRepository {
 }
 
 impl UserWalletRepository for DieselUserWalletRepository {
-    fn create(&self, user_wallet: NewUserWallet) -> Result<UserWallet, DbError> {
-        let mut conn = self.db.get_conn()?;
-        let result = diesel::insert_into(user_wallet::table)
-            .values(&user_wallet)
-            .returning(UserWallet::as_returning())
-            .get_result(&mut conn)?;
-        Ok(result)
-    }
-
-    fn get_balance_by_address(&self, address: &str) -> Result<BigDecimal, DbError> {
-        let mut conn = self.db.get_conn()?;
-        let result = user_wallet::table
-            .filter(user_wallet::address.eq(address))
-            .select(user_wallet::balance)
-            .first::<BigDecimal>(&mut conn)?;
-
-        Ok(result)
-    }
-
-    fn add_money_to_wallet(
+    fn make_transfer_between_wallets(
         &self,
-        address: &str,
-        amount: BigDecimal,
-    ) -> Result<UserWallet, DbError> {
-        let mut conn = self.db.get_conn()?;
-
-        let updated_wallet =
-            diesel::update(user_wallet::table.filter(user_wallet::address.eq(address)))
-                .set(user_wallet::balance.eq(user_wallet::balance + amount))
-                .get_result::<UserWallet>(&mut conn)?;
-
-        Ok(updated_wallet)
-    }
-
-    fn take_money_by_address(
-        &self,
-        target_address: &str,
-        amount: BigDecimal,
-    ) -> Result<UserWallet, DbError> {
-        let mut conn = self.db.get_conn()?;
-
-        let updated_wallet = diesel::update(
-            user_wallet::table
-                .filter(user_wallet::address.eq(target_address))
-                .filter(user_wallet::balance.ge(amount.clone())),
-        )
-        .set(user_wallet::balance.eq(user_wallet::balance - amount))
-        .get_result::<UserWallet>(&mut conn)?;
-
-        Ok(updated_wallet)
-    }
-    fn make_transfer_between_addresses(
-        &self,
-        sender_address: &str,
-        receiver_address: &str,
+        sender_address_id: Uuid,
+        receiver_address_id: Uuid,
         amount: BigDecimal,
     ) -> Result<bool, DbError> {
         let mut conn = self.db.get_conn()?;
@@ -81,7 +30,7 @@ impl UserWalletRepository for DieselUserWalletRepository {
         let success = conn.transaction::<bool, DbError, _>(|this_conn| {
             let sender_currency = diesel::update(
                 user_wallet::table
-                    .filter(user_wallet::address.eq(sender_address))
+                    .filter(user_wallet::id.eq(sender_address_id))
                     .filter(user_wallet::balance.ge(amount.clone())),
             )
             .set(user_wallet::balance.eq(user_wallet::balance - amount.clone()))
@@ -90,7 +39,7 @@ impl UserWalletRepository for DieselUserWalletRepository {
 
             diesel::update(
                 user_wallet::table
-                    .filter(user_wallet::address.eq(receiver_address))
+                    .filter(user_wallet::id.eq(receiver_address_id))
                     .filter(user_wallet::currency_id.eq(sender_currency)),
             )
             .set(user_wallet::balance.eq(user_wallet::balance + amount))
@@ -103,16 +52,12 @@ impl UserWalletRepository for DieselUserWalletRepository {
         Ok(success)
     }
 
-    fn verify_user_owns_wallet(
-        &self,
-        target_user_id: Uuid,
-        target_address: &str,
-    ) -> Result<bool, DbError> {
+    fn verify_user_owns_wallet(&self, user_id: Uuid, address: &str) -> Result<bool, DbError> {
         let mut conn = self.db.get_conn()?;
 
         let wallet = user_wallet::table
-            .filter(user_wallet::address.eq(target_address))
-            .filter(user_wallet::user_id.eq(target_user_id))
+            .filter(user_wallet::address.eq(address))
+            .filter(user_wallet::user_id.eq(user_id))
             .select(user_wallet::address)
             .first::<String>(&mut conn)
             .optional()?;
@@ -120,14 +65,91 @@ impl UserWalletRepository for DieselUserWalletRepository {
         Ok(wallet.is_some())
     }
 
-    fn get_user_wallet_address(&self, user_id: Uuid) -> Result<Option<UserWallet>, DbError> {
+    fn create(&self, user_wallet: NewUserWallet) -> Result<UserWallet, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = diesel::insert_into(user_wallet::table)
+            .values(&user_wallet)
+            .returning(UserWallet::as_returning())
+            .get_result(&mut conn)?;
+        Ok(result)
+    }
+
+    fn take_money_by_address(
+        &self,
+        address_id: Uuid,
+        amount: BigDecimal,
+    ) -> Result<UserWallet, DbError> {
         let mut conn = self.db.get_conn()?;
 
-        let wallet = user_wallet::table
-            .filter(user_wallet::user_id.eq(user_id))
-            .first::<UserWallet>(&mut conn)
+        let updated_wallet = diesel::update(
+            user_wallet::table
+                .filter(user_wallet::id.eq(address_id))
+                .filter(user_wallet::balance.ge(amount.clone())),
+        )
+        .set(user_wallet::balance.eq(user_wallet::balance - amount))
+        .get_result::<UserWallet>(&mut conn)?;
+
+        Ok(updated_wallet)
+    }
+    fn add_money_to_wallet(
+        &self,
+        address_id: Uuid,
+        amount: BigDecimal,
+    ) -> Result<UserWallet, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let updated_wallet =
+            diesel::update(user_wallet::table.filter(user_wallet::id.eq(address_id)))
+                .set(user_wallet::balance.eq(user_wallet::balance + amount))
+                .get_result::<UserWallet>(&mut conn)?;
+
+        Ok(updated_wallet)
+    }
+
+    fn get_balance_by_address_and_currency(
+        &self,
+        address: &str,
+        currency_id: Uuid,
+    ) -> Result<BigDecimal, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = user_wallet::table
+            .filter(user_wallet::address.eq(address))
+            .filter(user_wallet::currency_id.eq(currency_id))
+            .select(user_wallet::balance)
+            .first::<BigDecimal>(&mut conn)?;
+        Ok(result)
+    }
+
+    fn get_wallet_id_by_address_and_currency(
+        &self,
+        address: &str,
+        currency_id: Uuid,
+    ) -> Result<Uuid, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = user_wallet::table
+            .filter(user_wallet::address.eq(address))
+            .filter(user_wallet::currency_id.eq(currency_id))
+            .select(user_wallet::id)
+            .first::<Uuid>(&mut conn)?;
+        Ok(result)
+    }
+    fn get_wallet_info(&self, wallet_id: Uuid) -> Result<UserWallet, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = user_wallet::table
+            .filter(user_wallet::id.eq(wallet_id))
+            .get_result::<UserWallet>(&mut conn)?;
+        Ok(result)
+    }
+
+    fn get_owner_of_address(&self, address: &str) -> Result<Option<Uuid>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let owner_id = user_wallet::table
+            .filter(user_wallet::address.eq(address))
+            .select(user_wallet::user_id)
+            .first::<Uuid>(&mut conn)
             .optional()?;
 
-        Ok(wallet)
+        Ok(owner_id)
     }
 }
