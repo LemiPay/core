@@ -31,6 +31,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    fund_round_proposal (proposal_id) {
+        proposal_id -> Uuid,
+        target_amount -> Numeric,
+        currency_id -> Uuid,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::GroupStatus;
 
@@ -125,6 +133,8 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(fund_round_proposal -> currency (currency_id));
+diesel::joinable!(fund_round_proposal -> proposal (proposal_id));
 diesel::joinable!(group_wallet -> currency (currency_id));
 diesel::joinable!(group_wallet -> group (group_id));
 diesel::joinable!(new_member_proposal -> proposal (proposal_id));
@@ -140,6 +150,7 @@ diesel::joinable!(vote -> user (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     currency,
+    fund_round_proposal,
     group,
     group_wallet,
     new_member_proposal,
