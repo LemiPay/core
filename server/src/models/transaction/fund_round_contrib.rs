@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 #[derive(Queryable, Selectable, Serialize)]
 #[diesel(table_name = fund_round_contribution)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 #[allow(dead_code)] // TODO: remove after implemented
 pub struct FundRoundContribution {
     pub fund_round_proposal_id: Uuid,

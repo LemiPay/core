@@ -17,6 +17,7 @@ pub enum MyTransactionType {
 
 #[derive(Queryable, Selectable, Serialize)]
 #[diesel(table_name = transaction)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 #[allow(dead_code)] // TODO: remove after implemented
 pub struct Transaction {
     pub id: Uuid,
@@ -52,6 +53,7 @@ pub struct NewTransaction {
 
 #[derive(Queryable, Selectable, Serialize)]
 #[diesel(table_name = transaction_participant)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 #[allow(dead_code)] // TODO: remove after implemented
 pub struct TransactionParticipant {
     pub transaction_id: Uuid,
