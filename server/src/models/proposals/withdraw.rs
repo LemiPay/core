@@ -1,7 +1,6 @@
 use crate::models::proposal::{Proposal, ProposalType};
 use crate::schema::withdraw_proposal;
 use bigdecimal::BigDecimal;
-use chrono::NaiveDateTime;
 use diesel::{Insertable, Queryable, Selectable};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
