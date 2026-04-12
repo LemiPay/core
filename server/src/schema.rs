@@ -176,7 +176,7 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(fund_round_contribution -> proposal (fund_round_proposal_id));
+diesel::joinable!(fund_round_contribution -> fund_round_proposal (fund_round_proposal_id));
 diesel::joinable!(fund_round_contribution -> transaction (transaction_id));
 diesel::joinable!(fund_round_contribution -> user (user_id));
 diesel::joinable!(fund_round_proposal -> currency (currency_id));

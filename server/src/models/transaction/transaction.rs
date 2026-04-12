@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 #[derive(Debug, DbEnum, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[db_enum(existing_type_path = "crate::schema::sql_types::TransactionType")]
-pub enum TransactionType {
+pub enum MyTransactionType {
     Deposit,
     Withdraw,
     Expense,
@@ -29,7 +29,7 @@ pub struct Transaction {
 
     pub description: Option<String>,
 
-    pub tx_type: TransactionType,
+    pub tx_type: MyTransactionType,
 
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -47,7 +47,7 @@ pub struct NewTransaction {
 
     pub description: Option<String>,
 
-    pub tx_type: TransactionType,
+    pub tx_type: MyTransactionType,
 }
 
 #[derive(Queryable, Selectable, Serialize)]
