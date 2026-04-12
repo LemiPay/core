@@ -110,7 +110,7 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if wallet.user_id != current_user_id {
-            return Err(AppError::Unauthorized);
+            return Err(AppError::Forbidden);
         }
         if wallet.balance < amount {
             return Err(AppError::BadRequest(
