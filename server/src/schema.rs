@@ -176,6 +176,15 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    withdraw_proposal (proposal_id) {
+        proposal_id -> Uuid,
+        amount -> Numeric,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
 diesel::joinable!(fund_round_contribution -> fund_round_proposal (fund_round_proposal_id));
 diesel::joinable!(fund_round_contribution -> transaction (transaction_id));
 diesel::joinable!(fund_round_contribution -> user (user_id));
@@ -198,6 +207,7 @@ diesel::joinable!(user_wallet -> currency (currency_id));
 diesel::joinable!(user_wallet -> user (user_id));
 diesel::joinable!(vote -> proposal (proposal_id));
 diesel::joinable!(vote -> user (user_id));
+diesel::joinable!(withdraw_proposal -> proposal (proposal_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     currency,
@@ -213,4 +223,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     user_in_group,
     user_wallet,
     vote,
+    withdraw_proposal,
 );
