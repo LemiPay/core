@@ -12,8 +12,6 @@ use uuid::Uuid;
 pub struct WithdrawProposal {
     pub proposal_id: Uuid,
     pub amount: BigDecimal,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
 }
 
 #[derive(Insertable, Serialize, Deserialize)]

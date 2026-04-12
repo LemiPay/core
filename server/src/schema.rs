@@ -180,8 +180,6 @@ diesel::table! {
     withdraw_proposal (proposal_id) {
         proposal_id -> Uuid,
         amount -> Numeric,
-        created_at -> Timestamp,
-        updated_at -> Timestamp,
     }
 }
 
