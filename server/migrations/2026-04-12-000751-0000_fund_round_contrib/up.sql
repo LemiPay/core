@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS fund_round_contribution (
     -- FKs
     CONSTRAINT fk_frc_proposal
         FOREIGN KEY (fund_round_proposal_id)
-        REFERENCES proposal(id)
+        REFERENCES fund_round_proposal(proposal_id)
         ON DELETE CASCADE,
 
     CONSTRAINT fk_frc_user
