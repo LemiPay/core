@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS transaction (
 
     description TEXT,
 
-    type transaction_type NOT NULL,
+    tx_type transaction_type NOT NULL,
 
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),

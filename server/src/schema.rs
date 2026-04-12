@@ -101,8 +101,7 @@ diesel::table! {
         group_id -> Uuid,
         currency_id -> Uuid,
         description -> Nullable<Text>,
-        #[sql_name = "type"]
-        type_ -> TransactionType,
+        tx_type -> TransactionType,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
