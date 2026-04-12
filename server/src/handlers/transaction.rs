@@ -41,7 +41,6 @@ pub async fn create_withdraw_proposal(
     _user: AuthUser,
 ) -> Result<Json<()>, AppError> {
     todo!();
-    Err(AppError::Internal)
 }
 
 // TODO: withdraw execute
@@ -51,7 +50,6 @@ pub async fn execute_withdraw_proposal(
     _user: AuthUser,
 ) -> Result<Json<()>, AppError> {
     todo!();
-    Err(AppError::Internal)
 }
 
 pub async fn list_transactions(
