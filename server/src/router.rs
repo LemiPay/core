@@ -12,6 +12,7 @@ use crate::routes::auth::auth_routes;
 use crate::routes::group::group_routes;
 use crate::routes::proposal::proposal_routes;
 use crate::routes::user::user_routes;
+use crate::routes::user_wallet::user_wallet_routes;
 
 pub fn create_router(state: SharedState) -> Router {
     let cors = CorsLayer::new()
@@ -27,5 +28,6 @@ pub fn create_router(state: SharedState) -> Router {
         .nest("/auth", auth_routes(state.clone()))
         .nest("/group", group_routes(state.clone()))
         .nest("/proposal", proposal_routes(state.clone()))
+        .nest("/wallet", user_wallet_routes(state.clone()))
         .layer(cors) //este layer tiene que ir al final de la creación del Router por si dsp hay que agregar otros nest
 }
