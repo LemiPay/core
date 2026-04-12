@@ -11,8 +11,7 @@ CREATE TABLE IF NOT EXISTS user_wallet(
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    -- reglas de negocio:
-    UNIQUE(user_id, currency_id), -- un usuario no puede tener dos wallets de la misma moneda
+    --
     UNIQUE(address, currency_id),  -- una dirección no puede tener dos wallets de la misma moneda
     
     -- foreign keys
