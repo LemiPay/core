@@ -11,6 +11,7 @@ use tower_http::cors::CorsLayer;
 use crate::routes::auth::auth_routes;
 use crate::routes::group::group_routes;
 use crate::routes::proposal::proposal_routes;
+use crate::routes::transaction::transaction_routes;
 use crate::routes::user::user_routes;
 
 pub fn create_router(state: SharedState) -> Router {
@@ -27,5 +28,6 @@ pub fn create_router(state: SharedState) -> Router {
         .nest("/auth", auth_routes(state.clone()))
         .nest("/group", group_routes(state.clone()))
         .nest("/proposal", proposal_routes(state.clone()))
+        .nest("/transaction", transaction_routes(state.clone()))
         .layer(cors) //este layer tiene que ir al final de la creación del Router por si dsp hay que agregar otros nest
 }
