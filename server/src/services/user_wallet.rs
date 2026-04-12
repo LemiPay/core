@@ -44,7 +44,7 @@ impl UserWalletService {
 
         if let Some(owner_id) = owner_opt {
             if owner_id != user_id {
-                return Err(AppError::Unauthorized);
+                return Err(AppError::Forbidden);
             }
         }
 
