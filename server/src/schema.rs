@@ -35,6 +35,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    fund_round_contribution (fund_round_proposal_id, user_id) {
+        fund_round_proposal_id -> Uuid,
+        user_id -> Uuid,
+        amount -> Numeric,
+        transaction_id -> Uuid,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     fund_round_proposal (proposal_id) {
         proposal_id -> Uuid,
         target_amount -> Numeric,
@@ -165,6 +176,9 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(fund_round_contribution -> proposal (fund_round_proposal_id));
+diesel::joinable!(fund_round_contribution -> transaction (transaction_id));
+diesel::joinable!(fund_round_contribution -> user (user_id));
 diesel::joinable!(fund_round_proposal -> currency (currency_id));
 diesel::joinable!(fund_round_proposal -> proposal (proposal_id));
 diesel::joinable!(group_wallet -> currency (currency_id));
@@ -187,6 +201,7 @@ diesel::joinable!(vote -> user (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     currency,
+    fund_round_contribution,
     fund_round_proposal,
     group,
     group_wallet,
