@@ -26,3 +26,18 @@ pub struct NewUserWallet {
     pub user_id: Uuid,
     pub currency_id: Uuid,
 }
+
+#[derive(Serialize)]
+pub struct PublicWalletInfo {
+    pub address: String,
+    pub user_id: Uuid,
+    pub currency_id: Uuid,
+}
+
+#[derive(Queryable, Serialize)]
+pub struct WalletWithTickerDb {
+    pub wallet_id: Uuid,
+    pub address: String,
+    pub balance: BigDecimal,
+    pub ticker: String,
+}

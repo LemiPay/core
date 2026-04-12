@@ -1,10 +1,11 @@
-use crate::data::error::DbError;
 use crate::errors::app_error::AppError;
-use crate::handlers::user_wallet::NewWalletRequest;
-use crate::models::user_wallet::{NewUserWallet, UserWallet};
+use crate::handlers::user_wallet::{AddressGroup, FundTransferRequest, NewWalletRequest};
+use crate::models::user_wallet::{NewUserWallet, PublicWalletInfo, UserWallet, WalletWithTickerDb};
 use crate::repositories::traits::currency_repo::CurrencyRepository;
 use crate::repositories::traits::user_wallet_repo::UserWalletRepository;
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, Zero};
+use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -29,10 +30,12 @@ impl UserWalletService {
         wallet_request: NewWalletRequest,
         user_id: Uuid,
     ) -> Result<UserWallet, AppError> {
+        //chequeo si existe esa currency en la db
         let currency_id = self
             .currency_repo
             .check_if_currency_exist(wallet_request.currency_ticker.clone())?;
 
+        //chequeo si el user ya tiene esa address asignada por otra currency
         let owner_opt = self
             .user_wallet_repo
             .get_owner_of_address(&wallet_request.address)
@@ -44,19 +47,17 @@ impl UserWalletService {
             }
         }
 
+        //chequeo que esa wallet no este tambien con esa currency (asi no salta el db error)
         let existing_currency_wallet = self
             .user_wallet_repo
-            .get_wallet_id_by_address_and_currency(&wallet_request.address, currency_id);
-        match existing_currency_wallet {
-            Ok(_) => {
-                return Err(AppError::Forbidden);
-            }
-            Err(DbError::Diesel(diesel::result::Error::NotFound)) => {}
-            Err(e) => {
-                return Err(AppError::Db(e));
-            }
+            .get_wallet_id_by_address_and_currency(&wallet_request.address, currency_id)
+            .map_err(AppError::Db)?;
+
+        if existing_currency_wallet.is_some() {
+            return Err(AppError::Forbidden);
         }
 
+        //la creo
         let new_user_wallet = NewUserWallet {
             address: wallet_request.address,
             user_id,
@@ -67,89 +68,219 @@ impl UserWalletService {
             .create(new_user_wallet)
             .map_err(AppError::Db)
     }
-
-    pub fn get_user_wallet_by_currency(
+    pub fn faucet_fund_wallet(
         &self,
         user_id: Uuid,
-        currency_id: Uuid,
-    ) -> Result<UserWallet, AppError> {
-        self.user_wallet_repo
-            .get_user_wallet_address(user_id)
-            .map_err(AppError::Db)?
-            .ok_or(AppError::NotFound)
-    }
-
-    pub fn add_money_to_wallet(
-        &self,
-        user_id: Uuid,
+        wallet_id: Uuid,
         amount: BigDecimal,
-        address: String,
     ) -> Result<UserWallet, AppError> {
-        let check_ownership = self
+        if amount <= BigDecimal::zero() {
+            return Err(AppError::BadRequest(
+                "El monto a fondear debe ser mayor a cero".into(),
+            ));
+        }
+
+        let wallet = self
             .user_wallet_repo
-            .verify_user_owns_wallet(user_id, &*address)?;
-        if !check_ownership {
+            .get_wallet_info(wallet_id)
+            .map_err(AppError::Db)?;
+
+        if wallet.user_id != user_id {
             return Err(AppError::Forbidden);
         }
         self.user_wallet_repo
-            .add_money_to_wallet(&*address, amount.clone())
+            .add_money_to_wallet(wallet_id, amount)
             .map_err(AppError::Db)
     }
-    pub fn take_money_from_wallet(
+    pub fn faucet_withdraw_wallet(
         &self,
-        user_id: Uuid,
+        current_user_id: Uuid,
+        wallet_id: Uuid,
         amount: BigDecimal,
-        address: String,
     ) -> Result<UserWallet, AppError> {
-        //chequeo que el que lo hace es el dueño de la wallet
-        let check_ownership = self
-            .user_wallet_repo
-            .verify_user_owns_wallet(user_id, &*address)?;
-        if !check_ownership {
-            return Err(AppError::Forbidden);
+        if amount <= BigDecimal::zero() {
+            return Err(AppError::BadRequest(
+                "El monto a fondear debe ser mayor a cero".into(),
+            ));
         }
-        //chequeo que tenga saldo suficiente
-        let balance = self.user_wallet_repo.get_balance_by_address(&*address)?;
-        if balance < amount {
-            return Err(AppError::Forbidden);
+        let wallet = self
+            .user_wallet_repo
+            .get_wallet_info(wallet_id)
+            .map_err(AppError::Db)?;
+
+        if wallet.user_id != current_user_id {
+            return Err(AppError::Unauthorized);
+        }
+        if wallet.balance < amount {
+            return Err(AppError::BadRequest(
+                "Saldo insuficiente para realizar el retiro".into(),
+            ));
         }
 
         self.user_wallet_repo
-            .take_money_by_address(&*address, amount.clone())
+            .take_money_by_address(wallet_id, amount)
             .map_err(AppError::Db)
     }
-    pub fn transfer_money_to_address(
+    pub fn transfer_funds(
         &self,
-        sender_id: Uuid,
-        amount: BigDecimal,
-        sender_address: String,
-        receiver_address: String,
+        current_user_id: Uuid,
+        request: FundTransferRequest,
     ) -> Result<bool, AppError> {
-        let check_ownership = self
-            .user_wallet_repo
-            .verify_user_owns_wallet(sender_id, &*sender_address)?;
-        if !check_ownership {
-            return Err(AppError::Forbidden);
+        let amount = BigDecimal::from_str(&request.amount)
+            .map_err(|_| AppError::BadRequest("Monto inválido".into()))?;
+
+        if amount <= BigDecimal::zero() {
+            return Err(AppError::BadRequest(
+                "El monto a transferir debe ser mayor a cero".into(),
+            ));
         }
-        let balance = self
+
+        let sender_wallet = self
             .user_wallet_repo
-            .get_balance_by_address(&*sender_address)?;
-        if balance < amount {
-            return Err(AppError::Forbidden);
+            .get_wallet_info(request.sender_wallet_id)
+            .map_err(AppError::Db)?;
+
+        if sender_wallet.user_id != current_user_id {
+            return Err(AppError::Unauthorized);
         }
+
+        if sender_wallet.balance < amount {
+            return Err(AppError::BadRequest("Saldo insuficiente".into()));
+        }
+
+        if sender_wallet.address == request.receiver_address {
+            return Err(AppError::BadRequest(
+                "No podés transferir a la misma dirección".into(),
+            ));
+        }
+
+        let receiver_wallet = self
+            .user_wallet_repo
+            .get_wallet_id_by_address_and_currency(
+                &request.receiver_address,
+                sender_wallet.currency_id,
+            )
+            .map_err(AppError::Db)?;
+
+        let receiver_wallet_id = match receiver_wallet {
+            Some(id) => id,
+            None => {
+                return Err(AppError::BadRequest(
+                    "La dirección de destino no existe o no soporta esta moneda".into(),
+                ));
+            }
+        };
+
         self.user_wallet_repo
-            .make_transfer_between_wallets(&*sender_address, &*receiver_address, amount.clone())
+            .make_transfer_between_wallets(request.sender_wallet_id, receiver_wallet_id, amount)
             .map_err(AppError::Db)
     }
-    /**
-     *## Esta funcion aplica para cuando queres el address de otro
-     * no deberias saber su balance pero si su address linkeada
-     */
-    pub fn get_another_user_wallet_address(&self, user_id: Uuid) -> Result<String, AppError> {
-        self.user_wallet_repo
-            .get_user_wallet_address(user_id)
+    pub fn get_my_wallet_info(
+        &self,
+        user_id: Uuid,
+        wallet_id: Uuid,
+    ) -> Result<UserWallet, AppError> {
+        let wallet = self
+            .user_wallet_repo
+            .get_wallet_info(wallet_id)
+            .map_err(AppError::Db)?;
+
+        if wallet.user_id != user_id {
+            return Err(AppError::Unauthorized);
+        }
+        Ok(wallet)
+    }
+    pub fn get_my_wallet_by_address_and_ticker(
+        &self,
+        current_user_id: Uuid,
+        address: &str,
+        ticker: String,
+    ) -> Result<UserWallet, AppError> {
+        let currency_id = self
+            .currency_repo
+            .check_if_currency_exist(ticker)
+            .map_err(|_| AppError::BadRequest("that currency doesn't exist".into()))?;
+
+        let wallet_id = self
+            .user_wallet_repo
+            .get_wallet_id_by_address_and_currency(address, currency_id)
             .map_err(AppError::Db)?
-            .map(|wallet| wallet.address)
-            .ok_or(AppError::NotFound)
+            .ok_or(AppError::NotFound)?;
+
+        let wallet = self
+            .user_wallet_repo
+            .get_wallet_info(wallet_id)
+            .map_err(AppError::Db)?;
+
+        if wallet.user_id != current_user_id {
+            return Err(AppError::Unauthorized);
+        }
+
+        Ok(wallet)
+    }
+    pub fn get_wallet_id_by_address_and_ticker(
+        &self,
+        user_id: Uuid,
+        address: &str,
+        ticker: String,
+    ) -> Result<Uuid, AppError> {
+        let currency_id = self.currency_repo.check_if_currency_exist(ticker)?;
+
+        let wallet_id_opt = self
+            .user_wallet_repo
+            .get_wallet_id_by_address_and_currency(address, currency_id)
+            .map_err(AppError::Db)?;
+
+        let wallet_id = wallet_id_opt.ok_or(AppError::NotFound)?;
+
+        let is_owner = self
+            .user_wallet_repo
+            .verify_user_owns_wallet(user_id, address)
+            .map_err(AppError::Db)?;
+
+        if !is_owner {
+            return Err(AppError::Unauthorized);
+        }
+
+        Ok(wallet_id)
+    }
+
+    //esta forma de agruparlo lo hice para que sea mas facil de ver en el front dsp
+    //sino pq como me lo imagino, habria que elgir la addres y sobre eso las currencies a usar
+    //mas facil tenerlo ya mapeado
+    pub fn get_grouped_user_wallets(
+        &self,
+        current_user_id: Uuid,
+    ) -> Result<Vec<AddressGroup>, AppError> {
+        let all_wallets_db = self
+            .user_wallet_repo
+            .get_all_wallets_by_user(current_user_id)
+            .map_err(AppError::Db)?;
+
+        let mut grouped_map: HashMap<String, Vec<WalletWithTickerDb>> = HashMap::new();
+
+        for wallet_row in all_wallets_db {
+            let detail = WalletWithTickerDb {
+                address: wallet_row.address.to_string(),
+                wallet_id: wallet_row.wallet_id,
+                ticker: wallet_row.ticker,
+                balance: wallet_row.balance,
+            };
+
+            grouped_map
+                .entry(wallet_row.address)
+                .or_insert_with(Vec::new)
+                .push(detail);
+        }
+
+        let final_response = grouped_map
+            .into_iter()
+            .map(|(address, currencies)| AddressGroup {
+                address,
+                currencies,
+            })
+            .collect();
+
+        Ok(final_response)
     }
 }

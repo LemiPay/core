@@ -1,5 +1,5 @@
 use crate::data::error::DbError;
-use crate::models::user_wallet::{NewUserWallet, UserWallet};
+use crate::models::user_wallet::{NewUserWallet, UserWallet, WalletWithTickerDb};
 use bigdecimal::BigDecimal;
 use uuid::Uuid;
 
@@ -31,7 +31,8 @@ pub trait UserWalletRepository: Send + Sync {
         &self,
         address: &str,
         currency_id: Uuid,
-    ) -> Result<Uuid, DbError>;
+    ) -> Result<Option<Uuid>, DbError>;
     fn get_wallet_info(&self, wallet_id: Uuid) -> Result<UserWallet, DbError>;
     fn get_owner_of_address(&self, address: &str) -> Result<Option<Uuid>, DbError>;
+    fn get_all_wallets_by_user(&self, user_id: Uuid) -> Result<Vec<WalletWithTickerDb>, DbError>;
 }

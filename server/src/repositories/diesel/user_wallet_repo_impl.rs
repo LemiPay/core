@@ -4,9 +4,9 @@ use uuid::Uuid;
 
 use crate::data::database::Db;
 use crate::data::error::DbError;
-use crate::models::user_wallet::{NewUserWallet, UserWallet};
+use crate::models::user_wallet::{NewUserWallet, UserWallet, WalletWithTickerDb};
 use crate::repositories::traits::user_wallet_repo::UserWalletRepository;
-use crate::schema::user_wallet;
+use crate::schema::{currency, user_wallet};
 
 pub struct DieselUserWalletRepository {
     db: Db,
@@ -124,13 +124,16 @@ impl UserWalletRepository for DieselUserWalletRepository {
         &self,
         address: &str,
         currency_id: Uuid,
-    ) -> Result<Uuid, DbError> {
+    ) -> Result<Option<Uuid>, DbError> {
         let mut conn = self.db.get_conn()?;
+
         let result = user_wallet::table
             .filter(user_wallet::address.eq(address))
             .filter(user_wallet::currency_id.eq(currency_id))
             .select(user_wallet::id)
-            .first::<Uuid>(&mut conn)?;
+            .first::<Uuid>(&mut conn)
+            .optional()?;
+
         Ok(result)
     }
     fn get_wallet_info(&self, wallet_id: Uuid) -> Result<UserWallet, DbError> {
@@ -151,5 +154,24 @@ impl UserWalletRepository for DieselUserWalletRepository {
             .optional()?;
 
         Ok(owner_id)
+    }
+    fn get_all_wallets_by_user(
+        &self,
+        current_user_id: Uuid,
+    ) -> Result<Vec<WalletWithTickerDb>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = user_wallet::table
+            .inner_join(currency::table)
+            .filter(user_wallet::user_id.eq(current_user_id))
+            .select((
+                user_wallet::id,
+                user_wallet::address,
+                user_wallet::balance,
+                currency::ticker,
+            ))
+            .load::<WalletWithTickerDb>(&mut conn)?;
+
+        Ok(result)
     }
 }
