@@ -33,7 +33,8 @@ impl UserWalletService {
         //chequeo si existe esa currency en la db
         let currency_id = self
             .currency_repo
-            .check_if_currency_exist(wallet_request.currency_ticker.clone())?;
+            .check_if_currency_exist(wallet_request.currency_ticker.clone())
+            .map_err(|_| AppError::BadRequest("that currency doesn't exist".into()))?;
 
         //chequeo si el user ya tiene esa address asignada por otra currency
         let owner_opt = self
