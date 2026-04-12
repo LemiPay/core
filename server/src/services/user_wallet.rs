@@ -101,7 +101,7 @@ impl UserWalletService {
     ) -> Result<UserWallet, AppError> {
         if amount <= BigDecimal::zero() {
             return Err(AppError::BadRequest(
-                "El monto a fondear debe ser mayor a cero".into(),
+                "El monto a retirar debe ser mayor a cero".into(),
             ));
         }
         let wallet = self
