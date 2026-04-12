@@ -142,7 +142,7 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if sender_wallet.user_id != current_user_id {
-            return Err(AppError::Unauthorized);
+            return Err(AppError::Forbidden);
         }
 
         if sender_wallet.balance < amount {
@@ -187,7 +187,7 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if wallet.user_id != user_id {
-            return Err(AppError::Unauthorized);
+            return Err(AppError::Forbidden);
         }
         Ok(wallet)
     }
@@ -214,7 +214,7 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if wallet.user_id != current_user_id {
-            return Err(AppError::Unauthorized);
+            return Err(AppError::Forbidden);
         }
 
         Ok(wallet)
@@ -240,7 +240,7 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if !is_owner {
-            return Err(AppError::Unauthorized);
+            return Err(AppError::Forbidden);
         }
 
         Ok(wallet_id)
