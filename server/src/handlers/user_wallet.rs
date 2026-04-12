@@ -1,6 +1,6 @@
 use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
-use crate::models::user_wallet::{NewUserWallet, UserWallet, WalletWithTickerDb};
+use crate::models::user_wallet::{UserWallet, WalletWithTickerDb};
 use std::str::FromStr;
 
 use crate::security::auth_extractor::AuthUser;

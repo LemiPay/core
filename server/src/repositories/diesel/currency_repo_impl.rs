@@ -3,7 +3,6 @@ use uuid::Uuid;
 
 use crate::data::database::Db;
 use crate::data::error::DbError;
-use crate::models::currency::Currency;
 use crate::repositories::traits::currency_repo::CurrencyRepository;
 use crate::schema::currency;
 

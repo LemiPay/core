@@ -1,6 +1,6 @@
 use crate::errors::app_error::AppError;
 use crate::handlers::user_wallet::{AddressGroup, FundTransferRequest, NewWalletRequest};
-use crate::models::user_wallet::{NewUserWallet, PublicWalletInfo, UserWallet, WalletWithTickerDb};
+use crate::models::user_wallet::{NewUserWallet, UserWallet, WalletWithTickerDb};
 use crate::repositories::traits::currency_repo::CurrencyRepository;
 use crate::repositories::traits::user_wallet_repo::UserWalletRepository;
 use bigdecimal::{BigDecimal, Zero};
