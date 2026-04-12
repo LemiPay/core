@@ -78,8 +78,6 @@ pub async fn transfer_to_user_wallet(
     user: AuthUser,
     Json(payload): Json<FundTransferRequest>,
 ) -> Result<Json<bool>, AppError> {
-    let _amount_bd = BigDecimal::from_str(&payload.amount)
-        .map_err(|_| AppError::BadRequest("Monto inválido".into()))?;
     let result = state
         .user_wallet_service
         .transfer_funds(user.user_id, payload)?;
