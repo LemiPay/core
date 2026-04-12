@@ -15,7 +15,7 @@ impl DieselCurrencyRepository {
     }
 }
 impl CurrencyRepository for DieselCurrencyRepository {
-    fn check_if_currency_exist(&self, ticker: String) -> Result<Uuid, DbError> {
+    fn get_currency_id_by_ticker(&self, ticker: String) -> Result<Uuid, DbError> {
         let mut conn = self.db.get_conn()?;
 
         let currency_id = currency::table

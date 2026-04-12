@@ -33,7 +33,7 @@ impl UserWalletService {
         //chequeo si existe esa currency en la db
         let currency_id = self
             .currency_repo
-            .check_if_currency_exist(wallet_request.currency_ticker.clone())
+            .get_currency_id_by_ticker(wallet_request.currency_ticker.clone())
             .map_err(|_| AppError::BadRequest("that currency doesn't exist".into()))?;
 
         //chequeo si el user ya tiene esa address asignada por otra currency
@@ -199,7 +199,7 @@ impl UserWalletService {
     ) -> Result<UserWallet, AppError> {
         let currency_id = self
             .currency_repo
-            .check_if_currency_exist(ticker)
+            .get_currency_id_by_ticker(ticker)
             .map_err(|_| AppError::BadRequest("that currency doesn't exist".into()))?;
 
         let wallet_id = self
@@ -225,7 +225,7 @@ impl UserWalletService {
         address: &str,
         ticker: String,
     ) -> Result<Uuid, AppError> {
-        let currency_id = self.currency_repo.check_if_currency_exist(ticker)?;
+        let currency_id = self.currency_repo.get_currency_id_by_ticker(ticker)?;
 
         let wallet_id_opt = self
             .user_wallet_repo
