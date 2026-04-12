@@ -9,9 +9,6 @@ CREATE TABLE withdraw_proposal (
 
 	amount NUMERIC NOT NULL CHECK (amount > 0),
 
-	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-	updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-
 	FOREIGN KEY (proposal_id) REFERENCES "proposal"(id) ON DELETE CASCADE
 );
 
