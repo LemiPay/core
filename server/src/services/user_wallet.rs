@@ -119,7 +119,7 @@ impl UserWalletService {
         }
 
         self.user_wallet_repo
-            .take_money_by_address(wallet_id, amount)
+            .take_money_from_wallet(wallet_id, amount)
             .map_err(AppError::Db)
     }
     pub fn transfer_funds(

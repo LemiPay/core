@@ -74,7 +74,7 @@ impl UserWalletRepository for DieselUserWalletRepository {
         Ok(result)
     }
 
-    fn take_money_by_address(
+    fn take_money_from_wallet(
         &self,
         address_id: Uuid,
         amount: BigDecimal,

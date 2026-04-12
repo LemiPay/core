@@ -12,7 +12,7 @@ pub trait UserWalletRepository: Send + Sync {
     ) -> Result<bool, DbError>;
     fn verify_user_owns_wallet(&self, user_id: Uuid, address: &str) -> Result<bool, DbError>;
     fn create(&self, user_wallet: NewUserWallet) -> Result<UserWallet, DbError>;
-    fn take_money_by_address(
+    fn take_money_from_wallet(
         &self,
         address_id: Uuid,
         amount: BigDecimal,
