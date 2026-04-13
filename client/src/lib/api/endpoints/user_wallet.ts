@@ -14,3 +14,13 @@ export async function faucet_fund_wallet(amount: string, wallet_id: string): Api
 		body: JSON.stringify({ amount: amount })
 	});
 }
+export async function transfer_to_wallet(
+	amount: string,
+	sender_wallet_id: string,
+	receiver_address: string
+): ApiResponse<boolean> {
+	return authedApiFetch('/wallet/transfer', {
+		method: 'POST',
+		body: JSON.stringify({ sender_wallet_id, receiver_address, amount })
+	});
+}

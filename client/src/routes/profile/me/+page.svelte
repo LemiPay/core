@@ -2,16 +2,18 @@
 	import { Copy, Plus, Send, ArrowDownToLine, Wallet } from 'lucide-svelte';
 	import FAB from '$lib/components/ui/FAB.svelte';
 	import type { User } from '$lib/types/endpoints/auth.types';
-	import { me, userInfo } from '$lib/api/auth';
+	import { me } from '$lib/api/auth';
 	import { type FailedResponse, isSuccess, type SuccessResponse } from '$lib/types/client.types';
 	import type { WalletInfo } from '$lib/types/endpoints/user_wallet.types';
 	import { getAllMyWallets } from '$lib/api/endpoints/user_wallet';
 	import FaucetModal from '$lib/components/modals/FaucetModal.svelte';
+	import TransferModal from '$lib/components/modals/TransferModal.svelte';
 
 	let loadingUserInfo = $state(true);
 	let error_in_loading_profile = $state('');
 	let user = $state({} as User);
 	let openFaucetModal = $state(false);
+	let openTransferModal = $state(false);
 
 	async function loadUserProfile() {
 		let result: SuccessResponse<User> | FailedResponse = await me();
@@ -124,10 +126,19 @@
 
 								<button
 									class="flex items-center gap-1.5 rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gray-800"
+									onclick={() => (openTransferModal = true)}
 								>
 									<Send size={14} />
 									Enviar
 								</button>
+
+								<TransferModal
+									open={openTransferModal}
+									sender_wallet_id={currency.wallet_id}
+									ticker={currency.ticker}
+									onclose={() => (openTransferModal = false)}
+									onsuccess={() => loadWallets()}
+								/>
 							</div>
 						</div>
 					{/each}

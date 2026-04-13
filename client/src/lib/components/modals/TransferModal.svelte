@@ -2,21 +2,21 @@
 	import FormField from '$lib/components/ui/FormField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Modal from '$lib/components/modals/Modal.svelte';
-	import { faucet_fund_wallet } from '$lib/api/endpoints/user_wallet';
+	import { transfer_to_wallet } from '$lib/api/endpoints/user_wallet';
 	import { isSuccess } from '$lib/types/client.types';
 
 	interface Props {
 		open: boolean;
-		wallet_id: string;
+		sender_wallet_id: string;
 		ticker: string;
 		onclose: () => void;
 		onsuccess: () => void;
 	}
 
-	const { open, wallet_id, ticker, onclose, onsuccess }: Props = $props();
+	const { open, sender_wallet_id, ticker, onclose, onsuccess }: Props = $props();
 
-	// Estados del formulario
 	let amount = $state('');
+	let receiver_address = $state('');
 	let attempted = $state(false);
 	let loading = $state(false);
 	let error = $state('');
@@ -26,10 +26,13 @@
 		amount != null &&
 			amount !== '' &&
 			!isNaN(Number(String(amount).replace(',', '.'))) &&
-			Number(String(amount).replace(',', '.')) > 0
+			Number(String(amount).replace(',', '.')) > 0 &&
+			receiver_address.trim().length > 0
 	);
+
 	function handleClose() {
 		amount = '';
+		receiver_address = '';
 		attempted = false;
 		error = '';
 		if (success != '') {
@@ -47,14 +50,17 @@
 		error = '';
 		success = '';
 		loading = true;
-		let result = await faucet_fund_wallet(String(amount), wallet_id);
+
+		let result = await transfer_to_wallet(String(amount), sender_wallet_id, receiver_address);
+
 		if (!isSuccess(result)) {
 			error = result.message;
 			loading = false;
 			return;
 		}
+
 		loading = false;
-		success = 'funded wallet';
+		success = 'Transferencia enviada';
 		setTimeout(() => {
 			handleClose();
 		}, 2000);
@@ -63,18 +69,28 @@
 
 <Modal
 	{open}
-	title="Recibir Dinero"
-	description="Dinero mágico de otra dimensión será enviado a tu dirección."
+	title="Enviar {ticker}"
+	description="Transfiere fondos a otra billetera ingresando su dirección."
 	onclose={handleClose}
 	{error}
 	{success}
 	{loading}
 >
 	{#snippet children()}
-		<form id="receive-money-form" onsubmit={handleSubmit} class="space-y-4">
+		<form id="transfer-money-form" onsubmit={handleSubmit} class="space-y-4">
+			<FormField
+				id="receiver_address"
+				label="Dirección de destino"
+				minLength={0}
+				maxLength={255}
+				type="text"
+				placeholder="Ej. 0x123...abc"
+				bind:value={receiver_address}
+				{attempted}
+			/>
 			<FormField
 				id="amount"
-				label="Monto de {ticker} a recibir"
+				label="Monto a enviar"
 				minLength={0}
 				maxLength={3}
 				type="number"
@@ -89,9 +105,9 @@
 		<Button label="Cancelar" variant="secondary" onclick={handleClose} />
 
 		<Button
-			label="Recibir"
+			label="Enviar"
 			type="submit"
-			form="receive-money-form"
+			form="transfer-money-form"
 			disabled={!formValid}
 			{loading}
 		/>
