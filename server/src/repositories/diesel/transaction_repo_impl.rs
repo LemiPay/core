@@ -25,18 +25,26 @@ impl TransactionRepository for DieselTransactionRepository {
         let mut conn = self.db.get_conn()?;
 
         let result = conn.transaction::<Transaction, DbError, _>(|conn| {
-            diesel::update(user_wallet::table)
+            let debited_rows = diesel::update(user_wallet::table)
                 .filter(user_wallet::user_id.eq(new_tx.user_id))
                 .filter(user_wallet::currency_id.eq(new_tx.currency_id))
+                .filter(user_wallet::balance.ge(&new_tx.amount))
                 .set(user_wallet::balance.eq(user_wallet::balance - &new_tx.amount))
                 .execute(conn)?;
 
-            diesel::update(group_wallet::table)
+            if debited_rows != 1 {
+                return Err(diesel::result::Error::NotFound.into());
+            }
+
+            let credited_rows = diesel::update(group_wallet::table)
                 .filter(group_wallet::group_id.eq(new_tx.group_id))
                 .filter(group_wallet::currency_id.eq(new_tx.currency_id))
                 .set(group_wallet::balance.eq(group_wallet::balance + &new_tx.amount))
                 .execute(conn)?;
 
+            if credited_rows != 1 {
+                return Err(diesel::result::Error::NotFound.into());
+            }
             let tx = diesel::insert_into(transaction::table)
                 .values(&new_tx)
                 .returning(Transaction::as_returning())
