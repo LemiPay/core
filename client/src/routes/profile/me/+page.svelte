@@ -6,10 +6,12 @@
 	import { type FailedResponse, isSuccess, type SuccessResponse } from '$lib/types/client.types';
 	import type { WalletInfo } from '$lib/types/endpoints/user_wallet.types';
 	import { getAllMyWallets } from '$lib/api/endpoints/user_wallet';
+	import FaucetModal from '$lib/components/modals/FaucetModal.svelte';
 
 	let loadingUserInfo = $state(true);
 	let error_in_loading_profile = $state('');
 	let user = $state({} as User);
+	let openFaucetModal = $state(false);
 
 	async function loadUserProfile() {
 		let result: SuccessResponse<User> | FailedResponse = await me();
@@ -107,10 +109,16 @@
 							<div class="flex gap-2">
 								<button
 									class="flex items-center gap-1.5 rounded-full border border-gray-200 px-4 py-1.5 text-sm font-medium text-black transition hover:border-gray-400 hover:bg-gray-50"
+									onclick={() => (openFaucetModal = true)}
 								>
 									<ArrowDownToLine size={14} />
 									Recibir
 								</button>
+								<FaucetModal
+									open={openFaucetModal}
+									wallet_id={currency.wallet_id}
+									onclose={() => (openFaucetModal = false)}
+								/>
 
 								<button
 									class="flex items-center gap-1.5 rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gray-800"
