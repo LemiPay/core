@@ -11,7 +11,7 @@
 	import CreateWalletModal from '$lib/components/modals/CreateWalletModal.svelte';
 
 	let loadingUserInfo = $state(true);
-	let error_in_loading_profile = $state('');
+	let errorInLoadingProfile = $state('');
 	let user = $state({} as User);
 	let openFaucetModal = $state(false);
 	let openTransferModal = $state(false);
@@ -20,7 +20,7 @@
 	async function loadUserProfile() {
 		let result: SuccessResponse<User> | FailedResponse = await me();
 		if (!isSuccess(result)) {
-			error_in_loading_profile = "couldn't get user_id";
+			errorInLoadingProfile = "couldn't get user_id";
 			loadingUserInfo = false;
 			return;
 		}
@@ -29,18 +29,18 @@
 	}
 
 	let loadingWalletsInfo = $state(true);
-	let error_in_loading_wallets = $state('');
-	let wallets_array = $state([] as WalletInfo[]);
+	let errorInLoadingWallets = $state('');
+	let walletsArray = $state([] as WalletInfo[]);
 
 	async function loadWallets() {
 		let result = await getAllMyWallets();
 		if (!isSuccess(result)) {
-			error_in_loading_wallets = 'failed to load wallets';
+			errorInLoadingWallets = 'failed to load wallets';
 			loadingWalletsInfo = false;
 			return;
 		}
 		loadingWalletsInfo = false;
-		wallets_array = result.body;
+		walletsArray = result.body;
 	}
 
 	// Función auxiliar para acortar la address visualmente (estilo 0x123...abc)
@@ -87,7 +87,7 @@
 	/>
 
 	<div class="flex w-full flex-col gap-6">
-		{#each wallets_array as group}
+		{#each walletsArray as group}
 			<div class="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white">
 				<div
 					class="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-4 py-3"
@@ -163,16 +163,8 @@
 			</div>
 		{/each}
 
-		{#if wallets_array.length === 0}
+		{#if walletsArray.length === 0}
 			<p class="text-sm text-gray-500">Aún no tienes billeteras creadas.</p>
 		{/if}
-	</div>
-
-	<div class="md:hidden">
-		<FAB ariaLabel="Crear Wallet" onclick={() => console.log('Nueva Wallet')}>
-			{#snippet icon()}
-				<Plus />
-			{/snippet}
-		</FAB>
 	</div>
 </div>

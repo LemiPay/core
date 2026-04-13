@@ -2,7 +2,7 @@
 	import FormField from '$lib/components/ui/FormField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Modal from '$lib/components/modals/Modal.svelte';
-	import { create_new_address } from '$lib/api/endpoints/user_wallet';
+	import { createNewAddress } from '$lib/api/endpoints/user_wallet';
 	import { isSuccess } from '$lib/types/client.types';
 
 	interface Props {
@@ -52,7 +52,7 @@
 		success = '';
 		loading = true;
 
-		let result = await create_new_address(address.trim(), currency_ticker.trim().toUpperCase());
+		let result = await createNewAddress(address.trim(), currency_ticker.trim().toUpperCase());
 
 		if (!isSuccess(result)) {
 			error = result.message;

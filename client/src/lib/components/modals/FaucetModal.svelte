@@ -2,7 +2,7 @@
 	import FormField from '$lib/components/ui/FormField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Modal from '$lib/components/modals/Modal.svelte';
-	import { faucet_fund_wallet } from '$lib/api/endpoints/user_wallet';
+	import { faucetFundWallet } from '$lib/api/endpoints/user_wallet';
 	import { isSuccess } from '$lib/types/client.types';
 
 	interface Props {
@@ -47,14 +47,14 @@
 		error = '';
 		success = '';
 		loading = true;
-		let result = await faucet_fund_wallet(String(amount), wallet_id);
+		let result = await faucetFundWallet(String(amount), wallet_id);
 		if (!isSuccess(result)) {
 			error = result.message;
 			loading = false;
 			return;
 		}
 		loading = false;
-		success = 'funded wallet';
+		success = 'Billetera fondeada correctamente';
 		setTimeout(() => {
 			handleClose();
 		}, 2000);
