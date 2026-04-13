@@ -4,10 +4,11 @@ use uuid::Uuid;
 use crate::data::database::Db;
 use crate::data::error::DbError;
 use crate::models::group::group_wallet::GroupWallet;
+use crate::models::proposal::{MyProposalStatus, ProposalUpdate};
 use crate::models::transaction::{NewTransaction, Transaction};
 use crate::models::user::user_wallet::UserWallet;
 use crate::repositories::traits::transaction_repo::TransactionRepository;
-use crate::schema::{group_wallet, transaction, user_wallet};
+use crate::schema::{group_wallet, proposal, transaction, user_wallet};
 
 pub struct DieselTransactionRepository {
     db: Db,
@@ -90,6 +91,43 @@ impl TransactionRepository for DieselTransactionRepository {
             .filter(group_wallet::currency_id.eq(currency_id))
             .first::<GroupWallet>(&mut conn)
             .optional()?;
+        Ok(result)
+    }
+
+    fn execute_withdraw(
+        &self,
+        proposal_id: Uuid,
+        new_tx: NewTransaction,
+    ) -> Result<Transaction, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = conn.transaction::<Transaction, DbError, _>(|conn| {
+            diesel::update(proposal::table.filter(proposal::id.eq(proposal_id)))
+                .set(ProposalUpdate {
+                    status: MyProposalStatus::Executed,
+                })
+                .execute(conn)?;
+
+            diesel::update(group_wallet::table)
+                .filter(group_wallet::group_id.eq(new_tx.group_id))
+                .filter(group_wallet::currency_id.eq(new_tx.currency_id))
+                .set(group_wallet::balance.eq(group_wallet::balance - &new_tx.amount))
+                .execute(conn)?;
+
+            diesel::update(user_wallet::table)
+                .filter(user_wallet::user_id.eq(new_tx.user_id))
+                .filter(user_wallet::currency_id.eq(new_tx.currency_id))
+                .set(user_wallet::balance.eq(user_wallet::balance + &new_tx.amount))
+                .execute(conn)?;
+
+            let tx = diesel::insert_into(transaction::table)
+                .values(&new_tx)
+                .returning(Transaction::as_returning())
+                .get_result(conn)?;
+
+            Ok(tx)
+        })?;
+
         Ok(result)
     }
 }

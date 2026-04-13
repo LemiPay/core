@@ -1,3 +1,4 @@
+use bigdecimal::BigDecimal;
 use diesel::{
     Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, RunQueryDsl,
     SelectableHelper,
@@ -8,18 +9,17 @@ use crate::repositories::traits::proposal_repo::ProposalRepository;
 
 use crate::data::database::Db;
 use crate::data::error::DbError;
-// Models
 use crate::models::proposal::{
     MyProposalStatus, NewProposal, Proposal, ProposalType, ProposalUpdate,
 };
 use crate::models::proposals::new_member::{
     NewMemberProposal, NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
 };
+use crate::models::proposals::withdraw::{WithdrawProposal, WithdrawProposalExpanded};
 use crate::models::user_in_group::{MyGroupRole, NewUserInGroup, UserInGroup};
-// Schema
 use crate::schema::new_member_proposal::dsl as nmp;
 use crate::schema::proposal::dsl as p;
-use crate::schema::{group, new_member_proposal, proposal, user, user_in_group};
+use crate::schema::{group, new_member_proposal, proposal, user, user_in_group, withdraw_proposal};
 
 pub struct DieselProposalRepository {
     db: Db,
@@ -256,5 +256,65 @@ impl ProposalRepository for DieselProposalRepository {
             .get_result::<Proposal>(&mut conn)?;
 
         Ok(result)
+    }
+
+    fn create_withdraw_proposal(
+        &self,
+        user_id: Uuid,
+        group_id: Uuid,
+        amount: BigDecimal,
+    ) -> Result<WithdrawProposalExpanded, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = conn.transaction::<WithdrawProposalExpanded, DbError, _>(|conn| {
+            let mut prop = diesel::insert_into(proposal::table)
+                .values(&NewProposal {
+                    group_id,
+                    created_by: user_id,
+                })
+                .returning(Proposal::as_returning())
+                .get_result(conn)?;
+
+            let wp = diesel::insert_into(withdraw_proposal::table)
+                .values(&WithdrawProposal {
+                    proposal_id: prop.id,
+                    amount,
+                })
+                .returning(WithdrawProposal::as_returning())
+                .get_result(conn)?;
+
+            prop = diesel::update(proposal::table.filter(proposal::id.eq(prop.id)))
+                .set(ProposalUpdate {
+                    status: MyProposalStatus::Approved, // TODO: remove after implemented
+                })
+                .get_result(conn)?;
+
+            Ok(WithdrawProposalExpanded {
+                proposal: prop,
+                withdraw_proposal: wp,
+                proposal_type: ProposalType::Withdraw,
+            })
+        })?;
+
+        Ok(result)
+    }
+
+    fn find_withdraw_proposal(
+        &self,
+        proposal_id: Uuid,
+    ) -> Result<Option<WithdrawProposalExpanded>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = withdraw_proposal::table
+            .inner_join(proposal::table.on(withdraw_proposal::proposal_id.eq(proposal::id)))
+            .filter(withdraw_proposal::proposal_id.eq(proposal_id))
+            .first::<(WithdrawProposal, Proposal)>(&mut conn)
+            .optional()?;
+
+        Ok(result.map(|(wp, p)| WithdrawProposalExpanded {
+            proposal: p,
+            withdraw_proposal: wp,
+            proposal_type: ProposalType::Withdraw,
+        }))
     }
 }

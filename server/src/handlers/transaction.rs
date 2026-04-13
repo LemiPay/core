@@ -1,5 +1,6 @@
 use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
+use crate::models::proposals::withdraw::WithdrawProposalExpanded;
 use crate::models::transaction::Transaction;
 use crate::security::auth_extractor::AuthUser;
 use axum::{
@@ -22,6 +23,18 @@ pub struct TransactionIdQuery {
     pub transaction_id: Uuid,
 }
 
+#[derive(Deserialize)]
+pub struct WithdrawProposalRequest {
+    pub amount: BigDecimal,
+    pub currency_id: Uuid,
+}
+
+#[derive(Deserialize)]
+pub struct ExecuteWithdrawRequest {
+    pub proposal_id: Uuid,
+    pub currency_id: Uuid,
+}
+
 pub async fn fund_group(
     State(state): State<SharedState>,
     Path(group_id): Path<Uuid>,
@@ -34,22 +47,29 @@ pub async fn fund_group(
     Ok(Json(result))
 }
 
-// TODO: withdraw proposal
 pub async fn create_withdraw_proposal(
-    State(_state): State<SharedState>,
-    Path(_group_id): Path<Uuid>,
-    _user: AuthUser,
-) -> Result<Json<()>, AppError> {
-    todo!();
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+    user: AuthUser,
+    Json(payload): Json<WithdrawProposalRequest>,
+) -> Result<Json<WithdrawProposalExpanded>, AppError> {
+    let result =
+        state
+            .transaction_service
+            .create_withdraw_proposal(user.user_id, group_id, payload)?;
+    Ok(Json(result))
 }
 
-// TODO: withdraw execute
 pub async fn execute_withdraw_proposal(
-    State(_state): State<SharedState>,
-    Path(_group_id): Path<Uuid>,
-    _user: AuthUser,
-) -> Result<Json<()>, AppError> {
-    todo!();
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+    user: AuthUser,
+    Json(payload): Json<ExecuteWithdrawRequest>,
+) -> Result<Json<Transaction>, AppError> {
+    let result = state
+        .transaction_service
+        .execute_withdraw(user.user_id, group_id, payload)?;
+    Ok(Json(result))
 }
 
 pub async fn list_transactions(

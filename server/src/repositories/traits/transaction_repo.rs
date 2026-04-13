@@ -1,8 +1,9 @@
+use uuid::Uuid;
+
 use crate::data::error::DbError;
 use crate::models::group::group_wallet::GroupWallet;
 use crate::models::transaction::{NewTransaction, Transaction};
 use crate::models::user::user_wallet::UserWallet;
-use uuid::Uuid;
 
 pub trait TransactionRepository: Send + Sync {
     fn create_deposit(&self, new_tx: NewTransaction) -> Result<Transaction, DbError>;
@@ -21,4 +22,10 @@ pub trait TransactionRepository: Send + Sync {
         group_id: Uuid,
         currency_id: Uuid,
     ) -> Result<Option<GroupWallet>, DbError>;
+
+    fn execute_withdraw(
+        &self,
+        proposal_id: Uuid,
+        new_tx: NewTransaction,
+    ) -> Result<Transaction, DbError>;
 }
