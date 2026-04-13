@@ -110,24 +110,37 @@ impl TransactionRepository for DieselTransactionRepository {
         let mut conn = self.db.get_conn()?;
 
         let result = conn.transaction::<Transaction, DbError, _>(|conn| {
-            diesel::update(proposal::table.filter(proposal::id.eq(proposal_id)))
-                .set(ProposalUpdate {
-                    status: MyProposalStatus::Executed,
-                })
-                .execute(conn)?;
+            let updated_proposals =
+                diesel::update(proposal::table.filter(proposal::id.eq(proposal_id)))
+                    .set(ProposalUpdate {
+                        status: MyProposalStatus::Executed,
+                    })
+                    .execute(conn)?;
 
-            diesel::update(group_wallet::table)
+            if updated_proposals != 1 {
+                return Err(diesel::result::Error::NotFound.into());
+            }
+
+            let debited_group_wallet = diesel::update(group_wallet::table)
                 .filter(group_wallet::group_id.eq(new_tx.group_id))
                 .filter(group_wallet::currency_id.eq(new_tx.currency_id))
+                .filter(group_wallet::balance.ge(&new_tx.amount))
                 .set(group_wallet::balance.eq(group_wallet::balance - &new_tx.amount))
                 .execute(conn)?;
 
-            diesel::update(user_wallet::table)
+            if debited_group_wallet != 1 {
+                return Err(diesel::result::Error::NotFound.into());
+            }
+
+            let credited_user_wallet = diesel::update(user_wallet::table)
                 .filter(user_wallet::user_id.eq(new_tx.user_id))
                 .filter(user_wallet::currency_id.eq(new_tx.currency_id))
                 .set(user_wallet::balance.eq(user_wallet::balance + &new_tx.amount))
                 .execute(conn)?;
 
+            if credited_user_wallet != 1 {
+                return Err(diesel::result::Error::NotFound.into());
+            }
             let tx = diesel::insert_into(transaction::table)
                 .values(&new_tx)
                 .returning(Transaction::as_returning())
