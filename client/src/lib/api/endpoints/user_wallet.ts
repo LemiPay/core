@@ -24,3 +24,13 @@ export async function transfer_to_wallet(
 		body: JSON.stringify({ sender_wallet_id, receiver_address, amount })
 	});
 }
+
+export async function create_new_address(
+	address: string,
+	currency_ticker: string
+): ApiResponse<Wallet> {
+	return authedApiFetch('/wallet/create', {
+		method: 'POST',
+		body: JSON.stringify({ address, currency_ticker })
+	});
+}

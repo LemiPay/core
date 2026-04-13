@@ -8,12 +8,14 @@
 	import { getAllMyWallets } from '$lib/api/endpoints/user_wallet';
 	import FaucetModal from '$lib/components/modals/FaucetModal.svelte';
 	import TransferModal from '$lib/components/modals/TransferModal.svelte';
+	import CreateWalletModal from '$lib/components/modals/CreateWalletModal.svelte';
 
 	let loadingUserInfo = $state(true);
 	let error_in_loading_profile = $state('');
 	let user = $state({} as User);
 	let openFaucetModal = $state(false);
 	let openTransferModal = $state(false);
+	let openCreateWalletModal = $state(false);
 
 	async function loadUserProfile() {
 		let result: SuccessResponse<User> | FailedResponse = await me();
@@ -71,11 +73,18 @@
 		<h2 class="text-xl font-bold text-black">Mis Billeteras</h2>
 		<button
 			class="flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-black transition hover:border-black hover:bg-gray-50"
+			onclick={() => (openCreateWalletModal = true)}
 		>
 			<Plus size={16} />
 			Nueva Dirección
 		</button>
 	</div>
+
+	<CreateWalletModal
+		open={openCreateWalletModal}
+		onclose={() => (openCreateWalletModal = false)}
+		onsuccess={() => loadWallets()}
+	/>
 
 	<div class="flex w-full flex-col gap-6">
 		{#each wallets_array as group}
