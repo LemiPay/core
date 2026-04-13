@@ -5,17 +5,10 @@ use diesel::{Insertable, Queryable, Selectable};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Queryable, Serialize, Deserialize, Selectable)]
+#[derive(Queryable, Insertable, Serialize, Deserialize, Selectable)]
 #[diesel(table_name = withdraw_proposal)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct WithdrawProposal {
-    pub proposal_id: Uuid,
-    pub amount: BigDecimal,
-}
-
-#[derive(Insertable, Serialize, Deserialize)]
-#[diesel(table_name = withdraw_proposal)]
-pub struct NewWithdrawProposal {
     pub proposal_id: Uuid,
     pub amount: BigDecimal,
 }
