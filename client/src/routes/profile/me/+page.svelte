@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Copy, Plus, Send, ArrowDownToLine, Wallet } from 'lucide-svelte';
-	import FAB from '$lib/components/ui/FAB.svelte';
 	import type { User } from '$lib/types/endpoints/auth.types';
 	import { me } from '$lib/api/auth';
 	import { type FailedResponse, isSuccess, type SuccessResponse } from '$lib/types/client.types';
@@ -13,6 +12,8 @@
 	let loadingUserInfo = $state(true);
 	let errorInLoadingProfile = $state('');
 	let user = $state({} as User);
+	let faucetTarget = $state<{ wallet_id: string; ticker: string } | null>(null);
+	let transferTarget = $state<{ sender_wallet_id: string; ticker: string } | null>(null);
 	let openFaucetModal = $state(false);
 	let openTransferModal = $state(false);
 	let openCreateWalletModal = $state(false);
@@ -116,38 +117,27 @@
 									<span class="text-base font-medium text-gray-500">{currency.ticker}</span>
 								</span>
 							</div>
-
 							<div class="flex gap-2">
 								<button
 									class="flex items-center gap-1.5 rounded-full border border-gray-200 px-4 py-1.5 text-sm font-medium text-black transition hover:border-gray-400 hover:bg-gray-50"
-									onclick={() => (openFaucetModal = true)}
+									onclick={() =>
+										(faucetTarget = { wallet_id: currency.wallet_id, ticker: currency.ticker })}
 								>
 									<ArrowDownToLine size={14} />
 									Recibir
 								</button>
-								<FaucetModal
-									open={openFaucetModal}
-									wallet_id={currency.wallet_id}
-									ticker={currency.ticker}
-									onclose={() => (openFaucetModal = false)}
-									onsuccess={() => loadWallets()}
-								/>
 
 								<button
 									class="flex items-center gap-1.5 rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gray-800"
-									onclick={() => (openTransferModal = true)}
+									onclick={() =>
+										(transferTarget = {
+											sender_wallet_id: currency.wallet_id,
+											ticker: currency.ticker
+										})}
 								>
 									<Send size={14} />
 									Enviar
 								</button>
-
-								<TransferModal
-									open={openTransferModal}
-									sender_wallet_id={currency.wallet_id}
-									ticker={currency.ticker}
-									onclose={() => (openTransferModal = false)}
-									onsuccess={() => loadWallets()}
-								/>
 							</div>
 						</div>
 					{/each}
@@ -166,5 +156,20 @@
 		{#if walletsArray.length === 0}
 			<p class="text-sm text-gray-500">Aún no tienes billeteras creadas.</p>
 		{/if}
+		<FaucetModal
+			open={faucetTarget !== null}
+			wallet_id={faucetTarget?.wallet_id ?? ''}
+			ticker={faucetTarget?.ticker ?? ''}
+			onclose={() => (faucetTarget = null)}
+			onsuccess={() => loadWallets()}
+		/>
+
+		<TransferModal
+			open={transferTarget !== null}
+			sender_wallet_id={transferTarget?.sender_wallet_id ?? ''}
+			ticker={transferTarget?.ticker ?? ''}
+			onclose={() => (transferTarget = null)}
+			onsuccess={() => loadWallets()}
+		/>
 	</div>
 </div>

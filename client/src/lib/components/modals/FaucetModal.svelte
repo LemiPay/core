@@ -47,7 +47,7 @@
 		error = '';
 		success = '';
 		loading = true;
-		let result = await faucetFundWallet(String(amount), wallet_id);
+		let result = await faucetFundWallet(String(amount).replace(',', '.'), wallet_id);
 		if (!isSuccess(result)) {
 			error = result.message;
 			loading = false;
