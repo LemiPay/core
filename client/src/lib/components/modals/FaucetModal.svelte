@@ -2,15 +2,18 @@
 	import FormField from '$lib/components/ui/FormField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Modal from '$lib/components/modals/Modal.svelte';
+	import { faucet_fund_wallet } from '$lib/api/endpoints/user_wallet';
+	import { isSuccess } from '$lib/types/client.types';
 
 	interface Props {
 		open: boolean;
 		wallet_id: string;
+		ticker: string;
 		onclose: () => void;
-		onsuccess?: () => void; // Útil para recargar los datos en el perfil
+		onsuccess: () => void;
 	}
 
-	const { open, wallet_id, onclose, onsuccess }: Props = $props();
+	const { open, wallet_id, ticker, onclose, onsuccess }: Props = $props();
 
 	// Estados del formulario
 	let amount = $state('');
@@ -19,12 +22,19 @@
 	let error = $state('');
 	let success = $state('');
 
-	const formValid = $derived(amount.trim().length > 0);
-
+	const formValid = $derived(
+		amount != null &&
+			amount !== '' &&
+			!isNaN(Number(String(amount).replace(',', '.'))) &&
+			Number(String(amount).replace(',', '.')) > 0
+	);
 	function handleClose() {
 		amount = '';
 		attempted = false;
 		error = '';
+		if (success != '0') {
+			onsuccess();
+		}
 		success = '';
 		loading = false;
 		onclose();
@@ -33,18 +43,27 @@
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		attempted = true;
-
 		if (!formValid) return;
-
 		error = '';
 		success = '';
 		loading = true;
+		let result = await faucet_fund_wallet(String(amount), wallet_id);
+		if (!isSuccess(result)) {
+			error = result.message;
+			loading = false;
+			return;
+		}
+		loading = false;
+		success = 'funded wallet';
+		setTimeout(() => {
+			handleClose();
+		}, 2000);
 	}
 </script>
 
 <Modal
 	{open}
-	title="Recibir Dinero (Faucet)"
+	title="Recibir Dinero"
 	description="Dinero mágico de otra dimensión será enviado a tu dirección."
 	onclose={handleClose}
 	{error}
@@ -55,7 +74,7 @@
 		<form id="receive-money-form" onsubmit={handleSubmit} class="space-y-4">
 			<FormField
 				id="amount"
-				label="Monto a recibir"
+				label="Monto de {ticker} a recibir"
 				minLength={0}
 				maxLength={3}
 				type="number"

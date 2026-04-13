@@ -139,7 +139,7 @@ impl UserWalletService {
         let sender_wallet = self
             .user_wallet_repo
             .get_wallet_info(request.sender_wallet_id)
-            .map_err(AppError::Db)?;
+            .map_err(|_| AppError::BadRequest("wallet inexistente".into()))?;
 
         if sender_wallet.user_id != current_user_id {
             return Err(AppError::Forbidden);

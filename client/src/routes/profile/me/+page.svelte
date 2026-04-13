@@ -117,7 +117,9 @@
 								<FaucetModal
 									open={openFaucetModal}
 									wallet_id={currency.wallet_id}
+									ticker={currency.ticker}
 									onclose={() => (openFaucetModal = false)}
+									onsuccess={() => loadWallets()}
 								/>
 
 								<button

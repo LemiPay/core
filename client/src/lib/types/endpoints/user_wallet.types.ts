@@ -6,3 +6,10 @@ export type WalletInfo = {
 		balance: string;
 	}[];
 };
+
+export type Wallet = {
+	wallet_id: string;
+	address: string;
+	currency_id: string;
+	balance: string;
+};
