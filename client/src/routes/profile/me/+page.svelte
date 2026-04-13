@@ -94,7 +94,7 @@
 				>
 					<div class="flex items-center gap-2 text-gray-500">
 						<Wallet size={16} />
-						<span class="font-mono text-sm">{group.address}</span>
+						<span class="font-mono text-sm">{shortenAddress(group.address)}</span>
 					</div>
 					<button
 						onclick={() => copyToClipboard(group.address)}
