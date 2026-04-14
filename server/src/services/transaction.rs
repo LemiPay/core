@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use uuid::Uuid;
 
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, Zero};
 
 use crate::errors::app_error::AppError;
 use crate::handlers::transaction::{
@@ -36,7 +36,7 @@ impl TransactionService {
         group_id: Uuid,
         payload: FundGroupRequest,
     ) -> Result<Transaction, AppError> {
-        if payload.amount <= BigDecimal::from(0) {
+        if payload.amount <= BigDecimal::zero() {
             return Err(AppError::BadRequest("Amount must be greater than 0".into()));
         }
 
@@ -81,7 +81,7 @@ impl TransactionService {
             currency_id,
         }: WithdrawProposalRequest,
     ) -> Result<WithdrawProposalExpanded, AppError> {
-        if amount <= BigDecimal::from(0) {
+        if amount <= BigDecimal::zero() {
             return Err(AppError::BadRequest("Amount must be greater than 0".into()));
         }
 
