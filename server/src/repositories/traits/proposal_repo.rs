@@ -54,11 +54,13 @@ pub trait ProposalRepository: Send + Sync {
         &self,
         user_id: Uuid,
         group_id: Uuid,
+        currency_id: Uuid,
         amount: BigDecimal,
     ) -> Result<WithdrawProposalExpanded, DbError>;
 
     fn find_withdraw_proposal(
         &self,
         proposal_id: Uuid,
+        currency_id: Uuid,
     ) -> Result<Option<WithdrawProposalExpanded>, DbError>;
 }

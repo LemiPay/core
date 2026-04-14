@@ -75,32 +75,36 @@ impl TransactionService {
         &self,
         user_id: Uuid,
         group_id: Uuid,
-        payload: WithdrawProposalRequest,
+        // unpacking ↓
+        WithdrawProposalRequest {
+            amount,
+            currency_id,
+        }: WithdrawProposalRequest,
     ) -> Result<WithdrawProposalExpanded, AppError> {
-        if payload.amount <= BigDecimal::from(0) {
+        if amount <= BigDecimal::from(0) {
             return Err(AppError::BadRequest("Amount must be greater than 0".into()));
         }
 
         let group_wallet = self
             .transaction_repo
-            .get_group_wallet(group_id, payload.currency_id)?
+            .get_group_wallet(group_id, currency_id)?
             .ok_or(AppError::BadRequest(
                 "Group does not have a wallet for this currency".into(),
             ))?;
 
-        if group_wallet.balance < payload.amount {
+        if group_wallet.balance < amount {
             return Err(AppError::BadRequest("Insufficient group balance".into()));
         }
 
         self.transaction_repo
-            .get_user_wallet(user_id, payload.currency_id)?
+            .get_user_wallet(user_id, currency_id)?
             .ok_or(AppError::BadRequest(
                 "User does not have a wallet for this currency".into(),
             ))?;
 
         let result =
             self.proposal_repo
-                .create_withdraw_proposal(user_id, group_id, payload.amount)?;
+                .create_withdraw_proposal(user_id, group_id, currency_id, amount)?;
         Ok(result)
     }
 
@@ -108,55 +112,59 @@ impl TransactionService {
         &self,
         user_id: Uuid,
         group_id: Uuid,
-        payload: ExecuteWithdrawRequest,
+        // unpacking ↓
+        ExecuteWithdrawRequest {
+            proposal_id,
+            currency_id,
+        }: ExecuteWithdrawRequest,
     ) -> Result<Transaction, AppError> {
         let expanded = self
             .proposal_repo
-            .find_withdraw_proposal(payload.proposal_id)?
+            .find_withdraw_proposal(proposal_id, currency_id)?
             .ok_or(AppError::NotFound)?;
 
-        if expanded.proposal.status != MyProposalStatus::Approved {
-            return Err(AppError::BadRequest("Proposal is not approved".into()));
-        }
+        let expanded_valid = match expanded.proposal.status {
+            MyProposalStatus::Approved => Ok(expanded),
+            MyProposalStatus::Executed => Err(AppError::BadRequest(
+                "Proposal has already been executed".into(),
+            )),
+            _ => Err(AppError::NotFound),
+        }?;
 
-        if expanded.proposal.group_id != group_id {
-            return Err(AppError::Forbidden);
-        }
-
-        if expanded.proposal.created_by != user_id {
+        if expanded_valid.proposal.group_id != group_id {
             return Err(AppError::Forbidden);
         }
 
         let group_wallet = self
             .transaction_repo
-            .get_group_wallet(group_id, payload.currency_id)?
+            .get_group_wallet(group_id, currency_id)?
             .ok_or(AppError::BadRequest(
                 "Group does not have a wallet for this currency".into(),
             ))?;
 
-        if group_wallet.balance < expanded.withdraw_proposal.amount {
+        if group_wallet.balance < expanded_valid.withdraw_proposal.amount {
             return Err(AppError::BadRequest("Insufficient group balance".into()));
         }
 
         self.transaction_repo
-            .get_user_wallet(user_id, payload.currency_id)?
+            .get_user_wallet(user_id, currency_id)?
             .ok_or(AppError::BadRequest(
                 "User does not have a wallet for this currency".into(),
             ))?;
 
         let new_tx = NewTransaction {
             tx_hash: None,
-            amount: expanded.withdraw_proposal.amount,
+            amount: expanded_valid.withdraw_proposal.amount,
             user_id,
             group_id,
-            currency_id: payload.currency_id,
+            currency_id,
             description: None,
             tx_type: MyTransactionType::Withdraw,
         };
 
         let result = self
             .transaction_repo
-            .execute_withdraw(payload.proposal_id, new_tx)?;
+            .execute_withdraw(proposal_id, new_tx)?;
         Ok(result)
     }
 

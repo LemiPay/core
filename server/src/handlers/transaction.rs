@@ -32,6 +32,7 @@ pub struct WithdrawProposalRequest {
 #[derive(Deserialize)]
 pub struct ExecuteWithdrawRequest {
     pub proposal_id: Uuid,
+    pub currency_id: Uuid,
 }
 
 pub async fn fund_group(

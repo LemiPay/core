@@ -11,6 +11,7 @@ use uuid::Uuid;
 pub struct WithdrawProposal {
     pub proposal_id: Uuid,
     pub amount: BigDecimal,
+    pub currency_id: Uuid,
 }
 
 #[derive(Serialize)]
