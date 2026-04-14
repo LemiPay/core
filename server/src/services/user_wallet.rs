@@ -76,9 +76,7 @@ impl UserWalletService {
         amount: BigDecimal,
     ) -> Result<UserWallet, AppError> {
         if amount <= BigDecimal::zero() {
-            return Err(AppError::BadRequest(
-                "amount must be higher than 0".into(),
-            ));
+            return Err(AppError::BadRequest("amount must be higher than 0".into()));
         }
 
         let wallet = self
@@ -100,9 +98,7 @@ impl UserWalletService {
         amount: BigDecimal,
     ) -> Result<UserWallet, AppError> {
         if amount <= BigDecimal::zero() {
-            return Err(AppError::BadRequest(
-                "amount must be higher than 0".into(),
-            ));
+            return Err(AppError::BadRequest("amount must be higher than 0".into()));
         }
         let wallet = self
             .user_wallet_repo
@@ -113,9 +109,7 @@ impl UserWalletService {
             return Err(AppError::Forbidden);
         }
         if wallet.balance < amount {
-            return Err(AppError::BadRequest(
-                "Insuficient funds".into(),
-            ));
+            return Err(AppError::BadRequest("Insuficient funds".into()));
         }
 
         self.user_wallet_repo
@@ -131,9 +125,7 @@ impl UserWalletService {
             .map_err(|_| AppError::BadRequest("Monto inválido".into()))?;
 
         if amount <= BigDecimal::zero() {
-            return Err(AppError::BadRequest(
-                "Amount must be higher than 0".into(),
-            ));
+            return Err(AppError::BadRequest("Amount must be higher than 0".into()));
         }
 
         let sender_wallet = self
