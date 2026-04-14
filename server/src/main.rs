@@ -23,6 +23,7 @@ use crate::data::state::AppState;
 use crate::repositories::diesel::auth_repo_impl::DieselAuthRepository;
 use crate::repositories::diesel::currency_repo_impl::DieselCurrencyRepository;
 use crate::repositories::diesel::group_repo_impl::DieselGroupRepository;
+use crate::repositories::diesel::group_wallet_repo_impl::DieselGroupWalletRepository;
 use crate::repositories::diesel::proposal_repo_impl::DieselProposalRepository;
 use crate::repositories::diesel::transaction_repo_impl::DieselTransactionRepository;
 use crate::repositories::diesel::user_repo_impl::DieselUserRepository;
@@ -31,6 +32,7 @@ use crate::repositories::diesel::user_wallet_repo_impl::DieselUserWalletReposito
 // Services
 use crate::services::auth::AuthService;
 use crate::services::group::GroupService;
+use crate::services::group_wallet::GroupWalletService;
 use crate::services::proposal::ProposalService;
 use crate::services::transaction::TransactionService;
 use crate::services::user::UserService;
@@ -52,6 +54,7 @@ async fn main() {
     let transaction_repo = Arc::new(DieselTransactionRepository::new(db.clone()));
     let user_wallet_repo = Arc::new(DieselUserWalletRepository::new(db.clone()));
     let currency_repo = Arc::new(DieselCurrencyRepository::new(db.clone()));
+    let group_wallet_repo = Arc::new(DieselGroupWalletRepository::new(db.clone()));
 
     // 🧠 Service
     let user_service = UserService::new(user_repo.clone());
@@ -63,6 +66,10 @@ async fn main() {
         TransactionService::new(transaction_repo.clone(), proposal_repo.clone());
     let user_wallet_service =
         UserWalletService::new(user_wallet_repo.clone(), currency_repo.clone());
+    let group_wallet_service = Arc::new(GroupWalletService::new(
+        group_wallet_repo.clone(),
+        currency_repo.clone(),
+    ));
 
     let state = Arc::new(AppState {
         user_service,
@@ -71,6 +78,7 @@ async fn main() {
         proposal_service,
         transaction_service,
         user_wallet_service,
+        group_wallet_service,
     });
 
     // 🚏 Router

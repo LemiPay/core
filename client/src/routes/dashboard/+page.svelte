@@ -53,7 +53,9 @@
 
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 pt-8">
 	<div class="w-full">
-		<UserProfileCard />
+		<a href="/profile/me">
+			<UserProfileCard />
+		</a>
 	</div>
 	<NewGroup open={showNewGroup} onclose={() => (showNewGroup = false)} />
 
