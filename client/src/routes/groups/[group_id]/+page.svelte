@@ -19,6 +19,7 @@
 	import Confirm from '$lib/components/modals/Confirm.svelte';
 	import EditGroup from '$lib/components/modals/EditGroup.svelte';
 	import CreateGroupWallet from '$lib/components/modals/CreateGroupWallet.svelte';
+	import FundGroupWallet from '$lib/components/modals/FundGroupWallet.svelte';
 
 	let loading = $state(true);
 	let loadingMembers = $state(true);
@@ -31,6 +32,7 @@
 	let showDeleteModal = $state(false);
 	let showEditModal = $state(false);
 	let showCreateWalletModal = $state(false);
+	let showFundWalletModal = $state(false);
 
 	let deleteLoading = $state(false);
 	let deleteError = $state('');
@@ -204,7 +206,11 @@
 						</Button>
 					</div>
 					<div class="flex-1">
-						<Button label="Fondear con cuenta" variant="secondary" onclick={() => {}}>
+						<Button
+							label="Fondear con cuenta"
+							variant="secondary"
+							onclick={() => (showFundWalletModal = true)}
+						>
 							{#snippet icon()}
 								<Coins class="h-5 w-5" />
 							{/snippet}
@@ -217,6 +223,12 @@
 				open={showCreateWalletModal}
 				group_id={groupData.id}
 				onclose={() => (showCreateWalletModal = false)}
+			/>
+
+			<FundGroupWallet
+				open={showFundWalletModal}
+				group_id={groupData.id}
+				onclose={() => (showFundWalletModal = false)}
 			/>
 
 			<EditGroup

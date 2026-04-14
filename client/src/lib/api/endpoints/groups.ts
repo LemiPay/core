@@ -2,6 +2,7 @@ import { authedApiFetch } from '../client';
 
 import type { ApiResponse } from '$lib/types/client.types';
 import type {
+	FundGroupWalletData,
 	Group,
 	GroupSummary,
 	GroupWallet,
@@ -52,6 +53,16 @@ export async function createGroupWallet(
 	data: NewGroupWalletData
 ): ApiResponse<GroupWallet> {
 	return authedApiFetch(`/group/${group_id}/wallet`, {
+		method: 'POST',
+		body: JSON.stringify(data)
+	});
+}
+
+export async function fundGroupWallet(
+	group_id: string,
+	data: FundGroupWalletData
+): ApiResponse<boolean> {
+	return authedApiFetch(`/group/${group_id}/fund`, {
 		method: 'POST',
 		body: JSON.stringify(data)
 	});

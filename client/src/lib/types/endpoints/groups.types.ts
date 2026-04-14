@@ -39,3 +39,8 @@ export type GroupWallet = {
 	created_at: string;
 	updated_at: string;
 };
+
+export type FundGroupWalletData = {
+	sender_wallet_id: string;
+	amount: string;
+};
