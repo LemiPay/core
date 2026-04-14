@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Trash2, Pencil } from 'lucide-svelte';
+	import { Trash2, Pencil, Wallet, Coins } from 'lucide-svelte';
 	import { page } from '$app/state';
 
 	// Api
@@ -18,6 +18,7 @@
 	import InviteUserToGroup from '$lib/components/modals/InviteUserToGroup.svelte';
 	import Confirm from '$lib/components/modals/Confirm.svelte';
 	import EditGroup from '$lib/components/modals/EditGroup.svelte';
+	import CreateGroupWallet from '$lib/components/modals/CreateGroupWallet.svelte';
 
 	let loading = $state(true);
 	let loadingMembers = $state(true);
@@ -29,6 +30,7 @@
 	let showNewMemberModal = $state(false);
 	let showDeleteModal = $state(false);
 	let showEditModal = $state(false);
+	let showCreateWalletModal = $state(false);
 
 	let deleteLoading = $state(false);
 	let deleteError = $state('');
@@ -183,6 +185,39 @@
 					onsuccess={loadMembersData}
 				/>
 			</div>
+
+			<hr class="border-gray-100" />
+
+			<div class="space-y-3">
+				<h2 class="text-sm font-medium text-black">Finanzas</h2>
+
+				<div class="flex flex-col gap-3 sm:flex-row">
+					<div class="flex-1">
+						<Button
+							label="Crear wallet del grupo"
+							variant="primary"
+							onclick={() => (showCreateWalletModal = true)}
+						>
+							{#snippet icon()}
+								<Wallet class="h-5 w-5" />
+							{/snippet}
+						</Button>
+					</div>
+					<div class="flex-1">
+						<Button label="Fondear con cuenta" variant="secondary" onclick={() => {}}>
+							{#snippet icon()}
+								<Coins class="h-5 w-5" />
+							{/snippet}
+						</Button>
+					</div>
+				</div>
+			</div>
+
+			<CreateGroupWallet
+				open={showCreateWalletModal}
+				group_id={groupData.id}
+				onclose={() => (showCreateWalletModal = false)}
+			/>
 
 			<EditGroup
 				open={showEditModal}

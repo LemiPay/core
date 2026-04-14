@@ -24,3 +24,18 @@ export type Group = {
 	status: string;
 	created_at: string;
 };
+
+export type NewGroupWalletData = {
+	address: string;
+	currency_ticker: string;
+};
+
+export type GroupWallet = {
+	id: string;
+	address: string;
+	group_id: string;
+	currency_id: string;
+	balance: number;
+	created_at: string;
+	updated_at: string;
+};
