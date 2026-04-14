@@ -77,12 +77,14 @@ impl TransactionRepository for DieselTransactionRepository {
     fn get_user_wallet(
         &self,
         user_id: Uuid,
+        address: String,
         currency_id: Uuid,
     ) -> Result<Option<UserWallet>, DbError> {
         let mut conn = self.db.get_conn()?;
         let result = user_wallet::table
             .filter(user_wallet::user_id.eq(user_id))
             .filter(user_wallet::currency_id.eq(currency_id))
+            .filter(user_wallet::address.eq(address.clone()))
             .first::<UserWallet>(&mut conn)
             .optional()?;
         Ok(result)

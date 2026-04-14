@@ -14,6 +14,7 @@ pub trait TransactionRepository: Send + Sync {
     fn get_user_wallet(
         &self,
         user_id: Uuid,
+        address: String,
         currency_id: Uuid,
     ) -> Result<Option<UserWallet>, DbError>;
 

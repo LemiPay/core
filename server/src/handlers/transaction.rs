@@ -14,6 +14,7 @@ use uuid::Uuid;
 #[derive(Deserialize)]
 pub struct FundGroupRequest {
     pub amount: BigDecimal,
+    pub address: String,
     pub currency_id: Uuid,
     pub description: Option<String>,
 }

@@ -45,6 +45,7 @@ pub struct NewTransaction {
     pub user_id: Uuid,
     pub group_id: Uuid,
     pub currency_id: Uuid,
+    pub address: String,
 
     pub description: Option<String>,
 

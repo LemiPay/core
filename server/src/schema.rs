@@ -111,6 +111,7 @@ diesel::table! {
         user_id -> Uuid,
         group_id -> Uuid,
         currency_id -> Uuid,
+        address -> Text,
         description -> Nullable<Text>,
         tx_type -> TransactionType,
         created_at -> Timestamp,

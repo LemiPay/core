@@ -42,7 +42,7 @@ impl TransactionService {
 
         let user_wallet = self
             .transaction_repo
-            .get_user_wallet(user_id, payload.currency_id)?
+            .get_user_wallet(user_id, payload.address.clone(), payload.currency_id)?
             .ok_or(AppError::BadRequest(
                 "User does not have a wallet for this currency".into(),
             ))?;
@@ -63,6 +63,7 @@ impl TransactionService {
             user_id,
             group_id,
             currency_id: payload.currency_id,
+            address: payload.address,
             description: payload.description,
             tx_type: MyTransactionType::Deposit,
         };
@@ -77,6 +78,7 @@ impl TransactionService {
         group_id: Uuid,
         // unpacking ↓
         WithdrawProposalRequest {
+            address,
             amount,
             currency_id,
         }: WithdrawProposalRequest,
