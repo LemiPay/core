@@ -2,7 +2,7 @@ use axum::routing::{get, post};
 use axum::{Router, middleware};
 
 use crate::data::state::SharedState;
-use crate::handlers::group_wallet::{create_group_wallet, get_group_wallet_balance};
+use crate::handlers::group_wallet::{create_group_wallet, get_group_wallets};
 
 use crate::security::middlewares::auth::auth_middleware;
 use crate::security::middlewares::is_in_group::{
@@ -19,8 +19,8 @@ pub fn group_wallet_routes(state: SharedState) -> Router {
             )),
         )
         .route(
-            "/{group_id}/balance",
-            get(get_group_wallet_balance).route_layer(middleware::from_fn_with_state(
+            "/{group_id}",
+            get(get_group_wallets).route_layer(middleware::from_fn_with_state(
                 state.clone(),
                 is_in_group_middleware,
             )),

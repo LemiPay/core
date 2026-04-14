@@ -48,4 +48,18 @@ impl GroupWalletRepository for DieselGroupWalletRepository {
             .optional()?;
         Ok(result)
     }
+
+    fn get_wallet_by_address_and_currency(
+        &self,
+        address: &str,
+        currency_id: Uuid,
+    ) -> Result<Option<GroupWallet>, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = group_wallet::table
+            .filter(group_wallet::address.eq(address))
+            .filter(group_wallet::currency_id.eq(currency_id))
+            .first::<GroupWallet>(&mut conn)
+            .optional()?;
+        Ok(result)
+    }
 }

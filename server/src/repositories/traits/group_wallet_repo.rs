@@ -10,4 +10,9 @@ pub trait GroupWalletRepository: Send + Sync {
         group_id: Uuid,
         currency_id: Uuid,
     ) -> Result<Option<GroupWallet>, DbError>;
+    fn get_wallet_by_address_and_currency(
+        &self,
+        address: &str,
+        currency_id: Uuid,
+    ) -> Result<Option<GroupWallet>, DbError>;
 }
