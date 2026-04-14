@@ -77,7 +77,7 @@ impl UserWalletService {
     ) -> Result<UserWallet, AppError> {
         if amount <= BigDecimal::zero() {
             return Err(AppError::BadRequest(
-                "El monto a fondear debe ser mayor a cero".into(),
+                "amount must be higher than 0".into(),
             ));
         }
 
@@ -101,7 +101,7 @@ impl UserWalletService {
     ) -> Result<UserWallet, AppError> {
         if amount <= BigDecimal::zero() {
             return Err(AppError::BadRequest(
-                "El monto a retirar debe ser mayor a cero".into(),
+                "amount must be higher than 0".into(),
             ));
         }
         let wallet = self
@@ -114,7 +114,7 @@ impl UserWalletService {
         }
         if wallet.balance < amount {
             return Err(AppError::BadRequest(
-                "Saldo insuficiente para realizar el retiro".into(),
+                "Insuficient funds".into(),
             ));
         }
 
@@ -132,26 +132,26 @@ impl UserWalletService {
 
         if amount <= BigDecimal::zero() {
             return Err(AppError::BadRequest(
-                "El monto a transferir debe ser mayor a cero".into(),
+                "Amount must be higher than 0".into(),
             ));
         }
 
         let sender_wallet = self
             .user_wallet_repo
             .get_wallet_info(request.sender_wallet_id)
-            .map_err(|_| AppError::BadRequest("wallet inexistente".into()))?;
+            .map_err(|_| AppError::BadRequest("wallet doesn't exist".into()))?;
 
         if sender_wallet.user_id != current_user_id {
             return Err(AppError::Forbidden);
         }
 
         if sender_wallet.balance < amount {
-            return Err(AppError::BadRequest("Saldo insuficiente".into()));
+            return Err(AppError::BadRequest("Insuficient funds".into()));
         }
 
         if sender_wallet.address == request.receiver_address {
             return Err(AppError::BadRequest(
-                "No podés transferir a la misma dirección".into(),
+                "You can't transfer to the same address".into(),
             ));
         }
 
@@ -167,7 +167,7 @@ impl UserWalletService {
             Some(id) => id,
             None => {
                 return Err(AppError::BadRequest(
-                    "La dirección de destino no existe o no soporta esta moneda".into(),
+                    "Receiver wallet doesn't exist or doesn't support this currency".into(),
                 ));
             }
         };
