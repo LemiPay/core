@@ -26,12 +26,14 @@ pub struct TransactionIdQuery {
 
 #[derive(Deserialize)]
 pub struct WithdrawProposalRequest {
+    pub address: String,
     pub amount: BigDecimal,
     pub currency_id: Uuid,
 }
 
 #[derive(Deserialize)]
 pub struct ExecuteWithdrawRequest {
+    pub address: String,
     pub proposal_id: Uuid,
     pub currency_id: Uuid,
 }

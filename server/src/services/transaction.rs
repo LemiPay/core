@@ -99,7 +99,7 @@ impl TransactionService {
         }
 
         self.transaction_repo
-            .get_user_wallet(user_id, currency_id)?
+            .get_user_wallet(user_id, address, currency_id)?
             .ok_or(AppError::BadRequest(
                 "User does not have a wallet for this currency".into(),
             ))?;
@@ -116,6 +116,7 @@ impl TransactionService {
         group_id: Uuid,
         // unpacking ↓
         ExecuteWithdrawRequest {
+            address,
             proposal_id,
             currency_id,
         }: ExecuteWithdrawRequest,
@@ -149,7 +150,7 @@ impl TransactionService {
         }
 
         self.transaction_repo
-            .get_user_wallet(user_id, currency_id)?
+            .get_user_wallet(user_id, address.clone(), currency_id)?
             .ok_or(AppError::BadRequest(
                 "User does not have a wallet for this currency".into(),
             ))?;
@@ -160,6 +161,7 @@ impl TransactionService {
             user_id,
             group_id,
             currency_id,
+            address,
             description: None,
             tx_type: MyTransactionType::Withdraw,
         };
