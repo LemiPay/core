@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { FileQuestion, AlertCircle, ArrowLeft } from 'lucide-svelte';
+	const isNotFound = page.status === 404;
 </script>
 
 <svelte:head>
@@ -14,7 +15,7 @@
 		<div
 			class="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-gray-100 bg-gray-50"
 		>
-			{#if page.status === 404}
+			{#if isNotFound}
 				<FileQuestion class="h-7 w-7 text-black" strokeWidth={1.5} />
 			{:else}
 				<AlertCircle class="h-7 w-7 text-black" strokeWidth={1.5} />
@@ -22,7 +23,7 @@
 		</div>
 
 		<h1 class="mb-2 text-xl font-bold text-black">
-			{#if page.status === 404}
+			{#if isNotFound}
 				Página no encontrada
 			{:else}
 				Algo salió mal
@@ -30,7 +31,7 @@
 		</h1>
 
 		<p class="text-sm text-gray-500">
-			{#if page.status === 404}
+			{#if isNotFound}
 				La ruta a la que intentás acceder no existe o fue movida.
 			{:else}
 				{page.error?.message ?? 'Ocurrió un error inesperado al procesar tu solicitud.'}
