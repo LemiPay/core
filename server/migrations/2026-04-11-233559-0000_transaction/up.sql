@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS transaction (
     user_id UUID NOT NULL,  -- Author
     group_id UUID NOT NULL,
     currency_id UUID NOT NULL,
+    address TEXT NOT NULL,
 
     description TEXT,
 

@@ -1,9 +1,12 @@
+use bigdecimal::BigDecimal;
+use uuid::Uuid;
+
 use crate::data::error::DbError;
 use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalUpdate};
 use crate::models::proposals::new_member::{
     NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
 };
-use uuid::Uuid;
+use crate::models::proposals::withdraw::WithdrawProposalExpanded;
 
 pub trait ProposalRepository: Send + Sync {
     fn find_by_group(&self, group_id: Uuid) -> Result<Vec<NewMemberProposalExpanded>, DbError>;
@@ -46,4 +49,18 @@ pub trait ProposalRepository: Send + Sync {
         proposal_id: Uuid,
         params: ProposalUpdate,
     ) -> Result<Proposal, DbError>;
+
+    fn create_withdraw_proposal(
+        &self,
+        user_id: Uuid,
+        group_id: Uuid,
+        currency_id: Uuid,
+        amount: BigDecimal,
+    ) -> Result<WithdrawProposalExpanded, DbError>;
+
+    fn find_withdraw_proposal(
+        &self,
+        proposal_id: Uuid,
+        currency_id: Uuid,
+    ) -> Result<Option<WithdrawProposalExpanded>, DbError>;
 }
