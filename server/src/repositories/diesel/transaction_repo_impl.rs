@@ -137,6 +137,7 @@ impl TransactionRepository for DieselTransactionRepository {
             let credited_user_wallet = diesel::update(user_wallet::table)
                 .filter(user_wallet::user_id.eq(new_tx.user_id))
                 .filter(user_wallet::currency_id.eq(new_tx.currency_id))
+                .filter(user_wallet::address.eq(new_tx.address.clone()))
                 .set(user_wallet::balance.eq(user_wallet::balance + &new_tx.amount))
                 .execute(conn)?;
 
