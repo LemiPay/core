@@ -111,6 +111,7 @@ diesel::table! {
         user_id -> Uuid,
         group_id -> Uuid,
         currency_id -> Uuid,
+        address -> Text,
         description -> Nullable<Text>,
         tx_type -> TransactionType,
         created_at -> Timestamp,
@@ -180,6 +181,7 @@ diesel::table! {
     withdraw_proposal (proposal_id) {
         proposal_id -> Uuid,
         amount -> Numeric,
+        currency_id -> Uuid,
     }
 }
 
@@ -205,6 +207,7 @@ diesel::joinable!(user_wallet -> currency (currency_id));
 diesel::joinable!(user_wallet -> user (user_id));
 diesel::joinable!(vote -> proposal (proposal_id));
 diesel::joinable!(vote -> user (user_id));
+diesel::joinable!(withdraw_proposal -> currency (currency_id));
 diesel::joinable!(withdraw_proposal -> proposal (proposal_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
