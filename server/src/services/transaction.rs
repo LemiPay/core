@@ -138,6 +138,9 @@ impl TransactionService {
             return Err(AppError::Forbidden);
         }
 
+        if expanded_valid.proposal.created_by != user_id {
+            return Err(AppError::Forbidden);
+        }
         let group_wallet = self
             .transaction_repo
             .get_group_wallet(group_id, currency_id)?
