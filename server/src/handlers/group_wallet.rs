@@ -55,12 +55,12 @@ pub async fn contribute_fund_round(
 
 pub async fn get_fund_round(
     State(state): State<SharedState>,
-    _user: AuthUser,
+    user: AuthUser,
     Path(fund_round_id): Path<Uuid>,
 ) -> Result<Json<FundRoundStatusResponse>, AppError> {
     let result = state
         .group_wallet_service
-        .get_fund_round_status(fund_round_id)?;
+        .get_fund_round_status(user.user_id, fund_round_id)?;
     Ok(Json(result))
 }
 

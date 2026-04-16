@@ -126,13 +126,27 @@ impl GroupWalletService {
         self.validate_is_member(user_id, fund_round.proposal.group_id)?;
 
         // Validate user has amount
-        let user_balance = self
+        let sender_wallet = match self
             .user_wallet_repo
             .get_wallet_info(payload.sender_wallet_id)
-            .map_err(|_| AppError::BadRequest("Sender wallet not found".into()))?
-            .balance;
+        {
+            Ok(wallet) => wallet,
+            Err(DbError::Diesel(Error::NotFound)) => {
+                return Err(AppError::BadRequest("Sender wallet not found".into()));
+            }
+            Err(err) => return Err(AppError::Db(err)),
+        };
 
-        if user_balance < amount {
+        if sender_wallet.user_id != user_id {
+            return Err(AppError::BadRequest("Sender wallet not found".into()));
+        }
+        if sender_wallet.currency_id != fund_round.fund_round_proposal.currency_id {
+            return Err(AppError::BadRequest(
+                "Sender wallet currency does not match fund round currency".into(),
+            ));
+        }
+
+        if sender_wallet.balance < amount {
             return Err(AppError::BadRequest("Insufficient funds".into()));
         }
 
@@ -186,9 +200,11 @@ impl GroupWalletService {
 
     pub fn get_fund_round_status(
         &self,
+        user_id: Uuid,
         fund_round_id: Uuid,
     ) -> Result<FundRoundStatusResponse, AppError> {
         let fund_round = self.find_fund_round(fund_round_id)?;
+        self.validate_is_member(user_id, fund_round.proposal.group_id)?;
 
         let total_contributed = self
             .fund_round_repo
@@ -228,27 +244,6 @@ impl GroupWalletService {
             .map_err(AppError::Db)?;
 
         self.find_fund_round(fund_round_id)
-    }
-
-    fn find_fund_round(&self, fund_round_id: Uuid) -> Result<FundProposalExpanded, AppError> {
-        self.fund_round_repo
-            .find_fund_round(fund_round_id)
-            .map_err(AppError::Db)?
-            .ok_or(AppError::NotFound)
-    }
-
-    fn validate_is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<(), AppError> {
-        if !self.group_repo.is_member(user_id, group_id)? {
-            return Err(AppError::Forbidden);
-        }
-        Ok(())
-    }
-
-    fn validate_is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<(), AppError> {
-        if !self.group_repo.is_admin(user_id, group_id)? {
-            return Err(AppError::Forbidden);
-        }
-        Ok(())
     }
 
     pub fn create_wallet(
@@ -304,5 +299,27 @@ impl GroupWalletService {
         self.group_wallet_repo
             .get_wallets_by_group(group_id)
             .map_err(AppError::Db)
+    }
+
+    // Helpers
+    fn find_fund_round(&self, fund_round_id: Uuid) -> Result<FundProposalExpanded, AppError> {
+        self.fund_round_repo
+            .find_fund_round(fund_round_id)
+            .map_err(AppError::Db)?
+            .ok_or(AppError::NotFound)
+    }
+
+    fn validate_is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<(), AppError> {
+        if !self.group_repo.is_member(user_id, group_id)? {
+            return Err(AppError::Forbidden);
+        }
+        Ok(())
+    }
+
+    fn validate_is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<(), AppError> {
+        if !self.group_repo.is_admin(user_id, group_id)? {
+            return Err(AppError::Forbidden);
+        }
+        Ok(())
     }
 }

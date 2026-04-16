@@ -5,7 +5,6 @@ use uuid::Uuid;
 
 use crate::data::database::Db;
 use crate::data::error::DbError;
-
 // Models
 use crate::models::group::group_wallet::GroupWallet;
 use crate::models::proposal::{
@@ -20,7 +19,7 @@ use crate::models::transaction::{MyTransactionType, NewTransaction, Transaction}
 use crate::repositories::traits::fund_round_repo::FundRoundRepository;
 
 use crate::schema::{
-    fund_round_contribution, fund_round_proposal, proposal, transaction, user_wallet,
+    fund_round_contribution, fund_round_proposal, group_wallet, proposal, transaction, user_wallet,
 };
 
 pub struct DieselFundRoundRepository {
@@ -128,15 +127,28 @@ impl FundRoundRepository for DieselFundRoundRepository {
                 .select((FundProposal::as_select(), proposal::group_id))
                 .first::<(FundProposal, Uuid)>(tx_conn)?;
 
+            let credited_rows = diesel::update(
+                group_wallet::table
+                    .filter(group_wallet::id.eq(group_wallet.id))
+                    .filter(group_wallet::group_id.eq(group_id))
+                    .filter(group_wallet::currency_id.eq(group_wallet.currency_id)),
+            )
+            .set(group_wallet::balance.eq(group_wallet::balance + amount.clone()))
+            .execute(tx_conn)?;
+
             // Update user wallet balance
-            diesel::update(
+            let debited_rows = diesel::update(
                 user_wallet::table
                     .filter(user_wallet::id.eq(sender_wallet_id))
                     .filter(user_wallet::user_id.eq(user_id))
                     .filter(user_wallet::balance.ge(amount.clone())),
             )
             .set(user_wallet::balance.eq(user_wallet::balance - amount.clone()))
-            .get_result::<crate::models::user_wallet::UserWallet>(tx_conn)?;
+            .execute(tx_conn)?;
+
+            if credited_rows != 1 || debited_rows != 1 {
+                return Err(diesel::result::Error::NotFound.into());
+            }
 
             // Create tx
             let new_tx = NewTransaction {
