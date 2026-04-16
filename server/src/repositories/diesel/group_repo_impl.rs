@@ -196,16 +196,4 @@ impl GroupRepository for DieselGroupRepository {
             .optional()?;
         Ok(result.is_some())
     }
-
-    fn has_wallet_with_currency(&self, group_id: Uuid, currency_id: Uuid) -> Result<bool, DbError> {
-        let mut conn = self.db.get_conn()?;
-
-        let result = group_wallet::table
-            .filter(group_wallet::group_id.eq(group_id))
-            .filter(group_wallet::currency_id.eq(currency_id))
-            .first::<GroupWallet>(&mut conn)
-            .optional()?;
-
-        Ok(result.is_some())
-    }
 }

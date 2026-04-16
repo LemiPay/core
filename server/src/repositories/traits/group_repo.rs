@@ -26,5 +26,4 @@ pub trait GroupRepository: Send + Sync {
     // Predicates
     fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError>;
     fn is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError>;
-    fn has_wallet_with_currency(&self, group_id: Uuid, currency_id: Uuid) -> Result<bool, DbError>;
 }

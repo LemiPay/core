@@ -1,32 +1,44 @@
+use diesel::result::Error;
 use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use bigdecimal::{BigDecimal, Zero};
 
+use crate::data::error::DbError;
 use crate::errors::app_error::AppError;
+use crate::handlers::group_wallet::NewGroupWalletRequest;
 use crate::handlers::group_wallet::{
     ContributeFundRoundRequest, CreateFundRoundRequest, FundRoundStatusResponse,
 };
+use crate::models::group::group_wallet::{GroupWallet, NewGroupWallet};
 use crate::models::proposal::{MyProposalStatus, NewProposal, ProposalUpdate};
 use crate::models::proposals::fund_round::FundProposalExpanded;
+use crate::repositories::traits::currency_repo::CurrencyRepository;
 use crate::repositories::traits::fund_round_repo::FundRoundRepository;
 use crate::repositories::traits::group_repo::GroupRepository;
+use crate::repositories::traits::group_wallet_repo::GroupWalletRepository;
 
 #[derive(Clone)]
 pub struct GroupWalletService {
     fund_round_repo: Arc<dyn FundRoundRepository>,
+    currency_repo: Arc<dyn CurrencyRepository>,
     group_repo: Arc<dyn GroupRepository>,
+    group_wallet_repo: Arc<dyn GroupWalletRepository>,
 }
 
 impl GroupWalletService {
     pub fn new(
         fund_round_repo: Arc<dyn FundRoundRepository>,
+        currency_repo: Arc<dyn CurrencyRepository>,
         group_repo: Arc<dyn GroupRepository>,
+        group_wallet_repo: Arc<dyn GroupWalletRepository>,
     ) -> Self {
         Self {
             fund_round_repo,
+            currency_repo,
             group_repo,
+            group_wallet_repo,
         }
     }
 
@@ -204,5 +216,60 @@ impl GroupWalletService {
             return Err(AppError::Forbidden);
         }
         Ok(())
+    }
+
+    pub fn create_wallet(
+        &self,
+        request: NewGroupWalletRequest,
+        group_id: Uuid,
+    ) -> Result<GroupWallet, AppError> {
+        let currency_id = match self
+            .currency_repo
+            .get_currency_id_by_ticker(request.currency_ticker)
+        {
+            Ok(currency_id) => currency_id,
+            Err(DbError::Diesel(Error::NotFound)) => {
+                return Err(AppError::BadRequest("That currency doesn't exist".into()));
+            }
+            Err(err) => return Err(AppError::Db(err)),
+        };
+
+        let existing = self
+            .group_wallet_repo
+            .get_wallet_by_group_and_currency(group_id, currency_id)
+            .map_err(AppError::Db)?;
+
+        if existing.is_some() {
+            return Err(AppError::BadRequest(
+                "The group already has a wallet for this currency".into(),
+            ));
+        }
+
+        let address_taken = self
+            .group_wallet_repo
+            .get_wallet_by_address_and_currency(&request.address, currency_id)
+            .map_err(AppError::Db)?;
+
+        if address_taken.is_some() {
+            return Err(AppError::BadRequest(
+                "That address is already registered for this currency".into(),
+            ));
+        }
+
+        let new_wallet = NewGroupWallet {
+            address: request.address,
+            group_id,
+            currency_id,
+        };
+
+        self.group_wallet_repo
+            .create(new_wallet)
+            .map_err(AppError::Db)
+    }
+
+    pub fn get_wallets_by_group(&self, group_id: Uuid) -> Result<Vec<GroupWallet>, AppError> {
+        self.group_wallet_repo
+            .get_wallets_by_group(group_id)
+            .map_err(AppError::Db)
     }
 }
