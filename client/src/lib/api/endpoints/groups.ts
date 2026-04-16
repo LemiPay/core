@@ -52,10 +52,15 @@ export async function createGroupWallet(
 	group_id: string,
 	data: NewGroupWalletData
 ): ApiResponse<GroupWallet> {
-	return authedApiFetch(`/group/${group_id}/wallet`, {
+	return authedApiFetch(`/group-wallet/${group_id}/create`, {
 		method: 'POST',
 		body: JSON.stringify(data)
 	});
+}
+export async function getGroupWallets(group_id:string): ApiResponse<GroupWallet[]> {
+	return authedApiFetch(`group-wallet/${group_id}`,{
+		method: 'GET'
+	})
 }
 
 export async function fundGroupWallet(
