@@ -2,8 +2,8 @@ use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
 use crate::models::proposals::fund_round::FundProposalExpanded;
 use crate::security::auth_extractor::AuthUser;
-use axum::extract::{Path, State};
 use axum::Json;
+use axum::extract::{Path, State};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -45,9 +45,10 @@ pub async fn contribute_fund_round(
     Path(fund_round_id): Path<Uuid>,
     Json(payload): Json<ContributeFundRoundRequest>,
 ) -> Result<Json<FundRoundStatusResponse>, AppError> {
-    let result = state
-        .group_wallet_service
-        .contribute_fund_round(user.user_id, fund_round_id, payload)?;
+    let result =
+        state
+            .group_wallet_service
+            .contribute_fund_round(user.user_id, fund_round_id, payload)?;
     Ok(Json(result))
 }
 

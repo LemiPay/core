@@ -10,9 +10,9 @@ use tower_http::cors::CorsLayer;
 // Routes
 use crate::routes::auth::auth_routes;
 use crate::routes::group::group_routes;
+use crate::routes::group_wallet::group_wallet_routes;
 use crate::routes::proposal::proposal_routes;
 use crate::routes::user::user_routes;
-use crate::routes::group_wallet::group_wallet_routes;
 use crate::routes::user_wallet::user_wallet_routes;
 
 pub fn create_router(state: SharedState) -> Router {

@@ -22,10 +22,10 @@ use crate::data::state::AppState;
 // Repos
 use crate::repositories::diesel::auth_repo_impl::DieselAuthRepository;
 use crate::repositories::diesel::currency_repo_impl::DieselCurrencyRepository;
+use crate::repositories::diesel::fund_round_repo_impl::DieselFundRoundRepository;
 use crate::repositories::diesel::group_repo_impl::DieselGroupRepository;
 use crate::repositories::diesel::proposal_repo_impl::DieselProposalRepository;
 use crate::repositories::diesel::user_repo_impl::DieselUserRepository;
-use crate::repositories::diesel::fund_round_repo_impl::DieselFundRoundRepository;
 use crate::repositories::diesel::user_wallet_repo_impl::DieselUserWalletRepository;
 
 // Services
@@ -63,8 +63,7 @@ async fn main() {
         user_wallet_repo.clone(),
         currency_repo.clone(),
     ));
-    let group_wallet_service =
-        GroupWalletService::new(fund_round_repo.clone(), group_repo.clone());
+    let group_wallet_service = GroupWalletService::new(fund_round_repo.clone(), group_repo.clone());
 
     let state = Arc::new(AppState {
         user_service,

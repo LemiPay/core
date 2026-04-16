@@ -22,10 +22,7 @@ pub fn group_wallet_routes(state: SharedState) -> Router {
             post(contribute_fund_round),
         )
         .route("/fund-round/{fund_round_id}", get(get_fund_round))
-        .route(
-            "/fund-round/{fund_round_id}/cancel",
-            put(cancel_fund_round),
-        )
+        .route("/fund-round/{fund_round_id}/cancel", put(cancel_fund_round))
         .route_layer(middleware::from_fn(auth_middleware))
         .with_state(state)
 }

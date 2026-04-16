@@ -14,10 +14,8 @@ pub trait FundRoundRepository: Send + Sync {
         currency_id: Uuid,
     ) -> Result<FundProposalExpanded, DbError>;
 
-    fn find_fund_round(
-        &self,
-        fund_round_id: Uuid,
-    ) -> Result<Option<FundProposalExpanded>, DbError>;
+    fn find_fund_round(&self, fund_round_id: Uuid)
+    -> Result<Option<FundProposalExpanded>, DbError>;
 
     fn get_total_contributed(&self, fund_round_id: Uuid) -> Result<BigDecimal, DbError>;
 

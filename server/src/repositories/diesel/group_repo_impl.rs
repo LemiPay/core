@@ -4,6 +4,7 @@ use uuid::Uuid;
 use crate::data::database::Db;
 use crate::data::error::DbError;
 
+use crate::models::group::group_wallet::GroupWallet;
 use crate::models::group::{Group, GroupUpdate, MyGroupStatus, NewGroup};
 use crate::models::user::User;
 use crate::models::user_in_group::{
@@ -12,7 +13,7 @@ use crate::models::user_in_group::{
 
 use crate::repositories::traits::group_repo::GroupRepository;
 
-use crate::schema::{group, user, user_in_group};
+use crate::schema::{group, group_wallet, user, user_in_group};
 
 pub struct DieselGroupRepository {
     db: Db,
@@ -61,29 +62,6 @@ impl GroupRepository for DieselGroupRepository {
             .first::<Group>(&mut conn)
             .optional()?;
         Ok(result)
-    }
-
-    fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError> {
-        let mut conn = self.db.get_conn()?;
-        let result = user_in_group::table
-            .filter(user_in_group::group_id.eq(group_id))
-            .filter(user_in_group::user_id.eq(user_id))
-            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
-            .first::<UserInGroup>(&mut conn)
-            .optional()?;
-        Ok(result.is_some())
-    }
-
-    fn is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError> {
-        let mut conn = self.db.get_conn()?;
-        let result = user_in_group::table
-            .filter(user_in_group::group_id.eq(group_id))
-            .filter(user_in_group::user_id.eq(user_id))
-            .filter(user_in_group::role.eq(MyGroupRole::Admin))
-            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
-            .first::<UserInGroup>(&mut conn)
-            .optional()?;
-        Ok(result.is_some())
     }
 
     fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, DbError> {
@@ -192,5 +170,42 @@ impl GroupRepository for DieselGroupRepository {
             ))
             .get_result::<Group>(&mut conn)?;
         Ok(result)
+    }
+
+    // Predicates
+
+    fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = user_in_group::table
+            .filter(user_in_group::group_id.eq(group_id))
+            .filter(user_in_group::user_id.eq(user_id))
+            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
+            .first::<UserInGroup>(&mut conn)
+            .optional()?;
+        Ok(result.is_some())
+    }
+
+    fn is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = user_in_group::table
+            .filter(user_in_group::group_id.eq(group_id))
+            .filter(user_in_group::user_id.eq(user_id))
+            .filter(user_in_group::role.eq(MyGroupRole::Admin))
+            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
+            .first::<UserInGroup>(&mut conn)
+            .optional()?;
+        Ok(result.is_some())
+    }
+
+    fn has_wallet_with_currency(&self, group_id: Uuid, currency_id: Uuid) -> Result<bool, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = group_wallet::table
+            .filter(group_wallet::group_id.eq(group_id))
+            .filter(group_wallet::currency_id.eq(currency_id))
+            .first::<GroupWallet>(&mut conn)
+            .optional()?;
+
+        Ok(result.is_some())
     }
 }

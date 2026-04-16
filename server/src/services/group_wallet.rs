@@ -45,6 +45,16 @@ impl GroupWalletService {
             ));
         }
 
+        // Validate group has wallet of that currency
+        if !self
+            .group_repo
+            .has_wallet_with_currency(group_id, payload.currency_id)?
+        {
+            return Err(AppError::BadRequest(
+                "Group does not have a wallet with the specified currency".into(),
+            ));
+        }
+
         let new_proposal = NewProposal {
             group_id,
             created_by,
@@ -77,9 +87,7 @@ impl GroupWalletService {
         let fund_round = self.find_fund_round(fund_round_id)?;
 
         if fund_round.proposal.status != MyProposalStatus::Approved {
-            return Err(AppError::BadRequest(
-                "Fund round is not active".into(),
-            ));
+            return Err(AppError::BadRequest("Fund round is not active".into()));
         }
 
         self.validate_is_member(user_id, fund_round.proposal.group_id)?;
@@ -98,7 +106,12 @@ impl GroupWalletService {
         }
 
         self.fund_round_repo
-            .create_contribution(fund_round_id, user_id, amount.clone(), payload.sender_wallet_id)
+            .create_contribution(
+                fund_round_id,
+                user_id,
+                amount.clone(),
+                payload.sender_wallet_id,
+            )
             .map_err(AppError::Db)?;
 
         let new_total = &total_contributed + &amount;
@@ -155,9 +168,7 @@ impl GroupWalletService {
         let fund_round = self.find_fund_round(fund_round_id)?;
 
         if fund_round.proposal.status != MyProposalStatus::Approved {
-            return Err(AppError::BadRequest(
-                "Fund round is not active".into(),
-            ));
+            return Err(AppError::BadRequest("Fund round is not active".into()));
         }
 
         self.validate_is_admin(user_id, fund_round.proposal.group_id)?;

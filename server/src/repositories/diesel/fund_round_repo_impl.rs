@@ -9,10 +9,14 @@ use crate::models::proposal::{
     MyProposalStatus, NewProposal, Proposal, ProposalType, ProposalUpdate,
 };
 use crate::models::proposals::fund_round::{FundProposal, FundProposalExpanded};
-use crate::models::transaction::fund_round_contrib::{FundRoundContribution, NewFundRoundContribution};
+use crate::models::transaction::fund_round_contrib::{
+    FundRoundContribution, NewFundRoundContribution,
+};
 use crate::models::transaction::{MyTransactionType, NewTransaction, Transaction};
 use crate::repositories::traits::fund_round_repo::FundRoundRepository;
-use crate::schema::{fund_round_contribution, fund_round_proposal, proposal, transaction, user_wallet};
+use crate::schema::{
+    fund_round_contribution, fund_round_proposal, proposal, transaction, user_wallet,
+};
 
 pub struct DieselFundRoundRepository {
     db: Db,
