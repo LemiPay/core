@@ -8,6 +8,7 @@
 	import FaucetModal from '$lib/components/modals/FaucetModal.svelte';
 	import TransferModal from '$lib/components/modals/TransferModal.svelte';
 	import CreateWalletModal from '$lib/components/modals/CreateWalletModal.svelte';
+	import { shortenAddress } from '$lib/utils/address_utils';
 
 	let loadingUserInfo = $state(true);
 	let errorInLoadingProfile = $state('');
@@ -45,9 +46,6 @@
 	}
 
 	// Función auxiliar para acortar la address visualmente (estilo 0x123...abc)
-	function shortenAddress(address: string) {
-		return `${address.slice(0, 6)}...${address.slice(-4)}`;
-	}
 
 	function copyToClipboard(text: string) {
 		navigator.clipboard.writeText(text);

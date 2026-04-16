@@ -5,6 +5,7 @@
 
 	import { createGroupWallet } from '$lib/api/endpoints/groups';
 	import { isSuccess } from '$lib/types/client.types';
+	import { generateRandomAddress } from '$lib/utils/address_utils';
 
 	interface Props {
 		open: boolean;
@@ -88,6 +89,13 @@
 				bind:value={address}
 				{attempted}
 			/>
+			<button
+				type="button"
+				onclick={() => (address = generateRandomAddress())}
+				class="mt-1 text-xs font-medium text-gray-500 transition hover:text-black"
+			>
+				Generar dirección aleatoria
+			</button>
 			<FormField
 				id="currency-ticker"
 				label="Moneda (ticker)"
