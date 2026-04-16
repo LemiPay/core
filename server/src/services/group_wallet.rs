@@ -18,6 +18,8 @@ use crate::repositories::traits::currency_repo::CurrencyRepository;
 use crate::repositories::traits::fund_round_repo::FundRoundRepository;
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::repositories::traits::group_wallet_repo::GroupWalletRepository;
+use crate::repositories::traits::proposal_repo::ProposalRepository;
+use crate::repositories::traits::user_wallet_repo::UserWalletRepository;
 
 #[derive(Clone)]
 pub struct GroupWalletService {
@@ -25,6 +27,8 @@ pub struct GroupWalletService {
     currency_repo: Arc<dyn CurrencyRepository>,
     group_repo: Arc<dyn GroupRepository>,
     group_wallet_repo: Arc<dyn GroupWalletRepository>,
+    proposal_repo: Arc<dyn ProposalRepository>,
+    user_wallet_repo: Arc<dyn UserWalletRepository>,
 }
 
 impl GroupWalletService {
@@ -33,12 +37,16 @@ impl GroupWalletService {
         currency_repo: Arc<dyn CurrencyRepository>,
         group_repo: Arc<dyn GroupRepository>,
         group_wallet_repo: Arc<dyn GroupWalletRepository>,
+        proposal_repo: Arc<dyn ProposalRepository>,
+        user_wallet_repo: Arc<dyn UserWalletRepository>,
     ) -> Self {
         Self {
             fund_round_repo,
             currency_repo,
             group_repo,
             group_wallet_repo,
+            proposal_repo,
+            user_wallet_repo,
         }
     }
 
@@ -59,8 +67,9 @@ impl GroupWalletService {
 
         // Validate group has wallet of that currency
         if !self
-            .group_repo
-            .has_wallet_with_currency(group_id, payload.currency_id)?
+            .group_wallet_repo
+            .get_wallet_by_group_and_currency(group_id, payload.currency_id)?
+            .is_some()
         {
             return Err(AppError::BadRequest(
                 "Group does not have a wallet with the specified currency".into(),
@@ -102,7 +111,30 @@ impl GroupWalletService {
             return Err(AppError::BadRequest("Fund round is not active".into()));
         }
 
+        let group_wallet = match self.group_wallet_repo.get_wallet_by_group_and_currency(
+            fund_round.proposal.group_id,
+            fund_round.fund_round_proposal.currency_id,
+        )? {
+            Some(wallet) => wallet,
+            None => {
+                return Err(AppError::BadRequest(
+                    "Group does not have a wallet with the specified currency".into(),
+                ));
+            }
+        };
+
         self.validate_is_member(user_id, fund_round.proposal.group_id)?;
+
+        // Validate user has amount
+        let user_balance = self
+            .user_wallet_repo
+            .get_wallet_info(payload.sender_wallet_id)
+            .map_err(|_| AppError::BadRequest("Sender wallet not found".into()))?
+            .balance;
+
+        if user_balance < amount {
+            return Err(AppError::BadRequest("Insufficient funds".into()));
+        }
 
         let total_contributed = self
             .fund_round_repo
@@ -123,6 +155,7 @@ impl GroupWalletService {
                 user_id,
                 amount.clone(),
                 payload.sender_wallet_id,
+                group_wallet,
             )
             .map_err(AppError::Db)?;
 
@@ -131,7 +164,7 @@ impl GroupWalletService {
         let is_completed = new_total >= *target;
 
         if is_completed {
-            self.fund_round_repo
+            self.proposal_repo
                 .update_proposal_status(
                     fund_round_id,
                     ProposalUpdate {
@@ -185,7 +218,7 @@ impl GroupWalletService {
 
         self.validate_is_admin(user_id, fund_round.proposal.group_id)?;
 
-        self.fund_round_repo
+        self.proposal_repo
             .update_proposal_status(
                 fund_round_id,
                 ProposalUpdate {

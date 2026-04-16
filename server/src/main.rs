@@ -68,12 +68,14 @@ async fn main() {
         TransactionService::new(transaction_repo.clone(), proposal_repo.clone());
     let user_wallet_service =
         UserWalletService::new(user_wallet_repo.clone(), currency_repo.clone());
-    let group_wallet_service = Arc::new(GroupWalletService::new(
-        group_wallet_repo.clone(),
+    let group_wallet_service = GroupWalletService::new(
+        fund_round_repo.clone(),
         currency_repo.clone(),
-    ));
-    let group_wallet_service = GroupWalletService::new(fund_round_repo.clone(), group_repo.clone());
-
+        group_repo.clone(),
+        group_wallet_repo.clone(),
+        proposal_repo.clone(),
+        user_wallet_repo.clone(),
+    );
     let state = Arc::new(AppState {
         user_service,
         auth_service,

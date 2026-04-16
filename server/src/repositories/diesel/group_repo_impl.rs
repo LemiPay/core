@@ -4,7 +4,6 @@ use uuid::Uuid;
 use crate::data::database::Db;
 use crate::data::error::DbError;
 
-use crate::models::group::group_wallet::GroupWallet;
 use crate::models::group::{Group, GroupUpdate, MyGroupStatus, NewGroup};
 use crate::models::user::User;
 use crate::models::user_in_group::{
@@ -13,7 +12,7 @@ use crate::models::user_in_group::{
 
 use crate::repositories::traits::group_repo::GroupRepository;
 
-use crate::schema::{group, group_wallet, user, user_in_group};
+use crate::schema::{group, user, user_in_group};
 
 pub struct DieselGroupRepository {
     db: Db,

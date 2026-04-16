@@ -5,6 +5,9 @@ use uuid::Uuid;
 
 use crate::data::database::Db;
 use crate::data::error::DbError;
+
+// Models
+use crate::models::group::group_wallet::GroupWallet;
 use crate::models::proposal::{
     MyProposalStatus, NewProposal, Proposal, ProposalType, ProposalUpdate,
 };
@@ -13,7 +16,9 @@ use crate::models::transaction::fund_round_contrib::{
     FundRoundContribution, NewFundRoundContribution,
 };
 use crate::models::transaction::{MyTransactionType, NewTransaction, Transaction};
+
 use crate::repositories::traits::fund_round_repo::FundRoundRepository;
+
 use crate::schema::{
     fund_round_contribution, fund_round_proposal, proposal, transaction, user_wallet,
 };
@@ -111,18 +116,17 @@ impl FundRoundRepository for DieselFundRoundRepository {
         user_id: Uuid,
         amount: BigDecimal,
         sender_wallet_id: Uuid,
+        group_wallet: GroupWallet,
     ) -> Result<FundRoundContribution, DbError> {
         let mut conn = self.db.get_conn()?;
 
-        let result = conn.transaction::<FundRoundContribution, DbError, _>(|this_conn| {
+        let result = conn.transaction::<FundRoundContribution, DbError, _>(|tx_conn| {
             // Get fund round proposal and group id
-            let (frp, group_id) = fund_round_proposal::table
+            let (_, group_id) = fund_round_proposal::table
                 .inner_join(proposal::table.on(fund_round_proposal::proposal_id.eq(proposal::id)))
                 .filter(fund_round_proposal::proposal_id.eq(fund_round_id))
                 .select((FundProposal::as_select(), proposal::group_id))
-                .first::<(FundProposal, Uuid)>(this_conn)?;
-
-            let currency_id = frp.currency_id;
+                .first::<(FundProposal, Uuid)>(tx_conn)?;
 
             // Update user wallet balance
             diesel::update(
@@ -132,7 +136,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
                     .filter(user_wallet::balance.ge(amount.clone())),
             )
             .set(user_wallet::balance.eq(user_wallet::balance - amount.clone()))
-            .get_result::<crate::models::user_wallet::UserWallet>(this_conn)?;
+            .get_result::<crate::models::user_wallet::UserWallet>(tx_conn)?;
 
             // Create tx
             let new_tx = NewTransaction {
@@ -140,7 +144,8 @@ impl FundRoundRepository for DieselFundRoundRepository {
                 amount: amount.clone(),
                 user_id,
                 group_id,
-                currency_id,
+                currency_id: group_wallet.currency_id,
+                address: group_wallet.address,
                 description: Some("Fund round contribution".to_string()),
                 tx_type: MyTransactionType::Deposit,
             };
@@ -149,7 +154,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
             let tx = diesel::insert_into(transaction::table)
                 .values(&new_tx)
                 .returning(Transaction::as_returning())
-                .get_result(this_conn)?;
+                .get_result(tx_conn)?;
 
             let new_contribution = NewFundRoundContribution {
                 fund_round_proposal_id: fund_round_id,
@@ -162,24 +167,10 @@ impl FundRoundRepository for DieselFundRoundRepository {
             let contribution = diesel::insert_into(fund_round_contribution::table)
                 .values(&new_contribution)
                 .returning(FundRoundContribution::as_returning())
-                .get_result(this_conn)?;
+                .get_result(tx_conn)?;
 
             Ok(contribution)
         })?;
-
-        Ok(result)
-    }
-
-    fn update_proposal_status(
-        &self,
-        proposal_id: Uuid,
-        params: ProposalUpdate,
-    ) -> Result<Proposal, DbError> {
-        let mut conn = self.db.get_conn()?;
-
-        let result = diesel::update(proposal::table.filter(proposal::id.eq(proposal_id)))
-            .set(params)
-            .get_result::<Proposal>(&mut conn)?;
 
         Ok(result)
     }

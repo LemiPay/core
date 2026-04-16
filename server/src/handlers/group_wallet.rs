@@ -1,5 +1,6 @@
 use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
+use crate::models::group::group_wallet::GroupWallet;
 use crate::models::proposals::fund_round::FundProposalExpanded;
 use crate::security::auth_extractor::AuthUser;
 use axum::Json;
