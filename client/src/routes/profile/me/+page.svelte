@@ -140,7 +140,7 @@
 						</div>
 					{/each}
 				</div>
-
+				<!-- lo comento asi fabri no lo trata de clickear
 				<div class="bg-white px-4 pt-1 pb-4">
 					<button
 						class="flex items-center gap-1 text-xs font-medium text-gray-400 transition hover:text-black"
@@ -148,6 +148,7 @@
 						<Plus size={12} /> Agregar token a esta dirección
 					</button>
 				</div>
+				-->
 			</div>
 		{/each}
 
