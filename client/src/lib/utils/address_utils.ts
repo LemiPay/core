@@ -1,9 +1,7 @@
 export function generateRandomAddress(): string {
-	const chars = '0123456789abcdef';
-	let randomHex = '';
-	for (let i = 0; i < 40; i++) {
-		randomHex += chars[Math.floor(Math.random() * chars.length)];
-	}
+	const randomBytes = new Uint8Array(20);
+	globalThis.crypto.getRandomValues(randomBytes);
+	const randomHex = Array.from(randomBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 	return '0x' + randomHex;
 }
 export function shortenAddress(address: string) {

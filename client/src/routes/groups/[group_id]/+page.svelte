@@ -3,8 +3,13 @@
 	import { page } from '$app/state';
 
 	// Api
-	import { getGroup, getGroupMembers, updateGroup, deleteGroup } from '$lib/api/endpoints/groups';
-	import { getGroupWallets } from '$lib/api/endpoints/groups';
+	import {
+		getGroup,
+		getGroupMembers,
+		updateGroup,
+		deleteGroup,
+		getGroupWallets
+	} from '$lib/api/endpoints/groups';
 
 	// Helpers
 	import { isSuccess } from '$lib/types/client.types';
@@ -92,13 +97,15 @@
 	}
 
 	async function loadWalletsData() {
-		const res = await getGroupWallets(groupId);
-		if (!isSuccess(res)) {
+		try {
+			const res = await getGroupWallets(groupId);
+			if (!isSuccess(res)) {
+				return;
+			}
+			wallets = res.body;
+		} finally {
 			loadingWallets = false;
-			return;
 		}
-		wallets = res.body;
-		loadingWallets = false;
 	}
 
 	function openFundModal(walletId: string, currencyId: string) {
@@ -325,8 +332,8 @@
 				showFundWalletModal = false;
 				selectedWalletIdToFund = '';
 				selectedCurrencyId = '';
-				loadWalletsData();
 			}}
+			onsuccess={loadWalletsData}
 		/>
 
 		<EditGroup

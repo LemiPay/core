@@ -1,7 +1,7 @@
 export type WalletCurrency = {
 	wallet_id: string;
 	address: string;
-	balance: number;
+	balance: string;
 	ticker: string;
 };
 
