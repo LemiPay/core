@@ -92,14 +92,11 @@
 	}
 
 	async function loadWalletsData() {
-		console.log('empecé');
 		const res = await getGroupWallets(groupId);
 		if (!isSuccess(res)) {
-			console.log('fallo');
 			loadingWallets = false;
 			return;
 		}
-		console.log('funcó');
 		wallets = res.body;
 		loadingWallets = false;
 	}
