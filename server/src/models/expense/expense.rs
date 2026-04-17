@@ -40,3 +40,20 @@ pub struct NewExpense {
     pub amount: BigDecimal,
     pub description: Option<String>,
 }
+#[derive(Queryable, Serialize, Selectable)]
+#[diesel(table_name = expense_participant)]
+pub struct ExpenseParticipant {
+    pub expense_id: Uuid,
+    pub user_id: Uuid,
+    pub amount: BigDecimal,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
+#[derive(Insertable, Deserialize)]
+#[diesel(table_name = expense_participant)]
+pub struct NewExpenseParticipant {
+    pub expense_id: Uuid,
+    pub user_id: Uuid,
+    pub amount: BigDecimal,
+}
