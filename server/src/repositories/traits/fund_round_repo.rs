@@ -5,7 +5,7 @@ use crate::data::error::DbError;
 use crate::models::group::group_wallet::GroupWallet;
 use crate::models::proposal::NewProposal;
 use crate::models::proposals::fund_round::FundProposalExpanded;
-use crate::repositories::diesel::fund_round_repo_impl::ContributeResult;
+use crate::models::transaction::fund_round_contrib::FundRoundContribution;
 
 pub trait FundRoundRepository: Send + Sync {
     fn create_fund_round_proposal(
@@ -27,5 +27,5 @@ pub trait FundRoundRepository: Send + Sync {
         amount: BigDecimal,
         sender_wallet_id: Uuid,
         group_wallet: GroupWallet,
-    ) -> Result<ContributeResult, DbError>;
+    ) -> Result<FundRoundContribution, DbError>;
 }

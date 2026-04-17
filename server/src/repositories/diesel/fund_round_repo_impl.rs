@@ -33,11 +33,6 @@ impl DieselFundRoundRepository {
     }
 }
 
-pub struct ContributeResult {
-    pub total_contributed: BigDecimal,
-    pub is_completed: bool,
-}
-
 impl FundRoundRepository for DieselFundRoundRepository {
     fn create_fund_round_proposal(
         &self,
@@ -122,10 +117,10 @@ impl FundRoundRepository for DieselFundRoundRepository {
         amount: BigDecimal,
         sender_wallet_id: Uuid,
         group_wallet: GroupWallet,
-    ) -> Result<ContributeResult, DbError> {
+    ) -> Result<FundRoundContribution, DbError> {
         let mut conn = self.db.get_conn()?;
 
-        let result = conn.transaction::<ContributeResult, DbError, _>(|tx_conn| {
+        let result = conn.transaction::<FundRoundContribution, DbError, _>(|tx_conn| {
             // 1) Lock proposal row so concurrent contributions serialize on same fund round
             let group_id = proposal::table
                 .filter(proposal::id.eq(fund_round_id))
@@ -202,7 +197,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
             };
 
             // Insert contrib (unused)
-            let _contribution = diesel::insert_into(fund_round_contribution::table)
+            let contribution = diesel::insert_into(fund_round_contribution::table)
                 .values(&new_contribution)
                 .returning(FundRoundContribution::as_returning())
                 .get_result(tx_conn)?;
@@ -217,10 +212,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
                     .execute(tx_conn)?;
             }
 
-            Ok(ContributeResult {
-                total_contributed: new_total,
-                is_completed,
-            })
+            Ok(contribution)
         })?;
 
         Ok(result)

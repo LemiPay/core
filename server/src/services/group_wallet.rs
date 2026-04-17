@@ -183,7 +183,7 @@ impl GroupWalletService {
             &amount,
         )?;
 
-        let contribute_result = match self.fund_round_repo.create_contribution(
+        let _ = match self.fund_round_repo.create_contribution(
             fund_round_id,
             user_id,
             amount,
@@ -200,11 +200,12 @@ impl GroupWalletService {
         };
 
         let updated = self.find_fund_round(fund_round_id)?;
+        let total_contribution = self.find_total_contribution(fund_round_id)?;
 
         Ok(FundRoundStatusResponse {
             target_amount: updated.fund_round_proposal.target_amount.to_string(),
-            total_contributed: contribute_result.total_contributed.to_string(),
-            is_completed: contribute_result.is_completed,
+            total_contributed: total_contribution.to_string(),
+            is_completed: updated.proposal.status == MyProposalStatus::Executed,
             fund_round: updated,
         })
     }
@@ -217,11 +218,7 @@ impl GroupWalletService {
         let fund_round = self.find_fund_round(fund_round_id)?;
         self.validate_is_member(user_id, fund_round.proposal.group_id)?;
 
-        let total_contributed = self
-            .fund_round_repo
-            .get_total_contributed(fund_round_id)
-            .map_err(AppError::Db)?;
-
+        let total_contributed = self.find_total_contribution(fund_round_id)?;
         let is_completed = fund_round.proposal.status == MyProposalStatus::Executed;
 
         Ok(FundRoundStatusResponse {
@@ -256,6 +253,8 @@ impl GroupWalletService {
 
         self.find_fund_round(fund_round_id)
     }
+
+    // Group wallet
 
     pub fn create_wallet(
         &self,
@@ -318,6 +317,12 @@ impl GroupWalletService {
             .find_fund_round(fund_round_id)
             .map_err(AppError::Db)?
             .ok_or(AppError::NotFound)
+    }
+
+    fn find_total_contribution(&self, fund_round_id: Uuid) -> Result<BigDecimal, AppError> {
+        self.fund_round_repo
+            .get_total_contributed(fund_round_id)
+            .map_err(AppError::Db)
     }
 
     fn validate_is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<(), AppError> {
