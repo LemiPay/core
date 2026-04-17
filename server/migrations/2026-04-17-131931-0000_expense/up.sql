@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS expense (
 
 
     FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
-    FOREIGN KEY (currency_id) REFERENCES currency(currency_id) ON DELETE CASCADE,
+    FOREIGN KEY (currency_id) REFERENCES currency(currency_id) ON DELETE RESTRICT,
     FOREIGN KEY (group_id) REFERENCES "group"(id) ON DELETE CASCADE
 );
 
