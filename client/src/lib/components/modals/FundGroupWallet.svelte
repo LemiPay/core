@@ -1,6 +1,8 @@
 <script lang="ts">
-	import Modal from './Modal.svelte';
+	import Modal from '$lib/components/modals/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import FormField from '$lib/components/ui/FormField.svelte';
+	import { X } from 'lucide-svelte';
 
 	import { fundGroupWallet } from '$lib/api/endpoints/groups';
 	import { getMyWallets } from '$lib/api/endpoints/wallets';
@@ -11,11 +13,12 @@
 		open: boolean;
 		group_id: string;
 		wallet_id: string;
+		currency_id: string;
 		onclose: () => void;
 		onsuccess?: () => void;
 	}
 
-	const { open, group_id, onclose, onsuccess, wallet_id }: Props = $props();
+	const { open, group_id, onclose, onsuccess, wallet_id, currency_id }: Props = $props();
 
 	let wallets = $state<WalletCurrency[]>([]);
 	let loadingWallets = $state(false);
@@ -26,9 +29,15 @@
 	let success = $state('');
 	let loading = $state(false);
 
-	const amountNum = $derived(parseFloat(amount.trim()));
 	const selectedWallet = $derived(wallets.find((w) => w.wallet_id === selectedWalletId));
-	const amountValid = $derived(!isNaN(amountNum) && amountNum > 0);
+
+	const amountValid = $derived(
+		amount != null &&
+			amount !== '' &&
+			!isNaN(Number(String(amount).replace(',', '.'))) &&
+			Number(String(amount).replace(',', '.')) > 0
+	);
+
 	const walletSelected = $derived(selectedWalletId !== '');
 	const formValid = $derived(walletSelected && amountValid);
 
@@ -52,14 +61,20 @@
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		attempted = true;
-		if (!formValid) return;
+
+		// Le agregamos la validación de !selectedWallet acá
+		// Así TypeScript entiende que si pasamos esta línea, la wallet existe.
+		if (!formValid || !selectedWallet) return;
+
 		error = '';
 		success = '';
 		loading = true;
 
 		const response = await fundGroupWallet(group_id, {
-			sender_wallet_id: selectedWalletId,
-			amount: amount.trim()
+			currency_id,
+			// Al estar validados arriba, le sacamos el '?' y ya no tira error
+			address: selectedWallet.address,
+			amount: String(amount).replace(',', '.')
 		});
 
 		loading = false;
@@ -76,7 +91,6 @@
 			onsuccess?.();
 		}, 1200);
 	}
-
 	function handleClose() {
 		selectedWalletId = '';
 		amount = '';
@@ -119,7 +133,7 @@
 						id="sender-wallet"
 						bind:value={selectedWalletId}
 						class="w-full rounded-md border px-3 py-2 text-sm text-black transition focus:ring-0 focus:outline-none
-							{attempted && !walletSelected
+                      {attempted && !walletSelected
 							? 'border-red-400 focus:border-red-500'
 							: selectedWalletId
 								? 'border-green-400 focus:border-green-500'
@@ -137,19 +151,7 @@
 
 					{#if attempted && !walletSelected}
 						<p class="mt-1.5 flex items-center gap-1 text-xs text-red-500">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="h-3.5 w-3.5 shrink-0"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2.5"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<line x1="18" y1="6" x2="6" y2="18" />
-								<line x1="6" y1="6" x2="18" y2="18" />
-							</svg>
+							<X class="h-3.5 w-3.5 shrink-0" />
 							Seleccioná una wallet
 						</p>
 					{:else if selectedWallet}
@@ -161,58 +163,16 @@
 				{/if}
 			</div>
 
-			<div>
-				<label for="fund-amount" class="mb-1.5 block text-sm font-medium text-black"> Monto </label>
-				<input
-					id="fund-amount"
-					type="number"
-					step="any"
-					min="0"
-					placeholder="0.00"
-					bind:value={amount}
-					onblur={() => (attempted = true)}
-					class="w-full rounded-md border px-3 py-2 text-sm text-black placeholder-gray-400 transition focus:ring-0 focus:outline-none
-						{attempted
-						? amountValid
-							? 'border-green-400 focus:border-green-500'
-							: 'border-red-400 focus:border-red-500'
-						: 'border-gray-200 focus:border-gray-400'}"
-				/>
-				{#if attempted && !amountValid}
-					<p class="mt-1.5 flex items-center gap-1 text-xs text-red-500">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-3.5 w-3.5 shrink-0"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2.5"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<line x1="18" y1="6" x2="6" y2="18" />
-							<line x1="6" y1="6" x2="18" y2="18" />
-						</svg>
-						Ingresá un monto mayor a 0
-					</p>
-				{:else if attempted && amountValid}
-					<p class="mt-1.5 flex items-center gap-1 text-xs text-green-600">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-3.5 w-3.5 shrink-0"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2.5"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<polyline points="20 6 9 17 4 12" />
-						</svg>
-						Looks good!
-					</p>
-				{/if}
-			</div>
+			<FormField
+				id="fund-amount"
+				label="Monto"
+				minLength={0}
+				maxLength={3}
+				type="number"
+				placeholder="0.00"
+				bind:value={amount}
+				{attempted}
+			/>
 		</form>
 	{/snippet}
 

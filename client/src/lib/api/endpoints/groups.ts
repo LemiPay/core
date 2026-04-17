@@ -67,7 +67,7 @@ export async function fundGroupWallet(
 	group_id: string,
 	data: FundGroupWalletData
 ): ApiResponse<boolean> {
-	return authedApiFetch(`/group/${group_id}/fund`, {
+	return authedApiFetch(`/transaction/${group_id}/fund`, {
 		method: 'POST',
 		body: JSON.stringify(data)
 	});

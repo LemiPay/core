@@ -42,6 +42,7 @@ export type GroupWallet = {
 };
 
 export type FundGroupWalletData = {
-	sender_wallet_id: string;
+	currency_id: string;
+	address: string;
 	amount: string;
 };

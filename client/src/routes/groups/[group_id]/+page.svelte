@@ -47,6 +47,7 @@
 	let showCreateWalletModal = $state(false);
 	let showFundWalletModal = $state(false);
 	let selectedWalletIdToFund = $state<string>('');
+	let selectedCurrencyId = $state<string>('');
 
 	let deleteLoading = $state(false);
 	let deleteError = $state('');
@@ -103,8 +104,9 @@
 		loadingWallets = false;
 	}
 
-	function openFundModal(walletId: string) {
+	function openFundModal(walletId: string, currencyId: string) {
 		selectedWalletIdToFund = walletId;
+		selectedCurrencyId = currencyId;
 		showFundWalletModal = true;
 	}
 
@@ -267,7 +269,7 @@
 											<Button
 												label="Fondear"
 												variant="secondary"
-												onclick={() => openFundModal(wallet.id)}
+												onclick={() => openFundModal(wallet.id, wallet.currency_id)}
 											>
 												{#snippet icon()}
 													<Coins class="h-4 w-4" />
@@ -319,11 +321,14 @@
 
 		<FundGroupWallet
 			open={showFundWalletModal}
+			currency_id={selectedCurrencyId}
 			group_id={groupData.id}
 			wallet_id={selectedWalletIdToFund}
 			onclose={() => {
 				showFundWalletModal = false;
 				selectedWalletIdToFund = '';
+				selectedCurrencyId = '';
+				loadWalletsData();
 			}}
 		/>
 
