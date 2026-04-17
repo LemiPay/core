@@ -56,6 +56,7 @@ impl GroupWalletService {
         group_id: Uuid,
         payload: CreateFundRoundRequest,
     ) -> Result<FundProposalExpanded, AppError> {
+        self.validate_is_admin(created_by, group_id)?;
         let target_amount = BigDecimal::from_str(&payload.target_amount)
             .map_err(|_| AppError::BadRequest("Invalid target_amount".into()))?;
 
