@@ -2,6 +2,10 @@
 
 pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "expense_status"))]
+    pub struct ExpenseStatus;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "group_member_status"))]
     pub struct GroupMemberStatus;
 
@@ -31,6 +35,33 @@ diesel::table! {
         currency_id -> Uuid,
         name -> Text,
         ticker -> Text,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::ExpenseStatus;
+
+    expense (expense_id) {
+        expense_id -> Uuid,
+        user_id -> Uuid,
+        currency_id -> Uuid,
+        group_id -> Uuid,
+        description -> Nullable<Text>,
+        amount -> Numeric,
+        status -> ExpenseStatus,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    expense_participant (expense_id, user_id) {
+        expense_id -> Uuid,
+        user_id -> Uuid,
+        amount -> Numeric,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
@@ -185,6 +216,11 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(expense -> currency (currency_id));
+diesel::joinable!(expense -> group (group_id));
+diesel::joinable!(expense -> user (user_id));
+diesel::joinable!(expense_participant -> expense (expense_id));
+diesel::joinable!(expense_participant -> user (user_id));
 diesel::joinable!(fund_round_contribution -> fund_round_proposal (fund_round_proposal_id));
 diesel::joinable!(fund_round_contribution -> transaction (transaction_id));
 diesel::joinable!(fund_round_contribution -> user (user_id));
@@ -212,6 +248,8 @@ diesel::joinable!(withdraw_proposal -> proposal (proposal_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     currency,
+    expense,
+    expense_participant,
     fund_round_contribution,
     fund_round_proposal,
     group,
