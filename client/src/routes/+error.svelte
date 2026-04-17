@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { FileQuestion, AlertCircle, ArrowLeft } from 'lucide-svelte';
 	const isNotFound = page.status === 404;
-	const isInternalError = page.status == 500;
+	const isInternalError = page.status === 500;
 </script>
 
 <svelte:head>
