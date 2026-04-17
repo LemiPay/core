@@ -25,10 +25,10 @@ CREATE TABLE IF NOT EXISTS expense (
     FOREIGN KEY (group_id) REFERENCES "group"(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS expense_participant (
-    expense_id UUID NOT NULL,
-    user_id UUID NOT NULL,
-    amount NUMERIC NOT NULL CHECK (amount > 0),
+CREATE TABLE IF NOT EXISTS expense_participant(
+    expense_id UUID      NOT NULL,
+    user_id    UUID      NOT NULL,
+    amount     NUMERIC   NOT NULL CHECK (amount > 0),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
