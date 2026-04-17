@@ -1,9 +1,7 @@
-use crate::schema::group::description;
-use crate::schema::sql_types::ExpenseStatus;
 use crate::schema::{expense, expense_participant};
 use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
-use diesel::{AsChangeset, Insertable, Queryable, Selectable};
+use diesel::{Insertable, Queryable, Selectable};
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
