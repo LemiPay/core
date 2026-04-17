@@ -17,13 +17,14 @@ pub enum MyExpenseStatus {
 
 #[derive(Queryable, Serialize, Selectable)]
 #[diesel(table_name = expense)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Expense {
     pub expense_id: Uuid,
     pub user_id: Uuid,
     pub currency_id: Uuid,
     pub group_id: Uuid,
-    pub amount: BigDecimal,
     pub description: Option<String>,
+    pub amount: BigDecimal,
     pub status: MyExpenseStatus,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -40,6 +41,7 @@ pub struct NewExpense {
 }
 #[derive(Queryable, Serialize, Selectable)]
 #[diesel(table_name = expense_participant)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ExpenseParticipant {
     pub expense_id: Uuid,
     pub user_id: Uuid,
