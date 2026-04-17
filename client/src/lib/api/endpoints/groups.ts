@@ -58,7 +58,7 @@ export async function createGroupWallet(
 	});
 }
 export async function getGroupWallets(group_id: string): ApiResponse<GroupWallet[]> {
-	return authedApiFetch(`group-wallet/${group_id}`, {
+	return authedApiFetch(`/group-wallet/${group_id}`, {
 		method: 'GET'
 	});
 }

@@ -10,11 +10,12 @@
 	interface Props {
 		open: boolean;
 		group_id: string;
+		wallet_id: string;
 		onclose: () => void;
 		onsuccess?: () => void;
 	}
 
-	const { open, group_id, onclose, onsuccess }: Props = $props();
+	const { open, group_id, onclose, onsuccess, wallet_id }: Props = $props();
 
 	let wallets = $state<WalletCurrency[]>([]);
 	let loadingWallets = $state(false);

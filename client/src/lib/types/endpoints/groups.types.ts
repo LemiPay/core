@@ -35,6 +35,7 @@ export type GroupWallet = {
 	address: string;
 	group_id: string;
 	currency_id: string;
+	currency_ticker?: string;
 	balance: number;
 	created_at: string;
 	updated_at: string;
