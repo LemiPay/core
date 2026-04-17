@@ -89,14 +89,10 @@ impl GroupWalletService {
 
         Ok(result)
     }
+    // -----
 
-    pub fn contribute_fund_round(
-        &self,
-        user_id: Uuid,
-        fund_round_id: Uuid,
-        payload: ContributeFundRoundRequest,
-    ) -> Result<FundRoundStatusResponse, AppError> {
-        let amount = BigDecimal::from_str(&payload.amount)
+    fn parse_positive_amount(&self, raw: String) -> Result<BigDecimal, AppError> {
+        let amount = BigDecimal::from_str(&raw)
             .map_err(|_| AppError::BadRequest("Invalid amount".into()))?;
 
         if amount <= BigDecimal::zero() {
@@ -104,32 +100,45 @@ impl GroupWalletService {
                 "amount must be greater than zero".into(),
             ));
         }
+        Ok(amount)
+    }
 
-        let fund_round = self.find_fund_round(fund_round_id)?;
+    fn validate_active_fund_round(
+        &self,
+        fund_round_id: Uuid,
+    ) -> Result<FundProposalExpanded, AppError> {
+        let found = self.find_fund_round(fund_round_id)?;
 
-        if fund_round.proposal.status != MyProposalStatus::Approved {
+        if found.proposal.status != MyProposalStatus::Approved {
             return Err(AppError::BadRequest("Fund round is not active".into()));
         }
 
-        let group_wallet = match self.group_wallet_repo.get_wallet_by_group_and_currency(
+        Ok(found)
+    }
+
+    fn resolve_group_wallet_for_fund_round(
+        &self,
+        fund_round: &FundProposalExpanded,
+    ) -> Result<GroupWallet, AppError> {
+        match self.group_wallet_repo.get_wallet_by_group_and_currency(
             fund_round.proposal.group_id,
             fund_round.fund_round_proposal.currency_id,
         )? {
-            Some(wallet) => wallet,
-            None => {
-                return Err(AppError::BadRequest(
-                    "Group does not have a wallet with the specified currency".into(),
-                ));
-            }
-        };
+            Some(wallet) => Ok(wallet),
+            None => Err(AppError::BadRequest(
+                "Group does not have a wallet with the specified currency".into(),
+            )),
+        }
+    }
 
-        self.validate_is_member(user_id, fund_round.proposal.group_id)?;
-
-        // Validate user has amount
-        let sender_wallet = match self
-            .user_wallet_repo
-            .get_wallet_info(payload.sender_wallet_id)
-        {
+    fn validate_sender_wallet_for_contribution(
+        &self,
+        user_id: Uuid,
+        sender_wallet_id: Uuid,
+        expected_currency_id: Uuid,
+        amount: &BigDecimal,
+    ) -> Result<(), AppError> {
+        let sender_wallet = match self.user_wallet_repo.get_wallet_info(sender_wallet_id) {
             Ok(wallet) => wallet,
             Err(DbError::Diesel(Error::NotFound)) => {
                 return Err(AppError::BadRequest("Sender wallet not found".into()));
@@ -140,60 +149,62 @@ impl GroupWalletService {
         if sender_wallet.user_id != user_id {
             return Err(AppError::BadRequest("Sender wallet not found".into()));
         }
-        if sender_wallet.currency_id != fund_round.fund_round_proposal.currency_id {
+
+        if sender_wallet.currency_id != expected_currency_id {
             return Err(AppError::BadRequest(
                 "Sender wallet currency does not match fund round currency".into(),
             ));
         }
 
-        if sender_wallet.balance < amount {
+        // Pre-check UX (el repo igual lo revalida transaccionalmente)
+        if sender_wallet.balance < *amount {
             return Err(AppError::BadRequest("Insufficient funds".into()));
         }
 
-        let total_contributed = self
-            .fund_round_repo
-            .get_total_contributed(fund_round_id)
-            .map_err(AppError::Db)?;
+        Ok(())
+    }
 
-        let remaining = &fund_round.fund_round_proposal.target_amount - &total_contributed;
-        if amount > remaining {
-            return Err(AppError::BadRequest(format!(
-                "Amount exceeds remaining target. Remaining: {}",
-                remaining
-            )));
-        }
+    pub fn contribute_fund_round(
+        &self,
+        user_id: Uuid,
+        fund_round_id: Uuid,
+        payload: ContributeFundRoundRequest,
+    ) -> Result<FundRoundStatusResponse, AppError> {
+        // Validations
+        let amount = self.parse_positive_amount(payload.amount)?; // Validate amount is positive
+        let fund_round = self.validate_active_fund_round(fund_round_id)?; // Find & check if fund round is active
+        let group_wallet = self.resolve_group_wallet_for_fund_round(&fund_round)?; // Find group wallet for fund round
 
-        self.fund_round_repo
-            .create_contribution(
-                fund_round_id,
-                user_id,
-                amount.clone(),
-                payload.sender_wallet_id,
-                group_wallet,
-            )
-            .map_err(AppError::Db)?;
+        self.validate_is_member(user_id, fund_round.proposal.group_id)?;
+        self.validate_sender_wallet_for_contribution(
+            user_id,
+            payload.sender_wallet_id,
+            fund_round.fund_round_proposal.currency_id,
+            &amount,
+        )?;
 
-        let new_total = &total_contributed + &amount;
-        let target = &fund_round.fund_round_proposal.target_amount;
-        let is_completed = new_total >= *target;
-
-        if is_completed {
-            self.proposal_repo
-                .update_proposal_status(
-                    fund_round_id,
-                    ProposalUpdate {
-                        status: MyProposalStatus::Executed,
-                    },
-                )
-                .map_err(AppError::Db)?;
-        }
+        let contribute_result = match self.fund_round_repo.create_contribution(
+            fund_round_id,
+            user_id,
+            amount,
+            payload.sender_wallet_id,
+            group_wallet,
+        ) {
+            Ok(result) => result,
+            Err(DbError::Diesel(Error::NotFound)) => {
+                return Err(AppError::BadRequest(
+                    "Fund round is not active, insufficient funds, or amount exceeds remaining target".into(),
+                ));
+            }
+            Err(err) => return Err(AppError::Db(err)),
+        };
 
         let updated = self.find_fund_round(fund_round_id)?;
 
         Ok(FundRoundStatusResponse {
             target_amount: updated.fund_round_proposal.target_amount.to_string(),
-            total_contributed: new_total.to_string(),
-            is_completed,
+            total_contributed: contribute_result.total_contributed.to_string(),
+            is_completed: contribute_result.is_completed,
             fund_round: updated,
         })
     }

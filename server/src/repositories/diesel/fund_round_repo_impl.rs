@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::data::database::Db;
 use crate::data::error::DbError;
+
 // Models
 use crate::models::group::group_wallet::GroupWallet;
 use crate::models::proposal::{
@@ -30,6 +31,11 @@ impl DieselFundRoundRepository {
     pub fn new(db: Db) -> Self {
         Self { db }
     }
+}
+
+pub struct ContributeResult {
+    pub total_contributed: BigDecimal,
+    pub is_completed: bool,
 }
 
 impl FundRoundRepository for DieselFundRoundRepository {
@@ -116,16 +122,44 @@ impl FundRoundRepository for DieselFundRoundRepository {
         amount: BigDecimal,
         sender_wallet_id: Uuid,
         group_wallet: GroupWallet,
-    ) -> Result<FundRoundContribution, DbError> {
+    ) -> Result<ContributeResult, DbError> {
         let mut conn = self.db.get_conn()?;
 
-        let result = conn.transaction::<FundRoundContribution, DbError, _>(|tx_conn| {
-            // Get fund round proposal and group id
-            let (_, group_id) = fund_round_proposal::table
-                .inner_join(proposal::table.on(fund_round_proposal::proposal_id.eq(proposal::id)))
+        let result = conn.transaction::<ContributeResult, DbError, _>(|tx_conn| {
+            // 1) Lock proposal row so concurrent contributions serialize on same fund round
+            let group_id = proposal::table
+                .filter(proposal::id.eq(fund_round_id))
+                .filter(proposal::status.eq(MyProposalStatus::Approved))
+                .for_update()
+                .select(proposal::group_id)
+                .first::<Uuid>(tx_conn)?; // NotFound => inactive/nonexistent
+
+            // 2) Load target
+            let fund = fund_round_proposal::table
                 .filter(fund_round_proposal::proposal_id.eq(fund_round_id))
-                .select((FundProposal::as_select(), proposal::group_id))
-                .first::<(FundProposal, Uuid)>(tx_conn)?;
+                .first::<FundProposal>(tx_conn)?;
+
+            // 3) Recompute total INSIDE tx
+            let total: Option<BigDecimal> = fund_round_contribution::table
+                .filter(fund_round_contribution::fund_round_proposal_id.eq(fund_round_id))
+                .select(sum(fund_round_contribution::amount))
+                .first(tx_conn)?;
+            let total = total.unwrap_or_default();
+
+            let new_total = total.clone() + amount.clone();
+            if new_total > fund.target_amount {
+                return Err(diesel::result::Error::NotFound.into()); // service lo mapea a 400
+            }
+
+            // 4) Update user wallet balance
+            let debited_rows = diesel::update(
+                user_wallet::table
+                    .filter(user_wallet::id.eq(sender_wallet_id))
+                    .filter(user_wallet::user_id.eq(user_id))
+                    .filter(user_wallet::balance.ge(amount.clone())),
+            )
+            .set(user_wallet::balance.eq(user_wallet::balance - amount.clone()))
+            .execute(tx_conn)?;
 
             let credited_rows = diesel::update(
                 group_wallet::table
@@ -136,21 +170,12 @@ impl FundRoundRepository for DieselFundRoundRepository {
             .set(group_wallet::balance.eq(group_wallet::balance + amount.clone()))
             .execute(tx_conn)?;
 
-            // Update user wallet balance
-            let debited_rows = diesel::update(
-                user_wallet::table
-                    .filter(user_wallet::id.eq(sender_wallet_id))
-                    .filter(user_wallet::user_id.eq(user_id))
-                    .filter(user_wallet::balance.ge(amount.clone())),
-            )
-            .set(user_wallet::balance.eq(user_wallet::balance - amount.clone()))
-            .execute(tx_conn)?;
-
+            // Validate only one user wallet & one group wallet modified
             if credited_rows != 1 || debited_rows != 1 {
                 return Err(diesel::result::Error::NotFound.into());
             }
 
-            // Create tx
+            // 5) Create transaction
             let new_tx = NewTransaction {
                 tx_hash: None,
                 amount: amount.clone(),
@@ -168,6 +193,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
                 .returning(Transaction::as_returning())
                 .get_result(tx_conn)?;
 
+            // 6) Create Contribution
             let new_contribution = NewFundRoundContribution {
                 fund_round_proposal_id: fund_round_id,
                 user_id,
@@ -175,13 +201,26 @@ impl FundRoundRepository for DieselFundRoundRepository {
                 transaction_id: tx.id,
             };
 
-            // Insert contribution
-            let contribution = diesel::insert_into(fund_round_contribution::table)
+            // Insert contrib (unused)
+            let _contribution = diesel::insert_into(fund_round_contribution::table)
                 .values(&new_contribution)
                 .returning(FundRoundContribution::as_returning())
                 .get_result(tx_conn)?;
 
-            Ok(contribution)
+            // 7) Mark executed if total reached
+            let is_completed = new_total >= fund.target_amount;
+            if is_completed {
+                diesel::update(proposal::table.filter(proposal::id.eq(fund_round_id)))
+                    .set(ProposalUpdate {
+                        status: MyProposalStatus::Executed,
+                    })
+                    .execute(tx_conn)?;
+            }
+
+            Ok(ContributeResult {
+                total_contributed: new_total,
+                is_completed,
+            })
         })?;
 
         Ok(result)
