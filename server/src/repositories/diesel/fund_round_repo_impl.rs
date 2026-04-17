@@ -116,7 +116,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
         user_id: Uuid,
         amount: BigDecimal,
         sender_wallet_id: Uuid,
-        group_wallet: GroupWallet,
+        contrib_group_wallet: GroupWallet,
     ) -> Result<FundRoundContribution, DbError> {
         let mut conn = self.db.get_conn()?;
 
@@ -134,7 +134,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
                 .filter(fund_round_proposal::proposal_id.eq(fund_round_id))
                 .first::<FundProposal>(tx_conn)?;
 
-            if fund.currency_id != group_wallet.currency_id {
+            if fund.currency_id != contrib_group_wallet.currency_id {
                 return Err(diesel::result::Error::NotFound.into());
             }
 
@@ -163,7 +163,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
 
             let credited_rows = diesel::update(
                 group_wallet::table
-                    .filter(group_wallet::id.eq(group_wallet.id))
+                    .filter(group_wallet::id.eq(contrib_group_wallet.id))
                     .filter(group_wallet::group_id.eq(group_id))
                     .filter(group_wallet::currency_id.eq(fund.currency_id)),
             )
@@ -181,8 +181,8 @@ impl FundRoundRepository for DieselFundRoundRepository {
                 amount: amount.clone(),
                 user_id,
                 group_id,
-                currency_id: group_wallet.currency_id,
-                address: group_wallet.address,
+                currency_id: contrib_group_wallet.currency_id,
+                address: contrib_group_wallet.address,
                 description: Some("Fund round contribution".to_string()),
                 tx_type: MyTransactionType::Deposit,
             };
