@@ -28,6 +28,8 @@ pub enum MyVoteType {
 #[derive(Serialize)]
 pub enum ProposalType {
     NewMember,
+    FundRound,
+    Withdraw,
 }
 
 #[derive(Queryable, Serialize, Selectable)]
