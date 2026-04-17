@@ -134,6 +134,10 @@ impl FundRoundRepository for DieselFundRoundRepository {
                 .filter(fund_round_proposal::proposal_id.eq(fund_round_id))
                 .first::<FundProposal>(tx_conn)?;
 
+            if fund.currency_id != group_wallet.currency_id {
+                return Err(diesel::result::Error::NotFound.into());
+            }
+
             // 3) Recompute total INSIDE tx
             let total: Option<BigDecimal> = fund_round_contribution::table
                 .filter(fund_round_contribution::fund_round_proposal_id.eq(fund_round_id))
@@ -143,7 +147,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
 
             let new_total = total.clone() + amount.clone();
             if new_total > fund.target_amount {
-                return Err(diesel::result::Error::NotFound.into()); // service lo mapea a 400
+                return Err(diesel::result::Error::NotFound.into());
             }
 
             // 4) Update user wallet balance
@@ -151,6 +155,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
                 user_wallet::table
                     .filter(user_wallet::id.eq(sender_wallet_id))
                     .filter(user_wallet::user_id.eq(user_id))
+                    .filter(user_wallet::currency_id.eq(fund.currency_id))
                     .filter(user_wallet::balance.ge(amount.clone())),
             )
             .set(user_wallet::balance.eq(user_wallet::balance - amount.clone()))
@@ -160,7 +165,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
                 group_wallet::table
                     .filter(group_wallet::id.eq(group_wallet.id))
                     .filter(group_wallet::group_id.eq(group_id))
-                    .filter(group_wallet::currency_id.eq(group_wallet.currency_id)),
+                    .filter(group_wallet::currency_id.eq(fund.currency_id)),
             )
             .set(group_wallet::balance.eq(group_wallet::balance + amount.clone()))
             .execute(tx_conn)?;
@@ -196,7 +201,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
                 transaction_id: tx.id,
             };
 
-            // Insert contrib (unused)
+            // Insert contrib
             let contribution = diesel::insert_into(fund_round_contribution::table)
                 .values(&new_contribution)
                 .returning(FundRoundContribution::as_returning())
