@@ -184,21 +184,21 @@ impl GroupWalletService {
             &amount,
         )?;
 
-        let _ = match self.fund_round_repo.create_contribution(
-            fund_round_id,
-            user_id,
-            amount,
-            payload.sender_wallet_id,
-            group_wallet,
-        ) {
-            Ok(result) => result,
-            Err(DbError::Diesel(Error::NotFound)) => {
-                return Err(AppError::BadRequest(
-                    "Fund round is not active, insufficient funds, or amount exceeds remaining target".into(),
-                ));
-            }
-            Err(err) => return Err(AppError::Db(err)),
-        };
+        self.fund_round_repo
+            .create_contribution(
+                fund_round_id,
+                user_id,
+                amount,
+                payload.sender_wallet_id,
+                group_wallet,
+            )
+            .map_err(|err| match err {
+                DbError::Diesel(Error::NotFound) => AppError::BadRequest(
+                    "Fund round is not active, insufficient funds, or amount exceeds remaining target"
+                        .into(),
+                ),
+                err => AppError::Db(err),
+            })?;
 
         let updated = self.find_fund_round(fund_round_id)?;
         let total_contribution = self.find_total_contribution(fund_round_id)?;
