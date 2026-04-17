@@ -27,7 +27,7 @@
 			{#if isNotFound}
 				Página no encontrada
 			{:else if isInternalError}
-				Error DB
+				Error del servidor
 			{:else}
 				Algo salió mal
 			{/if}
@@ -37,7 +37,7 @@
 			{#if isNotFound}
 				La ruta a la que intentás acceder no existe o fue movida.
 			{:else if isInternalError}
-				La base de datos debe estar apagada o rota
+				Ocurrió un error interno en el servidor. Por favor, intentá de nuevo más tarde.
 			{:else}
 				{page.error?.message ?? 'Ocurrió un error inesperado al procesar tu solicitud.'}
 			{/if}
