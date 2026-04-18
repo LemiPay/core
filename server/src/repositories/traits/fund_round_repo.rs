@@ -28,4 +28,16 @@ pub trait FundRoundRepository: Send + Sync {
         sender_wallet_id: Uuid,
         group_wallet: GroupWallet,
     ) -> Result<FundRoundContribution, DbError>;
+
+    fn find_user_contrib(
+        &self,
+        fund_round_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<FundRoundContribution>, DbError>;
+
+    fn get_user_total_contributed(
+        &self,
+        user_id: Uuid,
+        fund_round_id: Uuid,
+    ) -> Result<BigDecimal, DbError>;
 }
