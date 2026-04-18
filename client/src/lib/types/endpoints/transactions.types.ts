@@ -21,7 +21,7 @@ export type ExecuteWithdrawProposal = {
 export type WithdrawProposalExpanded = {
 	proposal: Proposal;
 	withdraw_proposal: WithdrawProposal;
-	proposal_type: string;
+	proposal_type: 'Withdraw';
 };
 
 export type Transaction = {
