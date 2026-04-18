@@ -120,6 +120,8 @@ impl FundRoundRepository for DieselFundRoundRepository {
     ) -> Result<FundRoundContribution, DbError> {
         let mut conn = self.db.get_conn()?;
 
+        let contrib = self.find_user_contrib(fund_round_id, user_id)?;
+
         let result = conn.transaction::<FundRoundContribution, DbError, _>(|tx_conn| {
             // 1) Lock proposal row so concurrent contributions serialize on same fund round
             let group_id = proposal::table
@@ -193,6 +195,13 @@ impl FundRoundRepository for DieselFundRoundRepository {
                 .returning(Transaction::as_returning())
                 .get_result(tx_conn)?;
 
+            if contrib.is_some() {
+                // TODO: Support multiple contributions per user by updating existing contribution instead of erroring out.
+                // This will require changing the unique constraint on fund_round_contribution to (id) instead
+                // of (fund_round_proposal_id, user_id) and updating the frontend to handle multiple contributions per user.
+                return Err(DbError::NotImplemented.into());
+            }
+
             // 6) Create Contribution
             let new_contribution = NewFundRoundContribution {
                 fund_round_proposal_id: fund_round_id,
@@ -209,6 +218,7 @@ impl FundRoundRepository for DieselFundRoundRepository {
 
             // 7) Mark executed if total reached
             let is_completed = new_total >= fund.target_amount;
+
             if is_completed {
                 diesel::update(proposal::table.filter(proposal::id.eq(fund_round_id)))
                     .set(ProposalUpdate {
@@ -217,9 +227,42 @@ impl FundRoundRepository for DieselFundRoundRepository {
                     .execute(tx_conn)?;
             }
 
-            Ok(contribution)
+            return Ok(contribution);
         })?;
 
         Ok(result)
+    }
+
+    fn find_user_contrib(
+        &self,
+        fund_round_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<FundRoundContribution>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        fund_round_contribution::table
+            .filter(fund_round_contribution::fund_round_proposal_id.eq(fund_round_id))
+            .filter(fund_round_contribution::user_id.eq(user_id))
+            .first::<FundRoundContribution>(&mut conn)
+            .optional()
+            .map_err(|e| e.into())
+    }
+
+    // Total amount (intended for multiple contribs per user)
+    // currently just returns the single contribution amount since multiple contributions per user is not yet supported
+    fn get_user_total_contributed(
+        &self,
+        user_id: Uuid,
+        fund_round_id: Uuid,
+    ) -> Result<BigDecimal, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let total: Option<BigDecimal> = fund_round_contribution::table
+            .filter(fund_round_contribution::fund_round_proposal_id.eq(fund_round_id))
+            .filter(fund_round_contribution::user_id.eq(user_id))
+            .select(sum(fund_round_contribution::amount))
+            .first(&mut conn)?;
+
+        Ok(total.unwrap_or_default())
     }
 }

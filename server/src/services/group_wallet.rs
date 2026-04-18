@@ -14,6 +14,7 @@ use crate::handlers::group_wallet::{
 use crate::models::group::group_wallet::{GroupWallet, NewGroupWallet};
 use crate::models::proposal::{MyProposalStatus, NewProposal, ProposalUpdate};
 use crate::models::proposals::fund_round::FundProposalExpanded;
+use crate::models::transaction::fund_round_contrib::FundRoundContribution;
 use crate::repositories::traits::currency_repo::CurrencyRepository;
 use crate::repositories::traits::fund_round_repo::FundRoundRepository;
 use crate::repositories::traits::group_repo::GroupRepository;
@@ -194,8 +195,7 @@ impl GroupWalletService {
             )
             .map_err(|err| match err {
                 DbError::Diesel(Error::NotFound) => AppError::BadRequest(
-                    "Fund round is not active, insufficient funds, or amount exceeds remaining target"
-                        .into(),
+                    "Fund round is not active, insufficient funds, or amount exceeds remaining target".into(),
                 ),
                 err => AppError::Db(err),
             })?;
@@ -209,6 +209,34 @@ impl GroupWalletService {
             is_completed: updated.proposal.status == MyProposalStatus::Executed,
             fund_round: updated,
         })
+    }
+
+    pub fn get_user_contribution(
+        &self,
+        user_id: Uuid,
+        fund_round_id: Uuid,
+    ) -> Result<FundRoundContribution, AppError> {
+        let fund_round = self.validate_active_fund_round(fund_round_id)?; // Find & check if fund round is active
+        self.validate_is_member(user_id, fund_round.proposal.group_id)?;
+
+        self.fund_round_repo
+            .find_user_contrib(fund_round_id, user_id)
+            .map_err(AppError::Db)?
+            .ok_or(AppError::NotFound)
+    }
+
+    #[allow(dead_code)] // For future use
+    fn get_user_total_contribution(
+        &self,
+        user_id: Uuid,
+        fund_round_id: Uuid,
+    ) -> Result<BigDecimal, AppError> {
+        let fund_round = self.validate_active_fund_round(fund_round_id)?; // Find & check if fund round is active
+        self.validate_is_member(user_id, fund_round.proposal.group_id)?;
+
+        self.fund_round_repo
+            .get_user_total_contributed(user_id, fund_round_id)
+            .map_err(AppError::Db)
     }
 
     pub fn get_fund_round_status(

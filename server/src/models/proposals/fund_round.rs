@@ -15,7 +15,6 @@ pub struct FundProposal {
 }
 
 #[derive(Serialize)]
-#[allow(dead_code)] // TODO: remove after implemented
 pub struct FundProposalExpanded {
     pub proposal: Proposal,
     pub fund_round_proposal: FundProposal,
