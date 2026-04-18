@@ -99,6 +99,27 @@ impl FundRoundRepository for DieselFundRoundRepository {
         }))
     }
 
+    fn get_all_fund_round_proposals(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Vec<FundProposalExpanded>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let result = fund_round_proposal::table
+            .inner_join(proposal::table.on(fund_round_proposal::proposal_id.eq(proposal::id)))
+            .filter(proposal::group_id.eq(group_id))
+            .load::<(FundProposal, Proposal)>(&mut conn)?;
+
+        Ok(result
+            .into_iter()
+            .map(|(frp, p)| FundProposalExpanded {
+                proposal: p,
+                fund_round_proposal: frp,
+                proposal_type: ProposalType::FundRound,
+            })
+            .collect())
+    }
+
     fn get_total_contributed(&self, fund_round_id: Uuid) -> Result<BigDecimal, DbError> {
         let mut conn = self.db.get_conn()?;
 

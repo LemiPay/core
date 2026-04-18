@@ -348,6 +348,15 @@ impl GroupWalletService {
             .ok_or(AppError::NotFound)
     }
 
+    pub fn get_all_fund_rounds(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Vec<FundProposalExpanded>, AppError> {
+        self.fund_round_repo
+            .get_all_fund_round_proposals(group_id)
+            .map_err(AppError::Db)
+    }
+
     fn find_total_contribution(&self, fund_round_id: Uuid) -> Result<BigDecimal, AppError> {
         self.fund_round_repo
             .get_total_contributed(fund_round_id)

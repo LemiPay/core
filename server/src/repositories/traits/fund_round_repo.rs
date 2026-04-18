@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::data::error::DbError;
 use crate::models::group::group_wallet::GroupWallet;
 use crate::models::proposal::NewProposal;
-use crate::models::proposals::fund_round::FundProposalExpanded;
+use crate::models::proposals::fund_round::{FundProposal, FundProposalExpanded};
 use crate::models::transaction::fund_round_contrib::FundRoundContribution;
 
 pub trait FundRoundRepository: Send + Sync {
@@ -17,6 +17,11 @@ pub trait FundRoundRepository: Send + Sync {
 
     fn find_fund_round(&self, fund_round_id: Uuid)
     -> Result<Option<FundProposalExpanded>, DbError>;
+
+    fn get_all_fund_round_proposals(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Vec<FundProposalExpanded>, DbError>;
 
     fn get_total_contributed(&self, fund_round_id: Uuid) -> Result<BigDecimal, DbError>;
 

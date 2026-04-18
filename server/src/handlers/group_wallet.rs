@@ -111,3 +111,10 @@ pub async fn get_group_wallets(
     let wallets = state.group_wallet_service.get_wallets_by_group(group_id)?;
     Ok(Json(wallets))
 }
+pub async fn get_all_fund_rounds(
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Vec<FundProposalExpanded>>, AppError> {
+    let result = state.group_wallet_service.get_all_fund_rounds(group_id)?;
+    Ok(Json(result))
+}
