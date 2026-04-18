@@ -134,9 +134,7 @@
 			<p class="text-sm text-gray-500">The group you are looking for does not exist.</p>
 		</div>
 	{:else}
-		<div
-			class="w-full max-w-2xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-		>
+		<div class="w-full max-w-2xl rounded-xl border border-gray-200 bg-white shadow-sm">
 			<div class="p-6 pb-4 sm:p-8">
 				<div class="space-y-2">
 					<div class="flex items-start justify-between gap-4">
