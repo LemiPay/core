@@ -4,6 +4,7 @@
 	import Modal from '$lib/components/modals/Modal.svelte';
 	import { createNewAddress } from '$lib/api/endpoints/user_wallet';
 	import { isSuccess } from '$lib/types/client.types';
+	import { generateRandomAddress } from '$lib/utils/address_utils';
 
 	interface Props {
 		open: boolean;
@@ -21,15 +22,6 @@
 	let success = $state('');
 
 	const formValid = $derived(address.trim().length > 0 && currency_ticker.trim().length > 0);
-
-	function generateRandomAddress() {
-		const chars = '0123456789abcdef';
-		let randomHex = '';
-		for (let i = 0; i < 40; i++) {
-			randomHex += chars[Math.floor(Math.random() * chars.length)];
-		}
-		address = '0x' + randomHex;
-	}
 
 	function handleClose() {
 		address = '';
@@ -92,7 +84,7 @@
 				/>
 				<button
 					type="button"
-					onclick={generateRandomAddress}
+					onclick={() => (address = generateRandomAddress())}
 					class="mt-1 text-xs font-medium text-gray-500 transition hover:text-black"
 				>
 					Generar dirección aleatoria
