@@ -4,7 +4,7 @@ use crate::models::proposal::Proposal;
 use crate::models::proposals::new_member::{
     NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
 };
-use crate::models::proposals::withdraw::{WithdrawProposal, WithdrawProposalExpanded};
+use crate::models::proposals::withdraw::WithdrawProposalExpanded;
 use crate::security::auth_extractor::AuthUser;
 use axum::extract::{Path, Query};
 use axum::{Json, extract::State};
