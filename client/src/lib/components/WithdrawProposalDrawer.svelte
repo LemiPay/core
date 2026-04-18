@@ -111,8 +111,14 @@
 		await loadData();
 		onsuccess?.();
 	}
+	function handleWindowKeydown(e: KeyboardEvent) {
+		if (open && e.key === 'Escape') {
+			onclose();
+		}
+	}
 </script>
 
+<svelte:window onkeydown={handleWindowKeydown} />
 {#if open}
 	<div
 		role="presentation"
@@ -120,7 +126,6 @@
 		class="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm transition-opacity"
 		transition:fade={{ duration: 200 }}
 		onclick={onclose}
-		onkeydown={(e) => e.key === 'Escape' && onclose()}
 	></div>
 
 	<div
