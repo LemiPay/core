@@ -6,6 +6,7 @@ import type {
 	NewMemberData,
 	ReceivedNewMemberProposalExpanded
 } from '$lib/types/endpoints/proposals.types';
+import type { WithdrawProposalExpanded } from '$lib/types/endpoints/transactions.types';
 
 export async function createNewMemberProposal(data: NewMemberData): ApiResponse<ExpandedProposal> {
 	return authedApiFetch(`/proposal/new-member/${data.group_id}`, {

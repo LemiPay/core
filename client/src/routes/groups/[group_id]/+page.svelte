@@ -29,6 +29,7 @@
 	import FundGroupWallet from '$lib/components/modals/FundGroupWallet.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
 	import ProposeWithdrawModal from '$lib/components/modals/ProposeWithdrawModal.svelte';
+	import WithdrawProposalDrawer from '$lib/components/WithdrawProposalDrawer.svelte';
 
 	// --- STATES ---
 	let loading = $state(true);
@@ -53,6 +54,7 @@
 	let showCreateWalletModal = $state(false);
 	let showFundWalletModal = $state(false);
 	let showWithdrawModal = $state(false);
+	let showProposalsDrawer = $state(false);
 	let selectedCurrencyIdToWithdraw = $state<string>('');
 	let selectedWalletIdToFund = $state<string>('');
 	let selectedCurrencyId = $state<string>('');
@@ -148,6 +150,15 @@
 					<div class="flex items-start justify-between gap-4">
 						<h1 class="text-2xl font-bold tracking-tight text-black">{groupData.name}</h1>
 						<div class="flex items-center gap-2">
+							<Button
+								label="Propuestas"
+								variant="secondary"
+								onclick={() => (showProposalsDrawer = true)}
+							>
+								{#snippet icon()}
+									<HandCoins class="h-4 w-4" />
+								{/snippet}
+							</Button>
 							{#if groupData.status}
 								<span
 									class="rounded border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600"
@@ -368,6 +379,12 @@
 			group={groupData}
 			onclose={() => (showEditModal = false)}
 			onedit={handleEditGroup}
+		/>
+		<WithdrawProposalDrawer
+			open={showProposalsDrawer}
+			group_id={groupData.id}
+			onclose={() => (showProposalsDrawer = false)}
+			onsuccess={loadWalletsData}
 		/>
 		<Confirm
 			open={showDeleteModal}
