@@ -97,7 +97,7 @@ impl GroupService {
         Ok(result)
     }
 
-    pub fn leave_group(&self, group_id: Uuid, user_id: Uuid) -> Result<UserInGroup, AppError> {
+    pub fn leave_group(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, AppError> {
         if self.is_admin(user_id, group_id)? {
             let members = self.get_group_members(group_id)?;
 
