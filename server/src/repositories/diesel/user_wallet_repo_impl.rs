@@ -168,6 +168,7 @@ impl UserWalletRepository for DieselUserWalletRepository {
                 user_wallet::id,
                 user_wallet::address,
                 user_wallet::balance,
+                currency::currency_id,
                 currency::ticker,
             ))
             .load::<WalletWithTickerDb>(&mut conn)?;

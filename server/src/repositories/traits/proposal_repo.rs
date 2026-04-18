@@ -6,7 +6,7 @@ use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalU
 use crate::models::proposals::new_member::{
     NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
 };
-use crate::models::proposals::withdraw::WithdrawProposalExpanded;
+use crate::models::proposals::withdraw::{WithdrawProposal, WithdrawProposalExpanded};
 
 pub trait ProposalRepository: Send + Sync {
     fn find_by_group(&self, group_id: Uuid) -> Result<Vec<NewMemberProposalExpanded>, DbError>;
@@ -63,4 +63,9 @@ pub trait ProposalRepository: Send + Sync {
         proposal_id: Uuid,
         currency_id: Uuid,
     ) -> Result<Option<WithdrawProposalExpanded>, DbError>;
+
+    fn get_all_withdraw_proposals(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Option<Vec<WithdrawProposalExpanded>>, DbError>;
 }

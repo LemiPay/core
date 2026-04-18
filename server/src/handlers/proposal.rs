@@ -4,6 +4,7 @@ use crate::models::proposal::Proposal;
 use crate::models::proposals::new_member::{
     NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
 };
+use crate::models::proposals::withdraw::{WithdrawProposal, WithdrawProposalExpanded};
 use crate::security::auth_extractor::AuthUser;
 use axum::extract::{Path, Query};
 use axum::{Json, extract::State};
@@ -93,4 +94,16 @@ pub async fn respond_to_user_proposal(
             .proposal_service
             .respond_new_member_proposal(user.user_id, proposal_id, payload)?;
     Ok(Json(update_proposal))
+}
+
+pub async fn get_all_withdraw_proposals(
+    State(state): State<SharedState>,
+    _user: AuthUser,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Vec<WithdrawProposalExpanded>>, AppError> {
+    let withdraw_proposals = state
+        .proposal_service
+        .get_all_withdraw_proposals(group_id)?
+        .unwrap_or_default();
+    Ok(Json(withdraw_proposals))
 }

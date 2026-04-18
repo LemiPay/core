@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Trash2, Pencil, Wallet, Coins, Plus, Copy } from 'lucide-svelte';
+	import { Trash2, Pencil, Wallet, Coins, Plus, Copy, HandCoins } from 'lucide-svelte';
 	import { page } from '$app/state';
 
 	// Api
@@ -28,6 +28,7 @@
 	import CreateGroupWallet from '$lib/components/modals/CreateGroupWallet.svelte';
 	import FundGroupWallet from '$lib/components/modals/FundGroupWallet.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
+	import ProposeWithdrawModal from '$lib/components/modals/ProposeWithdrawModal.svelte';
 
 	// --- STATES ---
 	let loading = $state(true);
@@ -51,6 +52,8 @@
 	let showEditModal = $state(false);
 	let showCreateWalletModal = $state(false);
 	let showFundWalletModal = $state(false);
+	let showWithdrawModal = $state(false);
+	let selectedCurrencyIdToWithdraw = $state<string>('');
 	let selectedWalletIdToFund = $state<string>('');
 	let selectedCurrencyId = $state<string>('');
 
@@ -112,6 +115,11 @@
 		selectedWalletIdToFund = walletId;
 		selectedCurrencyId = currencyId;
 		showFundWalletModal = true;
+	}
+
+	function openWithdrawModal(currencyId: string) {
+		selectedCurrencyIdToWithdraw = currencyId;
+		showWithdrawModal = true;
 	}
 
 	loadGroupData();
@@ -267,7 +275,17 @@
 											</div>
 										</div>
 
-										<div>
+										<div class="flex items-center gap-2">
+											<Button
+												label="Retirar"
+												variant="secondary"
+												onclick={() => openWithdrawModal(wallet.currency_id)}
+											>
+												{#snippet icon()}
+													<HandCoins class="h-4 w-4" />
+												{/snippet}
+											</Button>
+
 											<Button
 												label="Fondear"
 												variant="secondary"
@@ -305,7 +323,7 @@
 				href="/dashboard"
 				class="text-sm font-medium text-gray-500 transition hover:text-black hover:underline"
 			>
-				← Back to Dashboard
+				← Volver al Dashboard
 			</a>
 		</div>
 
@@ -330,6 +348,17 @@
 				showFundWalletModal = false;
 				selectedWalletIdToFund = '';
 				selectedCurrencyId = '';
+			}}
+			onsuccess={loadWalletsData}
+		/>
+
+		<ProposeWithdrawModal
+			open={showWithdrawModal}
+			group_id={groupData.id}
+			currency_id={selectedCurrencyIdToWithdraw}
+			onclose={() => {
+				showWithdrawModal = false;
+				selectedCurrencyIdToWithdraw = '';
 			}}
 			onsuccess={loadWalletsData}
 		/>
