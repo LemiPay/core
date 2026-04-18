@@ -1,1 +1,3 @@
-pub mod expense;
+mod expense;
+
+pub use expense::*;
