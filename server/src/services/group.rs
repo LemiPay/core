@@ -6,7 +6,7 @@ use crate::handlers::group::NewGroupRequest;
 
 // Models
 use crate::models::group::{Group, GroupUpdate};
-use crate::models::user_in_group::{GroupFromUser, GroupMember, UserInGroup};
+use crate::models::user_in_group::{GroupFromUser, GroupMember, MyGroupRole, UserInGroup};
 
 // Repos
 use crate::repositories::traits::group_repo::GroupRepository;
@@ -101,9 +101,9 @@ impl GroupService {
         if self.is_admin(user_id, group_id)? {
             let members = self.get_group_members(group_id)?;
 
-            let has_other_admin = members.iter().any(|m| {
-                m.user_id != user_id && self.is_admin(m.user_id, group_id).unwrap_or(false)
-            });
+            let has_other_admin = members
+                .iter()
+                .any(|m| m.user_id != user_id && m.role.eq(&MyGroupRole::Admin));
 
             if !has_other_admin {
                 return Err(AppError::BadRequest(
