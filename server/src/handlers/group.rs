@@ -106,6 +106,6 @@ pub async fn leave_group(
     user: AuthUser,
     Path(group_id): Path<Uuid>,
 ) -> Result<Json<UserInGroup>, AppError> {
-    let result = state.group_service.leave_group(user.user_id, group_id)?;
+    let result = state.group_service.leave_group(group_id, user.user_id)?;
     Ok(Json(result))
 }

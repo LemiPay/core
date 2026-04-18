@@ -18,7 +18,7 @@ use crate::models::proposals::new_member::{
     NewMemberProposal, NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
 };
 use crate::models::proposals::withdraw::{WithdrawProposal, WithdrawProposalExpanded};
-use crate::models::user_in_group::{MyGroupRole, NewUserInGroup, UserInGroup};
+use crate::models::user_in_group::{MyGroupMemberStatus, MyGroupRole, NewUserInGroup, UserInGroup};
 
 // Schema
 use crate::schema::new_member_proposal::dsl as nmp;
@@ -92,6 +92,7 @@ impl ProposalRepository for DieselProposalRepository {
                 let nmp = new_member_proposal::table
                     .filter(new_member_proposal::proposal_id.eq(new_member_proposal_id))
                     .get_result::<NewMemberProposal>(this_conn)?;
+
                 //update el status
                 let updated =
                     diesel::update(proposal::table.filter(proposal::id.eq(new_member_proposal_id)))
@@ -107,6 +108,12 @@ impl ProposalRepository for DieselProposalRepository {
 
                     diesel::insert_into(user_in_group::table)
                         .values(&new_user_in_group)
+                        .on_conflict((user_in_group::user_id, user_in_group::group_id))
+                        .do_update()
+                        .set((
+                            user_in_group::status.eq(MyGroupMemberStatus::Active),
+                            user_in_group::role.eq(MyGroupRole::Member),
+                        ))
                         .returning(UserInGroup::as_returning())
                         .get_result::<UserInGroup>(this_conn)?;
                 }

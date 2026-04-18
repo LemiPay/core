@@ -21,7 +21,7 @@ pub fn group_routes(state: SharedState) -> Router {
             "/{id}/leave",
             post(leave_group).route_layer(middleware::from_fn_with_state(
                 state.clone(),
-                is_group_admin_middleware,
+                is_in_group_middleware,
             )),
         )
         .route(

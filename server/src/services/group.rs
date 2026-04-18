@@ -98,7 +98,7 @@ impl GroupService {
     }
 
     pub fn leave_group(&self, group_id: Uuid, user_id: Uuid) -> Result<UserInGroup, AppError> {
-        if self.is_admin(user_id, group_id)? {
+        if self.is_admin(user_id, group_id).unwrap_or(false) {
             let members = self.get_group_members(group_id)?;
 
             let has_other_admin = members.iter().any(|m| {

@@ -98,6 +98,7 @@ impl GroupRepository for DieselGroupRepository {
         let result = diesel::update(user_in_group::table)
             .filter(user_in_group::group_id.eq(group_id))
             .filter(user_in_group::user_id.eq(user_id))
+            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
             .set(user_in_group::status.eq(MyGroupMemberStatus::Left))
             .returning(UserInGroup::as_returning())
             .get_result::<UserInGroup>(&mut conn)?;
