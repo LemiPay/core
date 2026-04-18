@@ -235,9 +235,10 @@ impl ProposalService {
     pub fn get_all_withdraw_proposals(
         &self,
         group_id: Uuid,
-    ) -> Result<Option<Vec<WithdrawProposalExpanded>>, AppError> {
+    ) -> Result<Vec<WithdrawProposalExpanded>, AppError> {
         self.proposal_repo
             .get_all_withdraw_proposals(group_id)
+            .map(|proposals| proposals.unwrap_or_default())
             .map_err(AppError::Db)
     }
 }

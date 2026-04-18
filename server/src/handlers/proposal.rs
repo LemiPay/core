@@ -103,7 +103,6 @@ pub async fn get_all_withdraw_proposals(
 ) -> Result<Json<Vec<WithdrawProposalExpanded>>, AppError> {
     let withdraw_proposals = state
         .proposal_service
-        .get_all_withdraw_proposals(group_id)?
-        .unwrap_or_default();
+        .get_all_withdraw_proposals(group_id)?;
     Ok(Json(withdraw_proposals))
 }
