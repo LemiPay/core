@@ -97,6 +97,26 @@ impl GroupService {
         Ok(result)
     }
 
+    pub fn leave_group(&self, group_id: Uuid, user_id: Uuid) -> Result<UserInGroup, AppError> {
+        if self.is_admin(user_id, group_id)? {
+            let members = self.get_group_members(group_id)?;
+
+            let has_other_admin = members.iter().any(|m| {
+                m.user_id != user_id && self.is_admin(m.user_id, group_id).unwrap_or(false)
+            });
+
+            if !has_other_admin {
+                return Err(AppError::BadRequest(
+                    "Group does not have the another admin".into(),
+                ));
+            }
+        }
+
+        self.group_repo
+            .remove_user_from_group(user_id, group_id)
+            .map_err(AppError::Db)
+    }
+
     pub fn update_group(
         &self,
         user_id: Uuid,
