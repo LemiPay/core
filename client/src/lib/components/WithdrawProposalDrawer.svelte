@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { X, HandCoins, CheckCircle2, Clock, ChevronRight, Loader2 } from 'lucide-svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { authStore } from '$lib/stores/auth'; // Ajustá la ruta a tu store
+	import { authStore } from '$lib/stores/auth';
 
 	import Button from '$lib/components/ui/Button.svelte';
 	import {
