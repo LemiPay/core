@@ -46,3 +46,11 @@ export type FundGroupWalletData = {
 	address: string;
 	amount: string;
 };
+export type GroupMember = {
+	user_id: string;
+	group_id: string;
+	name: string;
+	email: string;
+	status: string;
+	role: string;
+};
