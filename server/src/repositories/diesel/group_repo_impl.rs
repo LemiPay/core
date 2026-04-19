@@ -86,7 +86,23 @@ impl GroupRepository for DieselGroupRepository {
             .values(&new_user_in_group)
             .returning(UserInGroup::as_returning())
             .get_result(&mut conn);
-        Ok(result?) //aca devuelvo un json vacío porque sí si se quiere cambiar que se cambie
+        Ok(result?)
+    }
+
+    fn remove_user_from_group(
+        &self,
+        user_id: Uuid,
+        group_id: Uuid,
+    ) -> Result<UserInGroup, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = diesel::update(user_in_group::table)
+            .filter(user_in_group::group_id.eq(group_id))
+            .filter(user_in_group::user_id.eq(user_id))
+            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
+            .set(user_in_group::status.eq(MyGroupMemberStatus::Left))
+            .returning(UserInGroup::as_returning())
+            .get_result::<UserInGroup>(&mut conn)?;
+        Ok(result)
     }
 
     fn delete_group(&self, group_id: Uuid) -> Result<Group, DbError> {

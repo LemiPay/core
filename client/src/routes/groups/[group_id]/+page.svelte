@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Trash2, Pencil, Wallet, Coins, Plus, Copy } from 'lucide-svelte';
+	import { Trash2, Pencil, Wallet, Coins, Plus, Copy, LogOut } from 'lucide-svelte';
 	import { page } from '$app/state';
 
 	// Api
@@ -8,7 +8,8 @@
 		getGroupMembers,
 		updateGroup,
 		deleteGroup,
-		getGroupWallets
+		getGroupWallets,
+		leaveGroup // Agregamos el endpoint
 	} from '$lib/api/endpoints/groups';
 
 	// Helpers
@@ -32,12 +33,12 @@
 	// --- STATES ---
 	let loading = $state(true);
 	let loadingMembers = $state(true);
-	let loadingWallets = $state(true); // Nuevo estado de carga para wallets
+	let loadingWallets = $state(true);
 	let groupExists = $state(true);
 
 	let groupData = $state({} as Group);
 	let members = $state([] as UserBadge[]);
-	let wallets = $state([] as GroupWallet[]); // Nuevo estado para las wallets
+	let wallets = $state([] as GroupWallet[]);
 
 	const groupId = page.params.group_id as string;
 
@@ -51,11 +52,14 @@
 	let showEditModal = $state(false);
 	let showCreateWalletModal = $state(false);
 	let showFundWalletModal = $state(false);
+	let showLeaveModal = $state(false); // Estado para el modal de salir
 	let selectedWalletIdToFund = $state<string>('');
 	let selectedCurrencyId = $state<string>('');
 
 	let deleteLoading = $state(false);
 	let deleteError = $state('');
+	let leaveLoading = $state(false); // Loading de salir
+	let leaveError = $state(''); // Error de salir
 
 	// --- LOGIC ---
 	async function handleEditGroup(data: { name: string; description: string }) {
@@ -71,6 +75,19 @@
 		deleteLoading = false;
 		if (!isSuccess(res)) {
 			deleteError = res.message || 'Failed to delete group.';
+			return;
+		}
+		window.location.href = '/dashboard';
+	}
+
+	// Nueva función para salir del grupo
+	async function handleLeaveGroup() {
+		leaveLoading = true;
+		leaveError = '';
+		const res = await leaveGroup(groupId);
+		leaveLoading = false;
+		if (!isSuccess(res)) {
+			leaveError = res.message || 'Error al salir del grupo.';
 			return;
 		}
 		window.location.href = '/dashboard';
@@ -147,15 +164,27 @@
 									{groupData.status}
 								</span>
 							{/if}
+
 							<button
 								onclick={() => (showEditModal = true)}
 								class="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+								title="Editar grupo"
 							>
 								<Pencil class="h-5 w-5" />
 							</button>
+
+							<button
+								onclick={() => (showLeaveModal = true)}
+								class="rounded-md p-1 text-gray-400 transition hover:bg-orange-50 hover:text-orange-500"
+								title="Salir del grupo"
+							>
+								<LogOut class="h-5 w-5" />
+							</button>
+
 							<button
 								onclick={() => (showDeleteModal = true)}
 								class="rounded-md p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+								title="Eliminar grupo"
 							>
 								<Trash2 class="h-5 w-5" />
 							</button>
@@ -255,7 +284,6 @@
 												<span
 													class="rounded bg-black px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase"
 												>
-													<!-- ESTO ESTA HARDCODEADO TODO hacer que el back entregue tmb el ticker asi lo vemos aca-->
 													{wallet.currency_ticker ? wallet.currency_ticker : 'USDC'}
 												</span>
 											</div>
@@ -340,6 +368,21 @@
 			onclose={() => (showEditModal = false)}
 			onedit={handleEditGroup}
 		/>
+
+		<Confirm
+			open={showLeaveModal}
+			title="Salir del grupo"
+			description="Dejarás de tener acceso a las billeteras y transacciones."
+			message="¿Estás seguro de que querés salir de este grupo?"
+			onclose={() => {
+				showLeaveModal = false;
+				leaveError = '';
+			}}
+			onconfirm={handleLeaveGroup}
+			loading={leaveLoading}
+			error={leaveError}
+		/>
+
 		<Confirm
 			open={showDeleteModal}
 			title="Delete group"
