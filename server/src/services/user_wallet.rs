@@ -256,6 +256,7 @@ impl UserWalletService {
             let detail = WalletWithTickerDb {
                 address: wallet_row.address.to_string(),
                 wallet_id: wallet_row.wallet_id,
+                currency_id: wallet_row.currency_id,
                 ticker: wallet_row.ticker,
                 balance: wallet_row.balance,
             };

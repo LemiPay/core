@@ -13,6 +13,8 @@ pub trait GroupRepository: Send + Sync {
     fn find_by_id(&self, id: Uuid) -> Result<Option<Group>, DbError>;
     fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, DbError>;
     fn add_user_to_group(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, DbError>;
+    fn remove_user_from_group(&self, user_id: Uuid, group_id: Uuid)
+    -> Result<UserInGroup, DbError>;
     fn delete_group(&self, group_id: Uuid) -> Result<Group, DbError>;
     fn is_group_active(&self, group_id: Uuid) -> Result<bool, DbError>;
     fn get_group_members(&self, group_id: Uuid) -> Result<Vec<GroupMember>, DbError>;

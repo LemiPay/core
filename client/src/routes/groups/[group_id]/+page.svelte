@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Trash2, Pencil, Wallet, Coins, Plus, Copy } from 'lucide-svelte';
+	import { Trash2, Pencil, Wallet, Coins, Plus, Copy, HandCoins, LogOut } from 'lucide-svelte';
 	import { page } from '$app/state';
 
 	// Api
@@ -8,7 +8,8 @@
 		getGroupMembers,
 		updateGroup,
 		deleteGroup,
-		getGroupWallets
+		getGroupWallets,
+		leaveGroup
 	} from '$lib/api/endpoints/groups';
 
 	// Helpers
@@ -28,16 +29,18 @@
 	import CreateGroupWallet from '$lib/components/modals/CreateGroupWallet.svelte';
 	import FundGroupWallet from '$lib/components/modals/FundGroupWallet.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
+	import ProposeWithdrawModal from '$lib/components/modals/ProposeWithdrawModal.svelte';
+	import WithdrawProposalDrawer from '$lib/components/WithdrawProposalDrawer.svelte';
 
 	// --- STATES ---
 	let loading = $state(true);
 	let loadingMembers = $state(true);
-	let loadingWallets = $state(true); // Nuevo estado de carga para wallets
+	let loadingWallets = $state(true);
 	let groupExists = $state(true);
 
 	let groupData = $state({} as Group);
 	let members = $state([] as UserBadge[]);
-	let wallets = $state([] as GroupWallet[]); // Nuevo estado para las wallets
+	let wallets = $state([] as GroupWallet[]);
 
 	const groupId = page.params.group_id as string;
 
@@ -51,11 +54,17 @@
 	let showEditModal = $state(false);
 	let showCreateWalletModal = $state(false);
 	let showFundWalletModal = $state(false);
+	let showLeaveModal = $state(false); // Estado para el modal de salir
+	let showWithdrawModal = $state(false);
+	let showProposalsDrawer = $state(false);
+	let selectedCurrencyIdToWithdraw = $state<string>('');
 	let selectedWalletIdToFund = $state<string>('');
 	let selectedCurrencyId = $state<string>('');
 
 	let deleteLoading = $state(false);
 	let deleteError = $state('');
+	let leaveLoading = $state(false); // Loading de salir
+	let leaveError = $state(''); // Error de salir
 
 	// --- LOGIC ---
 	async function handleEditGroup(data: { name: string; description: string }) {
@@ -71,6 +80,19 @@
 		deleteLoading = false;
 		if (!isSuccess(res)) {
 			deleteError = res.message || 'Failed to delete group.';
+			return;
+		}
+		window.location.href = '/dashboard';
+	}
+
+	// Nueva función para salir del grupo
+	async function handleLeaveGroup() {
+		leaveLoading = true;
+		leaveError = '';
+		const res = await leaveGroup(groupId);
+		leaveLoading = false;
+		if (!isSuccess(res)) {
+			leaveError = res.message || 'Error al salir del grupo.';
 			return;
 		}
 		window.location.href = '/dashboard';
@@ -114,6 +136,11 @@
 		showFundWalletModal = true;
 	}
 
+	function openWithdrawModal(currencyId: string) {
+		selectedCurrencyIdToWithdraw = currencyId;
+		showWithdrawModal = true;
+	}
+
 	loadGroupData();
 	loadMembersData();
 	loadWalletsData();
@@ -140,6 +167,15 @@
 					<div class="flex items-start justify-between gap-4">
 						<h1 class="text-2xl font-bold tracking-tight text-black">{groupData.name}</h1>
 						<div class="flex items-center gap-2">
+							<Button
+								label="Propuestas"
+								variant="secondary"
+								onclick={() => (showProposalsDrawer = true)}
+							>
+								{#snippet icon()}
+									<HandCoins class="h-4 w-4" />
+								{/snippet}
+							</Button>
 							{#if groupData.status}
 								<span
 									class="rounded border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600"
@@ -147,15 +183,27 @@
 									{groupData.status}
 								</span>
 							{/if}
+
 							<button
 								onclick={() => (showEditModal = true)}
 								class="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+								title="Editar grupo"
 							>
 								<Pencil class="h-5 w-5" />
 							</button>
+
+							<button
+								onclick={() => (showLeaveModal = true)}
+								class="rounded-md p-1 text-gray-400 transition hover:bg-orange-50 hover:text-orange-500"
+								title="Salir del grupo"
+							>
+								<LogOut class="h-5 w-5" />
+							</button>
+
 							<button
 								onclick={() => (showDeleteModal = true)}
 								class="rounded-md p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+								title="Eliminar grupo"
 							>
 								<Trash2 class="h-5 w-5" />
 							</button>
@@ -267,7 +315,17 @@
 											</div>
 										</div>
 
-										<div>
+										<div class="flex items-center gap-2">
+											<Button
+												label="Retirar"
+												variant="secondary"
+												onclick={() => openWithdrawModal(wallet.currency_id)}
+											>
+												{#snippet icon()}
+													<HandCoins class="h-4 w-4" />
+												{/snippet}
+											</Button>
+
 											<Button
 												label="Fondear"
 												variant="secondary"
@@ -305,7 +363,7 @@
 				href="/dashboard"
 				class="text-sm font-medium text-gray-500 transition hover:text-black hover:underline"
 			>
-				← Back to Dashboard
+				← Volver al Dashboard
 			</a>
 		</div>
 
@@ -334,12 +392,44 @@
 			onsuccess={loadWalletsData}
 		/>
 
+		<ProposeWithdrawModal
+			open={showWithdrawModal}
+			group_id={groupData.id}
+			currency_id={selectedCurrencyIdToWithdraw}
+			onclose={() => {
+				showWithdrawModal = false;
+				selectedCurrencyIdToWithdraw = '';
+			}}
+			onsuccess={loadWalletsData}
+		/>
+
 		<EditGroup
 			open={showEditModal}
 			group={groupData}
 			onclose={() => (showEditModal = false)}
 			onedit={handleEditGroup}
 		/>
+		<WithdrawProposalDrawer
+			open={showProposalsDrawer}
+			group_id={groupData.id}
+			onclose={() => (showProposalsDrawer = false)}
+			onsuccess={loadWalletsData}
+		/>
+
+		<Confirm
+			open={showLeaveModal}
+			title="Salir del grupo"
+			description="Dejarás de tener acceso a las billeteras y transacciones."
+			message="¿Estás seguro de que querés salir de este grupo?"
+			onclose={() => {
+				showLeaveModal = false;
+				leaveError = '';
+			}}
+			onconfirm={handleLeaveGroup}
+			loading={leaveLoading}
+			error={leaveError}
+		/>
+
 		<Confirm
 			open={showDeleteModal}
 			title="Delete group"

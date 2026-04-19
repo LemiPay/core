@@ -8,7 +8,7 @@ use crate::models::proposal::{MyProposalStatus, NewProposal, Proposal, ProposalU
 use crate::models::proposals::new_member::{
     NewMemberProposalExpanded, ReceivedNewMemberProposalExpanded,
 };
-
+use crate::models::proposals::withdraw::WithdrawProposalExpanded;
 // Repos
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::repositories::traits::proposal_repo::ProposalRepository;
@@ -35,7 +35,7 @@ impl ProposalService {
     }
 
     /// # Get proposals of group
-    /// Returns a Vector of proposals bound to a group
+    /// Returns a Vector of new member proposals bound to a group
     ///
     /// ### Errors
     ///
@@ -230,5 +230,15 @@ impl ProposalService {
         self.group_repo
             .find_by_id(group_id)?
             .ok_or(AppError::BadRequest("Group does not exist".to_string()))
+    }
+
+    pub fn get_all_withdraw_proposals(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Vec<WithdrawProposalExpanded>, AppError> {
+        self.proposal_repo
+            .get_all_withdraw_proposals(group_id)
+            .map(|proposals| proposals.unwrap_or_default())
+            .map_err(AppError::Db)
     }
 }

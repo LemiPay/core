@@ -4,6 +4,7 @@ import type { ApiResponse } from '$lib/types/client.types';
 import type {
 	FundGroupWalletData,
 	Group,
+	GroupMember,
 	GroupSummary,
 	GroupWallet,
 	NewGroupData,
@@ -39,6 +40,12 @@ export async function updateGroup(group_id: string, data: UpdateGroupData): ApiR
 	return authedApiFetch(`/group/${group_id}`, {
 		method: 'PUT',
 		body: JSON.stringify(data)
+	});
+}
+
+export async function leaveGroup(group_id: string): ApiResponse<GroupMember> {
+	return authedApiFetch(`/group/${group_id}/leave`, {
+		method: 'POST'
 	});
 }
 

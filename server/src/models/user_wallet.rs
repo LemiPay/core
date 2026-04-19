@@ -32,5 +32,6 @@ pub struct WalletWithTickerDb {
     pub wallet_id: Uuid,
     pub address: String,
     pub balance: BigDecimal,
+    pub currency_id: Uuid,
     pub ticker: String,
 }
