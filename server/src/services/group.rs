@@ -6,7 +6,7 @@ use crate::handlers::group::NewGroupRequest;
 
 // Models
 use crate::models::group::{Group, GroupUpdate};
-use crate::models::user_in_group::{GroupFromUser, GroupMember, UserInGroup};
+use crate::models::user_in_group::{GroupFromUser, GroupMember, MyGroupRole, UserInGroup};
 
 // Repos
 use crate::repositories::traits::group_repo::GroupRepository;
@@ -95,6 +95,26 @@ impl GroupService {
         let result = self.group_repo.get_user_groups(user_id)?;
 
         Ok(result)
+    }
+
+    pub fn leave_group(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, AppError> {
+        if self.is_admin(user_id, group_id)? {
+            let members = self.get_group_members(group_id)?;
+
+            let has_other_admin = members
+                .iter()
+                .any(|m| m.user_id != user_id && m.role.eq(&MyGroupRole::Admin));
+
+            if !has_other_admin {
+                return Err(AppError::BadRequest(
+                    "Group must have at least one other admin".into(),
+                ));
+            }
+        }
+
+        self.group_repo
+            .remove_user_from_group(user_id, group_id)
+            .map_err(AppError::Db)
     }
 
     pub fn update_group(
