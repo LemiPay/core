@@ -29,6 +29,15 @@ pub struct FundRoundStatusResponse {
     pub is_completed: bool,
 }
 
+#[derive(Serialize)]
+pub struct FundRoundRemainingResponse {
+    pub remaining: String,
+    // true si el que llama es el último miembro del grupo que aún no aportó.
+    // En ese caso, el cliente debe enviar `remaining` exacto para cerrar la ronda
+    // sin dejar centavos colgados por errores de redondeo previos.
+    pub is_last_contributor: bool,
+}
+
 pub async fn create_fund_round(
     State(state): State<SharedState>,
     user: AuthUser,
@@ -85,6 +94,21 @@ pub async fn cancel_fund_round(
         .group_wallet_service
         .cancel_fund_round(user.user_id, fund_round_id)?;
     Ok(Json(result))
+}
+
+pub async fn get_fund_round_remaining(
+    State(state): State<SharedState>,
+    user: AuthUser,
+    Path(fund_round_id): Path<Uuid>,
+) -> Result<Json<FundRoundRemainingResponse>, AppError> {
+    let (remaining, is_last_contributor) = state
+        .group_wallet_service
+        .get_fund_round_remaining(user.user_id, fund_round_id)?;
+
+    Ok(Json(FundRoundRemainingResponse {
+        remaining: remaining.to_string(),
+        is_last_contributor,
+    }))
 }
 
 #[derive(Deserialize)]

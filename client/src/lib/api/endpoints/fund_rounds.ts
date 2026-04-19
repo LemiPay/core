@@ -6,6 +6,7 @@ import type {
 	CreateFundRoundData,
 	FundRoundContribution,
 	FundRoundProposalExpanded,
+	FundRoundRemainingResponse,
 	FundRoundStatusResponse
 } from '$lib/types/endpoints/fund_rounds.types';
 
@@ -60,5 +61,13 @@ export async function cancelFundRoundProposal(
 ): ApiResponse<FundRoundProposalExpanded> {
 	return authedApiFetch(`/group-wallet/fund-round/${fund_round_id}/cancel`, {
 		method: 'DELETE'
+	});
+}
+
+export async function getFundRoundRemaining(
+	fund_round_id: string
+): ApiResponse<FundRoundRemainingResponse> {
+	return authedApiFetch(`/group-wallet/fund-round/${fund_round_id}/remaining`, {
+		method: 'GET'
 	});
 }

@@ -286,4 +286,18 @@ impl FundRoundRepository for DieselFundRoundRepository {
 
         Ok(total.unwrap_or_default())
     }
+
+    // Cuenta la cantidad de usuarios distintos que aportaron a esta ronda.
+    // Como la regla de negocio actual es "un aporte por usuario por ronda",
+    // equivale a contar las filas de la tabla de contribuciones para esa ronda.
+    fn count_contributors(&self, fund_round_id: Uuid) -> Result<i64, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let count: i64 = fund_round_contribution::table
+            .filter(fund_round_contribution::fund_round_proposal_id.eq(fund_round_id))
+            .count()
+            .get_result(&mut conn)?;
+
+        Ok(count)
+    }
 }

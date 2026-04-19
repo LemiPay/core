@@ -40,3 +40,8 @@ export type ContributeFundRoundData = {
 	amount: string;
 	sender_wallet_id: string;
 };
+
+export type FundRoundRemainingResponse = {
+	remaining: string;
+	is_last_contributor: boolean;
+};

@@ -258,6 +258,46 @@ impl GroupWalletService {
         })
     }
 
+    // Devuelve el monto EXACTO que falta para completar la ronda (target - total_contribuido)
+    // junto con un flag que indica si el usuario es el ÚLTIMO miembro del grupo que aún no
+    // aportó. Si es el último, el cliente debe mandar este remaining exacto para cerrar la
+    // ronda sin dejar centavos colgados por errores de redondeo previos.
+    pub fn get_fund_round_remaining(
+        &self,
+        user_id: Uuid,
+        fund_round_id: Uuid,
+    ) -> Result<(BigDecimal, bool), AppError> {
+        let fund_round = self.find_fund_round(fund_round_id)?;
+        let group_id = fund_round.proposal.group_id;
+        self.validate_is_member(user_id, group_id)?;
+
+        let total_contributed = self.find_total_contribution(fund_round_id)?;
+        let target = fund_round.fund_round_proposal.target_amount.clone();
+
+        let remaining = &target - &total_contributed;
+
+        if remaining < BigDecimal::zero() {
+            return Err(AppError::BadRequest(
+                "Fund round is not active, insufficient funds, or amount exceeds remaining target"
+                    .into(),
+            ));
+        }
+
+        // Regla: el que llama es el "último" aportante si aún no aportó y queda exactamente
+        // un miembro sin aportar (él). Así sabemos que tiene que cubrir todo lo que falta.
+        let total_members = self.group_repo.get_group_members(group_id)?.len() as i64;
+        let contributors = self.fund_round_repo.count_contributors(fund_round_id)?;
+        let has_contributed = self
+            .fund_round_repo
+            .find_user_contrib(fund_round_id, user_id)?
+            .is_some();
+
+        let pending_members = total_members - contributors;
+        let is_last_contributor = !has_contributed && pending_members == 1;
+
+        Ok((remaining, is_last_contributor))
+    }
+
     pub fn cancel_fund_round(
         &self,
         user_id: Uuid,
@@ -269,7 +309,10 @@ impl GroupWalletService {
             return Err(AppError::BadRequest("Fund round is not active".into()));
         }
 
-        self.validate_is_admin(user_id, fund_round.proposal.group_id)?;
+        // Only the creator of the fund round can cancel it.
+        if fund_round.proposal.created_by != user_id {
+            return Err(AppError::Forbidden);
+        }
 
         self.proposal_repo
             .update_proposal_status(

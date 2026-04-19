@@ -8,7 +8,12 @@
 		Copy,
 		HandCoins,
 		LogOut,
-		ChevronDown
+		ChevronDown,
+		CircleCheckBig,
+		Users,
+		Calendar,
+		Target,
+		Ban
 	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/state';
@@ -22,6 +27,18 @@
 		getGroupWallets,
 		leaveGroup
 	} from '$lib/api/endpoints/groups';
+	import {
+		cancelFundRoundProposal,
+		contributeFundRound,
+		getFundRoundProposal,
+		getFundRoundRemaining,
+		getGroupFundRoundProposals,
+		getMyFundRoundContribution
+	} from '$lib/api/endpoints/fund_rounds';
+	import { getMyWallets } from '$lib/api/endpoints/wallets';
+
+	// Stores
+	import { authStore } from '$lib/stores/auth';
 
 	// Helpers
 	import { isSuccess } from '$lib/types/client.types';
@@ -30,6 +47,8 @@
 	import type { Group } from '$lib/types/endpoints/groups.types';
 	import type { UserBadge } from '$lib/types/endpoints/auth.types';
 	import type { GroupWallet } from '$lib/types/endpoints/groups.types';
+	import type { FundRoundStatusResponse } from '$lib/types/endpoints/fund_rounds.types';
+	import type { WalletCurrency } from '$lib/types/endpoints/wallets.types';
 
 	// Components
 	import UserIconBadge from '$lib/components/UserIconBadge.svelte';
@@ -39,7 +58,9 @@
 	import EditGroup from '$lib/components/modals/EditGroup.svelte';
 	import CreateGroupWallet from '$lib/components/modals/CreateGroupWallet.svelte';
 	import FundGroupWallet from '$lib/components/modals/FundGroupWallet.svelte';
+	import CreateFundRound from '$lib/components/modals/CreateFundRound.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
+	import { getProposalStatusDisplay } from '$lib/utils/proposal_status';
 	import ProposeWithdrawModal from '$lib/components/modals/ProposeWithdrawModal.svelte';
 	import WithdrawProposalDrawer from '$lib/components/WithdrawProposalDrawer.svelte';
 
@@ -68,6 +89,7 @@
 	let showLeaveModal = $state(false);
 	let showWithdrawModal = $state(false);
 	let showProposalsDrawer = $state(false);
+	let showCreateFundRoundModal = $state(false);
 	let selectedCurrencyIdToWithdraw = $state<string>('');
 	let selectedWalletIdToFund = $state<string>('');
 	let selectedCurrencyId = $state<string>('');
@@ -77,15 +99,50 @@
 	let leaveLoading = $state(false);
 	let leaveError = $state('');
 
-	// --- FUND ROUNDS MOCK STATE ---
-	let showFundRoundAccordion = $state(false);
-	let selectedFundWallet = $state('');
+	// --- FUND ROUNDS STATE ---
+	let fundRounds = $state<FundRoundStatusResponse[]>([]);
+	let loadingFundRounds = $state(true);
+	let fundRoundsError = $state('');
+	let userWallets = $state<WalletCurrency[]>([]);
+	// proposal_id -> amount aportado por el usuario actual (string BigDecimal)
+	let myContributions = $state<Record<string, string>>({});
+	let expandedFundRoundId = $state<string | null>(null);
+	let selectedContribWalletId = $state('');
+	let contribLoading = $state(false);
+	let contribError = $state('');
 
-	// Mock de rondas de fondeo
-	const mockFundRounds = [
-		{ id: 1, title: 'Ronda #1', goal: 500, raised: 375, currency: 'USDC' },
-		{ id: 2, title: 'Ronda #2', goal: 1000, raised: 200, currency: 'USDC' }
-	];
+	let showCancelFundRoundModal = $state(false);
+	let fundRoundToCancel = $state<string>('');
+	let cancelFundRoundLoading = $state(false);
+	let cancelFundRoundError = $state('');
+
+	let showPastFundRounds = $state(false);
+
+	const currentUserId = $derived($authStore.user?.id);
+
+	// Activas: las que todavía pueden recibir aportes o están a la espera.
+	// Pasadas: finalizadas, canceladas o que no pueden avanzar.
+	const activeFundRounds = $derived(
+		fundRounds.filter((r) => {
+			const s = r.fund_round.proposal.status;
+			return s === 'Pending' || s === 'Approved';
+		})
+	);
+	const pastFundRounds = $derived(
+		fundRounds.filter((r) => {
+			const s = r.fund_round.proposal.status;
+			return s !== 'Pending' && s !== 'Approved';
+		})
+	);
+
+	function recommendedAmount(target: string): number {
+		const n = Math.max(1, members.length);
+		return Number(target) / n;
+	}
+
+	function formatAmount(value: number): string {
+		return value.toFixed(2);
+	}
 
 	// --- LOGIC ---
 	async function handleEditGroup(data: { name: string; description: string }) {
@@ -139,6 +196,7 @@
 	}
 
 	async function loadWalletsData() {
+		loadingWallets = true;
 		try {
 			const res = await getGroupWallets(groupId);
 			if (!isSuccess(res)) return;
@@ -158,6 +216,148 @@
 		selectedCurrencyIdToWithdraw = currencyId;
 		showWithdrawModal = true;
 	}
+
+	async function loadFundRoundsData() {
+		loadingFundRounds = true;
+		fundRoundsError = '';
+
+		const [roundsRes, walletsRes] = await Promise.all([
+			getGroupFundRoundProposals(groupId),
+			getMyWallets()
+		]);
+
+		if (!isSuccess(roundsRes)) {
+			fundRoundsError = roundsRes.message || 'No se pudieron cargar las rondas de fondeo.';
+			loadingFundRounds = false;
+			return;
+		}
+
+		if (isSuccess(walletsRes)) {
+			userWallets = walletsRes.body.flatMap((group) => group.currencies);
+		}
+
+		// Traemos los totales aportados por cada ronda en paralelo
+		const statuses = await Promise.all(
+			roundsRes.body.map((round) => getFundRoundProposal(round.proposal.id))
+		);
+
+		fundRounds = statuses
+			.filter(isSuccess)
+			.map((res) => res.body)
+			.sort(
+				(a, b) =>
+					new Date(b.fund_round.proposal.created_at).getTime() -
+					new Date(a.fund_round.proposal.created_at).getTime()
+			);
+
+		// Traemos mi aporte actual para cada ronda activa (el endpoint solo responde en Approved)
+		const approved = fundRounds.filter((s) => s.fund_round.proposal.status === 'Approved');
+		const contribResponses = await Promise.all(
+			approved.map((s) => getMyFundRoundContribution(s.fund_round.proposal.id))
+		);
+
+		const nextContributions: Record<string, string> = {};
+		approved.forEach((s, i) => {
+			const res = contribResponses[i];
+			if (isSuccess(res)) {
+				nextContributions[s.fund_round.proposal.id] = res.body.amount;
+			}
+		});
+		myContributions = nextContributions;
+
+		loadingFundRounds = false;
+	}
+
+	function toggleFundRoundAccordion(fundRoundId: string) {
+		if (expandedFundRoundId === fundRoundId) {
+			expandedFundRoundId = null;
+		} else {
+			expandedFundRoundId = fundRoundId;
+		}
+		selectedContribWalletId = '';
+		contribError = '';
+	}
+
+	async function handleContribute(status: FundRoundStatusResponse) {
+		if (!selectedContribWalletId) return;
+
+		const proposalId = status.fund_round.proposal.id;
+
+		contribLoading = true;
+		contribError = '';
+
+		// Le preguntamos al backend (1) el monto EXACTO que falta y (2) si este usuario
+		// es el último miembro que aún no aportó. Si es el último, manda el remaining
+		// exacto para cerrar la ronda sin dejar centavos colgados por redondeos previos,
+		// aunque termine aportando un poquito más que los demás.
+		const remainingRes = await getFundRoundRemaining(proposalId);
+		if (!isSuccess(remainingRes)) {
+			contribLoading = false;
+			contribError = remainingRes.message || 'No se pudo calcular el monto a aportar.';
+			return;
+		}
+
+		const recommended = recommendedAmount(status.target_amount);
+		const { remaining: remainingStr, is_last_contributor } = remainingRes.body;
+
+		const amount = is_last_contributor ? remainingStr : formatAmount(recommended);
+
+		const res = await contributeFundRound(proposalId, {
+			amount,
+			sender_wallet_id: selectedContribWalletId
+		});
+
+		contribLoading = false;
+
+		if (!isSuccess(res)) {
+			contribError = res.message || 'Error al aportar a la ronda de fondeo.';
+			return;
+		}
+
+		expandedFundRoundId = null;
+		selectedContribWalletId = '';
+		await loadFundRoundsData();
+	}
+
+	function openCancelFundRoundModal(fundRoundId: string) {
+		fundRoundToCancel = fundRoundId;
+		cancelFundRoundError = '';
+		showCancelFundRoundModal = true;
+	}
+
+	async function handleCancelFundRound() {
+		if (!fundRoundToCancel) return;
+
+		cancelFundRoundLoading = true;
+		cancelFundRoundError = '';
+
+		const res = await cancelFundRoundProposal(fundRoundToCancel);
+
+		cancelFundRoundLoading = false;
+
+		if (!isSuccess(res)) {
+			cancelFundRoundError = res.message || 'Error al cancelar la ronda de fondeo.';
+			return;
+		}
+
+		showCancelFundRoundModal = false;
+		fundRoundToCancel = '';
+		await loadFundRoundsData();
+	}
+
+	// Recargamos las wallets del grupo cada vez que se entra a la pestaña "Billeteras"
+	$effect(() => {
+		if (activeTab === 'wallets') {
+			loadWalletsData();
+		}
+	});
+
+	// Recargamos las rondas de fondeo cada vez que se entra a la pestaña "Rondas de Fondeo"
+	$effect(() => {
+		if (activeTab === 'fund_rounds') {
+			loadFundRoundsData();
+		}
+	});
 
 	loadGroupData();
 	loadMembersData();
@@ -375,126 +575,356 @@
 				<!-- RONDAS DE FONDEO TAB -->
 				{#if activeTab === 'fund_rounds'}
 					<div class="animate-in fade-in slide-in-from-bottom-2 space-y-4 duration-300">
-						<div class="flex items-center justify-between">
-							<h2 class="text-sm font-medium text-black">Rondas de Fondeo</h2>
-							<Button label="Nueva Ronda" variant="primary">
+						<div class="flex items-start justify-between gap-4">
+							<div class="space-y-1">
+								<h2 class="text-sm font-medium text-black">Rondas de Fondeo</h2>
+								<p class="text-xs text-gray-500">
+									Aportes colectivos para fondear una billetera del grupo.
+								</p>
+							</div>
+							<Button
+								label="Nueva Ronda"
+								variant="primary"
+								onclick={() => (showCreateFundRoundModal = true)}
+							>
 								{#snippet icon()}
 									<Plus class="h-4 w-4" />
 								{/snippet}
 							</Button>
 						</div>
 
-						<div class="space-y-3 pt-2">
-							{#each mockFundRounds as round}
-								{@const progress = Math.round((round.raised / round.goal) * 100)}
-								{@const remaining = round.goal - round.raised}
-								{@const isOpen = showFundRoundAccordion && round.id === 1}
+						{#if fundRoundsError}
+							<div class="rounded-md bg-red-50 p-3 text-sm text-red-600">
+								{fundRoundsError}
+							</div>
+						{/if}
 
-								<div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
-									<!-- Card principal -->
+						{#if loadingFundRounds}
+							<div
+								class="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-black"
+							></div>
+						{:else if fundRounds.length === 0}
+							<div class="rounded-lg border border-dashed border-gray-300 p-8 text-center">
+								<HandCoins class="mx-auto mb-3 h-8 w-8 text-gray-400" />
+								<p class="text-sm font-medium text-black">Sin rondas de fondeo</p>
+								<p class="mb-4 text-sm text-gray-500">Este grupo no tiene rondas de fondeo aún.</p>
+								<Button
+									label="Crear primera ronda"
+									variant="secondary"
+									onclick={() => (showCreateFundRoundModal = true)}
+								/>
+							</div>
+						{:else}
+							{#snippet fundRoundCard(status: FundRoundStatusResponse)}
+								{@const proposalId = status.fund_round.proposal.id}
+								{@const proposalStatus = status.fund_round.proposal.status}
+								{@const target = Number(status.target_amount)}
+								{@const raised = Number(status.total_contributed)}
+								{@const progress =
+									target > 0 ? Math.min(100, Math.round((raised / target) * 100)) : 0}
+								{@const remaining = Math.max(0, target - raised)}
+								{@const ticker =
+									wallets.find(
+										(w) => w.currency_id === status.fund_round.fund_round_proposal.currency_id
+									)?.currency_ticker ?? 'USDC'}
+								{@const compatibleWallets = userWallets.filter(
+									(w) => w.currency_id === status.fund_round.fund_round_proposal.currency_id
+								)}
+								{@const recommended = recommendedAmount(status.target_amount)}
+								{@const myContribution = Number(myContributions[proposalId] ?? '0')}
+								{@const hasContributed = myContribution > 0}
+								{@const myRemaining = Math.max(0, recommended - myContribution)}
+								{@const canContribute =
+									proposalStatus === 'Approved' && !status.is_completed && !hasContributed}
+								{@const isCreator =
+									!!currentUserId && status.fund_round.proposal.created_by === currentUserId}
+								{@const canCancel =
+									isCreator && proposalStatus === 'Approved' && !status.is_completed}
+								{@const statusDisplay = getProposalStatusDisplay(proposalStatus)}
+								{@const isOpen = expandedFundRoundId === proposalId}
+
+								<div
+									class="group rounded-xl border border-gray-200 bg-white transition hover:border-gray-300 hover:shadow-sm"
+								>
 									<div class="space-y-4 p-5">
-										<!-- Fila superior: título + objetivo -->
-										<div class="flex items-start justify-between gap-2">
-											<div>
-												<p class="text-xs font-medium tracking-wider text-gray-400 uppercase">
-													{round.title}
-												</p>
-												<p class="mt-0.5 text-xl font-bold text-black">
-													${round.goal}
-													<span class="ml-1 text-sm font-medium text-gray-500"
-														>{round.currency}</span
-													>
-												</p>
-											</div>
-											<span
-												class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600"
-											>
-												{progress}%
-											</span>
-										</div>
-
-										<!-- Progress bar minimalista -->
-										<div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-											<div
-												class="h-full rounded-full bg-black transition-all duration-700"
-												style="width: {progress}%"
-											></div>
-										</div>
-
-										<!-- Fila inferior: info + botón -->
-										<div class="flex items-center justify-between gap-4">
-											<p class="text-xs text-gray-500">
-												<span class="font-medium text-gray-700">{progress}% completado</span>
-												&mdash; Faltan
-												<span class="font-medium text-gray-700">${remaining} {round.currency}</span>
-											</p>
-
-											<button
-												onclick={() =>
-													(showFundRoundAccordion =
-														round.id === 1 ? !showFundRoundAccordion : true)}
-												class="flex items-center gap-1.5 rounded-md bg-black px-3.5 py-2 text-xs font-medium text-white transition hover:bg-gray-800 active:scale-95"
-											>
-												Aportar mi parte
-												<ChevronDown
-													class={[
-														'h-3.5 w-3.5 transition-transform duration-200',
-														isOpen ? 'rotate-180' : ''
-													].join(' ')}
-												/>
-											</button>
-										</div>
-									</div>
-
-									<!-- Panel acordeón -->
-									{#if isOpen}
-										<div
-											transition:slide={{ duration: 220 }}
-											class="space-y-4 border-t border-gray-100 bg-gray-50 px-5 py-4"
-										>
-											<p class="text-xs font-medium tracking-wider text-gray-500 uppercase">
-												Elegí tu wallet para aportar
-											</p>
-
-											<div class="space-y-3">
-												<select
-													bind:value={selectedFundWallet}
-													class="w-full rounded-md border border-gray-200 bg-white px-3 py-2.5 text-sm text-black transition outline-none focus:border-black focus:ring-1 focus:ring-black"
+										<div class="flex items-start justify-between gap-3">
+											<div class="flex items-start gap-3">
+												<div
+													class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-700"
 												>
-													<option value="" disabled selected>Seleccionar wallet personal...</option>
-													{#each wallets as wallet}
-														<option value={wallet.id}>
-															{shortenAddress(wallet.address)} — ${wallet.balance}
-															{wallet.currency_ticker ?? 'USDC'}
-														</option>
-													{/each}
-													<!-- Fallback mock si no hay wallets cargadas -->
-													{#if wallets.length === 0}
-														<option value="mock-1">0xABCD...1234 — $200.00 USDC</option>
-														<option value="mock-2">0xEFGH...5678 — $50.00 USDC</option>
-													{/if}
-												</select>
-
-												<div class="flex items-center justify-end gap-2">
-													<button
-														onclick={() => (showFundRoundAccordion = false)}
-														class="rounded-md px-3.5 py-2 text-xs font-medium text-gray-500 transition hover:text-black"
+													<HandCoins class="h-5 w-5" />
+												</div>
+												<div class="space-y-1">
+													<div class="flex items-baseline gap-1.5">
+														<span class="text-2xl font-bold tracking-tight text-black"
+															>${target}</span
+														>
+														<span
+															class="rounded bg-black px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase"
+														>
+															{ticker}
+														</span>
+													</div>
+													<p
+														class="flex items-center gap-1 text-[11px] font-medium tracking-wide text-gray-400"
 													>
-														Cancelar
-													</button>
-													<button
-														class="rounded-md bg-black px-4 py-2 text-xs font-medium text-white transition hover:bg-gray-800 active:scale-95 disabled:opacity-40"
-														disabled={!selectedFundWallet}
-													>
-														Confirmar Aporte
-													</button>
+														<Calendar class="h-3 w-3" />
+														{new Date(status.fund_round.proposal.created_at).toLocaleDateString(
+															'es-AR',
+															{
+																day: '2-digit',
+																month: 'short',
+																year: 'numeric'
+															}
+														)}
+													</p>
 												</div>
 											</div>
+
+											<div class="flex shrink-0 items-center gap-1.5">
+												<span
+													class="rounded-full border px-2.5 py-1 text-xs font-medium {statusDisplay.classes}"
+												>
+													{statusDisplay.label}
+												</span>
+
+												{#if canCancel}
+													<div class="group/cancel relative flex">
+														<button
+															type="button"
+															onclick={() => openCancelFundRoundModal(proposalId)}
+															aria-label="Cancelar ronda"
+															class="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 active:scale-95"
+														>
+															<Ban class="h-3.5 w-3.5" />
+														</button>
+
+														<span
+															class="pointer-events-none invisible absolute top-full right-0 z-50 mt-2 rounded-md bg-[#222327] px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-sm transition-all duration-200 group-hover/cancel:visible group-hover/cancel:opacity-100"
+														>
+															Cancelar ronda
+														</span>
+													</div>
+												{/if}
+											</div>
+										</div>
+
+										<div class="space-y-2">
+											<div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+												<div
+													class="h-full rounded-full bg-linear-to-r from-gray-800 to-black transition-all duration-700"
+													style="width: {progress}%"
+												></div>
+											</div>
+
+											<div class="flex items-center justify-between text-xs">
+												<span class="font-medium text-gray-700">
+													${formatAmount(raised)}
+													<span class="text-gray-400">/ ${formatAmount(target)} {ticker}</span>
+												</span>
+												<span class="text-gray-500">
+													<span class="font-medium text-gray-700">{progress}%</span>
+													{#if remaining > 0}
+														— faltan ${formatAmount(remaining)} {ticker}
+													{:else}
+														— completado
+													{/if}
+												</span>
+											</div>
+										</div>
+
+										{#if proposalStatus === 'Approved'}
+											<div
+												class="flex flex-col gap-3 rounded-lg border border-gray-100 bg-gray-50/70 px-3 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between"
+											>
+												<div class="flex items-start gap-2">
+													<Target class="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" />
+													<div class="space-y-0.5">
+														<p class="text-gray-500">
+															Te toca aportar
+															<span class="font-semibold text-black"
+																>${formatAmount(recommended)} {ticker}</span
+															>
+														</p>
+														{#if members.length > 0}
+															<p class="flex items-center gap-1 text-[11px] text-gray-400">
+																<Users class="h-3 w-3" />
+																${formatAmount(target)} entre {members.length}
+																{members.length === 1 ? 'miembro' : 'miembros'}
+															</p>
+														{/if}
+													</div>
+												</div>
+
+												<div class="flex items-center gap-4 self-stretch sm:self-auto">
+													{#if hasContributed}
+														<span
+															class="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-green-200 bg-green-50 px-2 py-1 font-medium text-green-700 sm:flex-none"
+														>
+															<CircleCheckBig class="h-3 w-3" />
+															Aportaste ${formatAmount(myContribution)}
+															{ticker}
+														</span>
+													{:else}
+														<span
+															class="flex-1 text-right font-medium text-gray-700 sm:flex-none sm:text-left"
+														>
+															Te falta ${formatAmount(myRemaining)}
+															{ticker}
+														</span>
+													{/if}
+
+													{#if canContribute}
+														<button
+															onclick={() => toggleFundRoundAccordion(proposalId)}
+															class="flex shrink-0 items-center gap-1.5 rounded-md bg-black px-3 py-1.5 text-xs font-medium text-white transition hover:bg-gray-800 active:scale-95"
+														>
+															Aportar
+															<ChevronDown
+																class={[
+																	'h-3.5 w-3.5 transition-transform duration-200',
+																	isOpen ? 'rotate-180' : ''
+																].join(' ')}
+															/>
+														</button>
+													{/if}
+												</div>
+											</div>
+										{/if}
+									</div>
+
+									{#if isOpen && canContribute}
+										<div
+											transition:slide={{ duration: 220 }}
+											class="space-y-4 overflow-hidden rounded-b-xl border-t border-gray-100 bg-gray-50/60 px-5 py-4"
+										>
+											<div class="space-y-1">
+												<p class="text-[11px] font-medium tracking-wider text-gray-500 uppercase">
+													Aportar a esta ronda
+												</p>
+												<p class="text-xs text-gray-500">
+													Elegí desde qué wallet personal salen los fondos.
+												</p>
+											</div>
+
+											{#if compatibleWallets.length === 0}
+												<div
+													class="flex items-start gap-2 rounded-md border border-gray-200 bg-white p-3 text-xs text-gray-500"
+												>
+													<Wallet class="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" />
+													<span>No tenés wallets compatibles con la moneda de esta ronda.</span>
+												</div>
+											{:else}
+												<div class="space-y-3">
+													<select
+														bind:value={selectedContribWalletId}
+														class="w-full rounded-md border border-gray-200 bg-white px-3 py-2.5 text-sm text-black transition outline-none focus:border-black focus:ring-1 focus:ring-black"
+													>
+														<option value="" disabled>Seleccionar wallet personal...</option>
+														{#each compatibleWallets as wallet (wallet.wallet_id)}
+															<option value={wallet.wallet_id}>
+																{shortenAddress(wallet.address)} — ${wallet.balance}
+																{wallet.ticker}
+															</option>
+														{/each}
+													</select>
+
+													<div
+														class="flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2.5 text-sm"
+													>
+														<span class="text-gray-500">Monto a aportar</span>
+														<span class="flex items-baseline gap-1.5">
+															<span class="font-semibold text-black">
+																${formatAmount(recommended)}
+															</span>
+															<span
+																class="rounded bg-black px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase"
+															>
+																{ticker}
+															</span>
+														</span>
+													</div>
+
+													{#if contribError}
+														<p class="text-xs text-red-500">{contribError}</p>
+													{/if}
+
+													<div class="flex items-center justify-end gap-2">
+														<button
+															onclick={() => toggleFundRoundAccordion(proposalId)}
+															class="rounded-md px-3.5 py-2 text-xs font-medium text-gray-500 transition hover:text-black"
+															disabled={contribLoading}
+														>
+															Cancelar
+														</button>
+														<button
+															onclick={() => handleContribute(status)}
+															class="rounded-md bg-black px-4 py-2 text-xs font-medium text-white transition hover:bg-gray-800 active:scale-95 disabled:opacity-40"
+															disabled={!selectedContribWalletId || contribLoading}
+														>
+															{contribLoading
+																? 'Enviando...'
+																: `Confirmar aporte de $${formatAmount(recommended)} ${ticker}`}
+														</button>
+													</div>
+												</div>
+											{/if}
 										</div>
 									{/if}
 								</div>
-							{/each}
-						</div>
+							{/snippet}
+
+							<div class="space-y-3 pt-2">
+								{#if activeFundRounds.length > 0}
+									{#each activeFundRounds as status (status.fund_round.proposal.id)}
+										{@render fundRoundCard(status)}
+									{/each}
+								{:else}
+									<div
+										class="flex flex-col items-center gap-1 rounded-xl border border-dashed border-gray-300 p-6 text-center"
+									>
+										<HandCoins class="h-6 w-6 text-gray-400" />
+										<p class="text-sm font-medium text-black">No hay rondas activas</p>
+										<p class="text-xs text-gray-500">
+											Todas las rondas están finalizadas o canceladas.
+										</p>
+									</div>
+								{/if}
+
+								{#if pastFundRounds.length > 0}
+									<div class="flex items-center gap-3 pt-4 pb-1">
+										<div class="h-px flex-1 bg-gray-200"></div>
+										<button
+											type="button"
+											onclick={() => (showPastFundRounds = !showPastFundRounds)}
+											class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-[11px] font-medium text-gray-600 transition hover:border-gray-300 hover:text-black"
+										>
+											{showPastFundRounds ? 'Ocultar' : 'Ver'} rondas pasadas
+											<span
+												class="rounded-full bg-gray-100 px-1.5 text-[10px] font-semibold text-gray-600"
+											>
+												{pastFundRounds.length}
+											</span>
+											<ChevronDown
+												class={[
+													'h-3 w-3 transition-transform duration-200',
+													showPastFundRounds ? 'rotate-180' : ''
+												].join(' ')}
+											/>
+										</button>
+										<div class="h-px flex-1 bg-gray-200"></div>
+									</div>
+
+									{#if showPastFundRounds}
+										<div transition:slide={{ duration: 220 }} class="space-y-3">
+											{#each pastFundRounds as status (status.fund_round.proposal.id)}
+												{@render fundRoundCard(status)}
+											{/each}
+										</div>
+									{/if}
+								{/if}
+							</div>
+						{/if}
 					</div>
 				{/if}
 			</div>
@@ -556,6 +986,12 @@
 			onclose={() => (showProposalsDrawer = false)}
 			onsuccess={loadWalletsData}
 		/>
+		<CreateFundRound
+			open={showCreateFundRoundModal}
+			group_id={groupData.id}
+			onclose={() => (showCreateFundRoundModal = false)}
+			onsuccess={loadFundRoundsData}
+		/>
 		<Confirm
 			open={showLeaveModal}
 			title="Salir del grupo"
@@ -581,6 +1017,20 @@
 			onconfirm={handleDeleteGroup}
 			loading={deleteLoading}
 			error={deleteError}
+		/>
+		<Confirm
+			open={showCancelFundRoundModal}
+			title="Cancelar ronda de fondeo"
+			description="Los aportes realizados no se devuelven automáticamente."
+			message="¿Seguro que querés cancelar esta ronda de fondeo?"
+			onclose={() => {
+				showCancelFundRoundModal = false;
+				cancelFundRoundError = '';
+				fundRoundToCancel = '';
+			}}
+			onconfirm={handleCancelFundRound}
+			loading={cancelFundRoundLoading}
+			error={cancelFundRoundError}
 		/>
 	{/if}
 </div>
