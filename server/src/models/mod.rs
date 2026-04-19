@@ -1,4 +1,5 @@
 pub mod currency;
+pub mod expense;
 pub mod group;
 pub mod proposal;
 pub mod proposals;
