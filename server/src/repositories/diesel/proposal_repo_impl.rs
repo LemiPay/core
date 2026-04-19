@@ -335,4 +335,31 @@ impl ProposalRepository for DieselProposalRepository {
             proposal_type: ProposalType::Withdraw,
         }))
     }
+
+    fn get_all_withdraw_proposals(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Option<Vec<WithdrawProposalExpanded>>, DbError> {
+        let mut conn = self.db.get_conn()?;
+
+        let results = withdraw_proposal::table
+            .inner_join(proposal::table.on(withdraw_proposal::proposal_id.eq(proposal::id)))
+            .filter(proposal::group_id.eq(group_id))
+            .load::<(WithdrawProposal, Proposal)>(&mut conn)?;
+
+        if results.is_empty() {
+            return Ok(None);
+        }
+
+        let expanded_proposals = results
+            .into_iter()
+            .map(|(wp, p)| WithdrawProposalExpanded {
+                proposal: p,
+                withdraw_proposal: wp,
+                proposal_type: ProposalType::Withdraw,
+            })
+            .collect();
+
+        Ok(Some(expanded_proposals))
+    }
 }

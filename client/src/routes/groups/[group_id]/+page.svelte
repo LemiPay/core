@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Trash2, Pencil, Wallet, Coins, Plus, Copy, LogOut } from 'lucide-svelte';
+	import { Trash2, Pencil, Wallet, Coins, Plus, Copy, HandCoins, LogOut } from 'lucide-svelte';
 	import { page } from '$app/state';
 
 	// Api
@@ -9,7 +9,7 @@
 		updateGroup,
 		deleteGroup,
 		getGroupWallets,
-		leaveGroup // Agregamos el endpoint
+		leaveGroup
 	} from '$lib/api/endpoints/groups';
 
 	// Helpers
@@ -29,6 +29,8 @@
 	import CreateGroupWallet from '$lib/components/modals/CreateGroupWallet.svelte';
 	import FundGroupWallet from '$lib/components/modals/FundGroupWallet.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
+	import ProposeWithdrawModal from '$lib/components/modals/ProposeWithdrawModal.svelte';
+	import WithdrawProposalDrawer from '$lib/components/WithdrawProposalDrawer.svelte';
 
 	// --- STATES ---
 	let loading = $state(true);
@@ -53,6 +55,9 @@
 	let showCreateWalletModal = $state(false);
 	let showFundWalletModal = $state(false);
 	let showLeaveModal = $state(false); // Estado para el modal de salir
+	let showWithdrawModal = $state(false);
+	let showProposalsDrawer = $state(false);
+	let selectedCurrencyIdToWithdraw = $state<string>('');
 	let selectedWalletIdToFund = $state<string>('');
 	let selectedCurrencyId = $state<string>('');
 
@@ -131,6 +136,11 @@
 		showFundWalletModal = true;
 	}
 
+	function openWithdrawModal(currencyId: string) {
+		selectedCurrencyIdToWithdraw = currencyId;
+		showWithdrawModal = true;
+	}
+
 	loadGroupData();
 	loadMembersData();
 	loadWalletsData();
@@ -157,6 +167,15 @@
 					<div class="flex items-start justify-between gap-4">
 						<h1 class="text-2xl font-bold tracking-tight text-black">{groupData.name}</h1>
 						<div class="flex items-center gap-2">
+							<Button
+								label="Propuestas"
+								variant="secondary"
+								onclick={() => (showProposalsDrawer = true)}
+							>
+								{#snippet icon()}
+									<HandCoins class="h-4 w-4" />
+								{/snippet}
+							</Button>
 							{#if groupData.status}
 								<span
 									class="rounded border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600"
@@ -284,6 +303,7 @@
 												<span
 													class="rounded bg-black px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase"
 												>
+													<!-- ESTO ESTA HARDCODEADO TODO hacer que el back entregue tmb el ticker asi lo vemos aca-->
 													{wallet.currency_ticker ? wallet.currency_ticker : 'USDC'}
 												</span>
 											</div>
@@ -295,7 +315,17 @@
 											</div>
 										</div>
 
-										<div>
+										<div class="flex items-center gap-2">
+											<Button
+												label="Retirar"
+												variant="secondary"
+												onclick={() => openWithdrawModal(wallet.currency_id)}
+											>
+												{#snippet icon()}
+													<HandCoins class="h-4 w-4" />
+												{/snippet}
+											</Button>
+
 											<Button
 												label="Fondear"
 												variant="secondary"
@@ -333,7 +363,7 @@
 				href="/dashboard"
 				class="text-sm font-medium text-gray-500 transition hover:text-black hover:underline"
 			>
-				← Back to Dashboard
+				← Volver al Dashboard
 			</a>
 		</div>
 
@@ -362,11 +392,28 @@
 			onsuccess={loadWalletsData}
 		/>
 
+		<ProposeWithdrawModal
+			open={showWithdrawModal}
+			group_id={groupData.id}
+			currency_id={selectedCurrencyIdToWithdraw}
+			onclose={() => {
+				showWithdrawModal = false;
+				selectedCurrencyIdToWithdraw = '';
+			}}
+			onsuccess={loadWalletsData}
+		/>
+
 		<EditGroup
 			open={showEditModal}
 			group={groupData}
 			onclose={() => (showEditModal = false)}
 			onedit={handleEditGroup}
+		/>
+		<WithdrawProposalDrawer
+			open={showProposalsDrawer}
+			group_id={groupData.id}
+			onclose={() => (showProposalsDrawer = false)}
+			onsuccess={loadWalletsData}
 		/>
 
 		<Confirm

@@ -63,4 +63,9 @@ pub trait ProposalRepository: Send + Sync {
         proposal_id: Uuid,
         currency_id: Uuid,
     ) -> Result<Option<WithdrawProposalExpanded>, DbError>;
+
+    fn get_all_withdraw_proposals(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Option<Vec<WithdrawProposalExpanded>>, DbError>;
 }
