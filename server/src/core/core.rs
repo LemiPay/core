@@ -1,10 +1,10 @@
 use crate::core::balances_map::BalancesMap;
+use crate::models::expense::Expense;
 use crate::models::transaction::{MyTransactionType, Transaction};
 use crate::schema::transaction::amount;
 use bigdecimal::{BigDecimal, Zero};
 use std::collections::HashMap;
 use uuid::Uuid;
-use crate::models::expense::Expense;
 
 /// Función central de LemiPay que reconstruye el estado actual de los balances.
 ///
@@ -14,7 +14,11 @@ use crate::models::expense::Expense;
 /// tengan alguna transacción asociada en el historial.
 /// Si una transacción hace referencia a un usuario que no está en esta lista,
 /// el programa entrará en pánico para evitar corrupción de datos.
-pub fn core(users_id: Vec<Uuid>, transactions: Vec<Transaction>, expenses: Vec<Expense>) -> BalancesMap {
+pub fn core(
+    users_id: Vec<Uuid>,
+    transactions: Vec<Transaction>,
+    expenses: Vec<Expense>,
+) -> BalancesMap {
     let balances = create_empty_map(users_id);
 
     let balances = read_all_tx(transactions, balances);

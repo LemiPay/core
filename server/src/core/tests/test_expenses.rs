@@ -14,11 +14,7 @@ mod tests {
         // Expense de 90: alice paga por todos
         // add alice 90 → alice=90 bob=0  grupo=90
         // remove_all 90 → alice=45 bob=-45 grupo=0
-        let result = core(
-            vec![alice, bob],
-            vec![],
-            vec![make_expense(alice, "90")],
-        );
+        let result = core(vec![alice, bob], vec![], vec![make_expense(alice, "90")]);
 
         assert_eq!(result.get_user_balance(&alice).unwrap(), &dec("45"));
         assert_eq!(result.get_user_balance(&bob).unwrap(), &dec("-45"));
