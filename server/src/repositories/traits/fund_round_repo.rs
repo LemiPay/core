@@ -18,6 +18,11 @@ pub trait FundRoundRepository: Send + Sync {
     fn find_fund_round(&self, fund_round_id: Uuid)
     -> Result<Option<FundProposalExpanded>, DbError>;
 
+    fn get_all_fund_round_proposals(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Vec<FundProposalExpanded>, DbError>;
+
     fn get_total_contributed(&self, fund_round_id: Uuid) -> Result<BigDecimal, DbError>;
 
     fn create_contribution(
@@ -40,4 +45,6 @@ pub trait FundRoundRepository: Send + Sync {
         user_id: Uuid,
         fund_round_id: Uuid,
     ) -> Result<BigDecimal, DbError>;
+
+    fn count_contributors(&self, fund_round_id: Uuid) -> Result<i64, DbError>;
 }
