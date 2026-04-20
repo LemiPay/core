@@ -16,14 +16,27 @@ impl BalancesMap {
             group_balance,
         }
     }
-    pub fn add_balance_to_user(&self, user_id: Uuid, balance: BigDecimal) -> BalancesMap {
+    // Fíjate en el Result de acá arriba
+    pub fn add_balance_to_user(
+        &self,
+        user_id: Uuid,
+        balance: BigDecimal,
+    ) -> Result<BalancesMap, &'static str> {
         let mut new_balances: HashMap<Uuid, BigDecimal> = self.balances.clone();
+
+        // Validación clave que hace que devuelva Err
+        if !new_balances.contains_key(&user_id) {
+            return Err("Operación denegada: El usuario no existe en este grupo.");
+        }
+
         new_balances.entry(user_id).and_modify(|previous_balance| {
             *previous_balance += balance.clone();
         });
 
         let new_group_balance = self.group_balance.clone() + balance;
-        BalancesMap::new(new_balances, new_group_balance)
+
+        // Retornamos con Ok()
+        Ok(BalancesMap::new(new_balances, new_group_balance))
     }
     pub fn get_user_balance(&self, user_id: &Uuid) -> Option<&BigDecimal> {
         self.balances.get(user_id)

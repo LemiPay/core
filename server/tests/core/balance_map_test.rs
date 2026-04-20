@@ -1,5 +1,6 @@
 #[path = "../../src/core/balances_map.rs"]
 mod balances_map;
+
 #[cfg(test)]
 mod tests {
     use super::balances_map::BalancesMap;
@@ -50,8 +51,9 @@ mod tests {
     fn test_add_balance_to_user_existente() {
         let (mapa, u1, _, _) = setup_mapa_basico();
 
-        // Le sumamos 5.5 al usuario 1
-        let mapa_actualizado = mapa.add_balance_to_user(u1, bd("5.5"));
+        // Le sumamos 5.5 al usuario 1.
+        // AHORA USAMOS unwrap() PORQUE DEVUELVE UN Result
+        let mapa_actualizado = mapa.add_balance_to_user(u1, bd("5.5")).unwrap();
 
         // El usuario debería tener 15.5
         assert_eq!(mapa_actualizado.get_user_balance(&u1), Some(&bd("15.5")));
@@ -61,6 +63,23 @@ mod tests {
 
         // Verificamos que la inmutabilidad funcionó: el mapa original no cambió
         assert_eq!(mapa.get_group_balance(), &bd("30.0"));
+    }
+
+    // --- NUEVO TEST: Verificamos la protección contra usuarios fantasma ---
+    #[test]
+    fn test_add_balance_to_user_fantasma_error() {
+        let (mapa, _, _, _) = setup_mapa_basico();
+        let u_fantasma = Uuid::new_v4(); // Un Uuid que no insertamos en el setup
+
+        // Intentamos sumarle balance
+        let resultado = mapa.add_balance_to_user(u_fantasma, bd("5.0"));
+
+        // Verificamos que falle y devuelva el error correcto
+        assert!(resultado.is_err());
+        assert_eq!(
+            resultado.unwrap_err(),
+            "Operación denegada: El usuario no existe en este grupo."
+        );
     }
 
     #[test]
