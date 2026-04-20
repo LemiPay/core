@@ -66,6 +66,7 @@ impl BalancesMap {
                 self.group_balance.clone(),
             ));
         }
+        //TODO CREAR ESTRUCTURA QUE SE ENCARGUE DE ESTO Y MANTENGA LOGICA DE DECIMALES ESTILO ETH
 
         // 3. Configuración de precisión (18 decimales)
         let escala = 18;

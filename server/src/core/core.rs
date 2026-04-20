@@ -34,6 +34,9 @@ fn read_all_tx(transactions: Vec<Transaction>, mut balances: BalancesMap) -> Bal
             MyTransactionType::Withdraw => balances
                 .remove_to_all(tx.amount)
                 .expect("Error de Integridad: Fondos insuficientes."),
+            MyTransactionType::Investment => {
+                todo!()
+            }
             _ => balances,
         };
     }
