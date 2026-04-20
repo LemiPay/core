@@ -157,6 +157,14 @@ impl ExpenseService {
             participants,
         }: UpdateExpenseRequest,
     ) -> Result<Expense, AppError> {
+        if currency_id.is_none()
+            && amount.is_none()
+            && description.is_none()
+            && participants.is_none()
+        {
+            return Err(AppError::BadRequest("No fields to update".into()));
+        }
+
         // Monto efectivo que tendrá la expense tras el update.
         let effective_amount = amount.clone().unwrap_or_else(|| expense.amount.clone());
         Self::validate_amount(&effective_amount)?;
@@ -213,7 +221,7 @@ impl ExpenseService {
                 ));
             }
 
-            if p.amount <= BigDecimal::zero() {
+            if p.amount.clone() <= BigDecimal::zero() {
                 return Err(AppError::BadRequest(
                     "Each participant amount must be greater than 0".into(),
                 ));
