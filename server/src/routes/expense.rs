@@ -16,7 +16,7 @@ pub fn expense_routes(state: SharedState) -> Router {
     Router::new()
         // Create: cualquiera del grupo puede cargar una expense
         .route(
-            "/{group_id}",
+            "/new/{group_id}",
             post(create_expense).route_layer(middleware::from_fn_with_state(
                 state.clone(),
                 is_in_group_middleware,
@@ -47,9 +47,8 @@ pub fn expense_routes(state: SharedState) -> Router {
             )),
         )
         // Update (owner): el creador modifica los datos cargados
-        .route("/{expense_id}", put(update_expense))
         // Delete (owner): borrado lógico de la expense por su creador
-        .route("/{expense_id}", delete(delete_expense))
+        .route("/{expense_id}", put(update_expense).delete(delete_expense))
         .route_layer(middleware::from_fn(auth_middleware))
         .with_state(state)
 }

@@ -1,6 +1,6 @@
 use crate::data::state::SharedState;
 use crate::errors::app_error::AppError;
-use crate::models::expense::expense::Expense;
+use crate::models::expense::Expense;
 use crate::security::auth_extractor::AuthUser;
 use axum::Json;
 use axum::extract::{Path, State};
