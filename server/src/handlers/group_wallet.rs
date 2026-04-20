@@ -29,6 +29,15 @@ pub struct FundRoundStatusResponse {
     pub is_completed: bool,
 }
 
+#[derive(Serialize)]
+pub struct FundRoundRemainingResponse {
+    pub remaining: String,
+    // true si el que llama es el último miembro del grupo que aún no aportó.
+    // En ese caso, el cliente debe enviar `remaining` exacto para cerrar la ronda
+    // sin dejar centavos colgados por errores de redondeo previos.
+    pub is_last_contributor: bool,
+}
+
 pub async fn create_fund_round(
     State(state): State<SharedState>,
     user: AuthUser,
@@ -87,6 +96,21 @@ pub async fn cancel_fund_round(
     Ok(Json(result))
 }
 
+pub async fn get_fund_round_remaining(
+    State(state): State<SharedState>,
+    user: AuthUser,
+    Path(fund_round_id): Path<Uuid>,
+) -> Result<Json<FundRoundRemainingResponse>, AppError> {
+    let (remaining, is_last_contributor) = state
+        .group_wallet_service
+        .get_fund_round_remaining(user.user_id, fund_round_id)?;
+
+    Ok(Json(FundRoundRemainingResponse {
+        remaining: remaining.to_string(),
+        is_last_contributor,
+    }))
+}
+
 #[derive(Deserialize)]
 pub struct NewGroupWalletRequest {
     pub address: String,
@@ -110,4 +134,11 @@ pub async fn get_group_wallets(
 ) -> Result<Json<Vec<GroupWallet>>, AppError> {
     let wallets = state.group_wallet_service.get_wallets_by_group(group_id)?;
     Ok(Json(wallets))
+}
+pub async fn get_all_fund_rounds(
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Vec<FundProposalExpanded>>, AppError> {
+    let result = state.group_wallet_service.get_all_fund_rounds(group_id)?;
+    Ok(Json(result))
 }

@@ -45,8 +45,6 @@
 		walletsArray = result.body;
 	}
 
-	// Función auxiliar para acortar la address visualmente (estilo 0x123...abc)
-
 	function copyToClipboard(text: string) {
 		navigator.clipboard.writeText(text);
 		// Acá podrías disparar un toast de "Copiado!"

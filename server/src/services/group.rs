@@ -107,7 +107,7 @@ impl GroupService {
 
             if !has_other_admin {
                 return Err(AppError::BadRequest(
-                    "Group must have at least one other admin".into(),
+                    "El grupo tiene que tener al menos un admin".into(),
                 ));
             }
         }

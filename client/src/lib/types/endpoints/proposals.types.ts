@@ -1,6 +1,6 @@
 type Uuid = string;
 
-type ProposalStatus =
+export type ProposalStatus =
 	| 'Pending'
 	| 'Approved'
 	| 'Rejected'

@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::data::database::Db;
 use crate::data::error::DbError;
-use crate::models::user_wallet::{NewUserWallet, UserWallet, WalletWithTickerDb};
+use crate::models::user::user_wallet::{NewUserWallet, UserWallet, WalletWithTickerDb};
 use crate::repositories::traits::user_wallet_repo::UserWalletRepository;
 use crate::schema::{currency, user_wallet};
 
