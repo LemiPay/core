@@ -100,3 +100,12 @@ pub async fn update_group(
         .update_group(user.user_id, group_id, update)?;
     Ok(Json(result))
 }
+
+pub async fn leave_group(
+    State(state): State<SharedState>,
+    user: AuthUser,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<UserInGroup>, AppError> {
+    let result = state.group_service.leave_group(user.user_id, group_id)?;
+    Ok(Json(result))
+}

@@ -28,6 +28,8 @@ pub enum MyVoteType {
 #[derive(Serialize)]
 pub enum ProposalType {
     NewMember,
+    FundRound,
+    Withdraw,
 }
 
 #[derive(Queryable, Serialize, Selectable)]
@@ -49,15 +51,16 @@ pub struct NewProposal {
     pub created_by: Uuid,
 }
 
-// #[derive(Queryable, Serialize, Selectable)]
-// #[diesel(table_name = vote)]
-// #[diesel(check_for_backend(diesel::pg::Pg))]
-// pub struct Vote {
-//     pub proposal_id: Uuid,
-//     pub user_id: Uuid,
-//     pub value: MyVoteType,
-//     pub created_at: NaiveDateTime,
-// }
+#[derive(Queryable, Serialize, Selectable)]
+#[diesel(table_name = vote)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+#[allow(dead_code)] // TODO: Remove after implemented
+pub struct Vote {
+    pub proposal_id: Uuid,
+    pub user_id: Uuid,
+    pub value: MyVoteType,
+    pub created_at: NaiveDateTime,
+}
 
 #[derive(Insertable, Deserialize)]
 #[diesel(table_name = vote)]

@@ -63,29 +63,6 @@ impl GroupRepository for DieselGroupRepository {
         Ok(result)
     }
 
-    fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError> {
-        let mut conn = self.db.get_conn()?;
-        let result = user_in_group::table
-            .filter(user_in_group::group_id.eq(group_id))
-            .filter(user_in_group::user_id.eq(user_id))
-            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
-            .first::<UserInGroup>(&mut conn)
-            .optional()?;
-        Ok(result.is_some())
-    }
-
-    fn is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError> {
-        let mut conn = self.db.get_conn()?;
-        let result = user_in_group::table
-            .filter(user_in_group::group_id.eq(group_id))
-            .filter(user_in_group::user_id.eq(user_id))
-            .filter(user_in_group::role.eq(MyGroupRole::Admin))
-            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
-            .first::<UserInGroup>(&mut conn)
-            .optional()?;
-        Ok(result.is_some())
-    }
-
     fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, DbError> {
         let mut conn = self.db.get_conn()?;
 
@@ -109,7 +86,23 @@ impl GroupRepository for DieselGroupRepository {
             .values(&new_user_in_group)
             .returning(UserInGroup::as_returning())
             .get_result(&mut conn);
-        Ok(result?) //aca devuelvo un json vacío porque sí si se quiere cambiar que se cambie
+        Ok(result?)
+    }
+
+    fn remove_user_from_group(
+        &self,
+        user_id: Uuid,
+        group_id: Uuid,
+    ) -> Result<UserInGroup, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = diesel::update(user_in_group::table)
+            .filter(user_in_group::group_id.eq(group_id))
+            .filter(user_in_group::user_id.eq(user_id))
+            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
+            .set(user_in_group::status.eq(MyGroupMemberStatus::Left))
+            .returning(UserInGroup::as_returning())
+            .get_result::<UserInGroup>(&mut conn)?;
+        Ok(result)
     }
 
     fn delete_group(&self, group_id: Uuid) -> Result<Group, DbError> {
@@ -192,5 +185,30 @@ impl GroupRepository for DieselGroupRepository {
             ))
             .get_result::<Group>(&mut conn)?;
         Ok(result)
+    }
+
+    // Predicates
+
+    fn is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = user_in_group::table
+            .filter(user_in_group::group_id.eq(group_id))
+            .filter(user_in_group::user_id.eq(user_id))
+            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
+            .first::<UserInGroup>(&mut conn)
+            .optional()?;
+        Ok(result.is_some())
+    }
+
+    fn is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<bool, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let result = user_in_group::table
+            .filter(user_in_group::group_id.eq(group_id))
+            .filter(user_in_group::user_id.eq(user_id))
+            .filter(user_in_group::role.eq(MyGroupRole::Admin))
+            .filter(user_in_group::status.eq(MyGroupMemberStatus::Active))
+            .first::<UserInGroup>(&mut conn)
+            .optional()?;
+        Ok(result.is_some())
     }
 }

@@ -8,4 +8,7 @@ pub enum DbError {
 
     #[error("Connection pool error")]
     Pool(#[from] r2d2::Error),
+
+    #[error("Not implemented")]
+    NotImplemented,
 }

@@ -3,8 +3,8 @@ use axum::{Router, middleware};
 
 use crate::data::state::SharedState;
 use crate::handlers::proposal::{
-    delete_proposal, group_proposals, my_proposals, new_group_member, received_proposals,
-    respond_to_user_proposal,
+    delete_proposal, get_all_withdraw_proposals, group_proposals, my_proposals, new_group_member,
+    received_proposals, respond_to_user_proposal,
 };
 
 use crate::security::middlewares::auth::auth_middleware;
@@ -18,10 +18,18 @@ pub fn proposal_routes(state: SharedState) -> Router {
         .route("/my", get(my_proposals))
         // Get proposals sent to Me
         .route("/received", get(received_proposals))
-        // Get Proposals by Group
+        // Get NewMember proposals by Group
         .route(
             "/group/{id}",
             get(group_proposals).route_layer(middleware::from_fn_with_state(
+                state.clone(),
+                is_in_group_middleware,
+            )),
+        )
+        //get all withdraw proposals
+        .route(
+            "/withdraw/{group_id}",
+            get(get_all_withdraw_proposals).route_layer(middleware::from_fn_with_state(
                 state.clone(),
                 is_in_group_middleware,
             )),
