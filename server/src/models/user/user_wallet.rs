@@ -8,7 +8,6 @@ use crate::schema::user_wallet;
 #[derive(Queryable, Selectable, Serialize)]
 #[diesel(table_name = user_wallet)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-#[allow(dead_code)] // TODO: remove after implemented
 pub struct UserWallet {
     pub id: Uuid,
     pub address: String,
@@ -25,4 +24,13 @@ pub struct NewUserWallet {
     pub address: String,
     pub user_id: Uuid,
     pub currency_id: Uuid,
+}
+
+#[derive(Queryable, Serialize)]
+pub struct WalletWithTickerDb {
+    pub wallet_id: Uuid,
+    pub address: String,
+    pub balance: BigDecimal,
+    pub currency_id: Uuid,
+    pub ticker: String,
 }

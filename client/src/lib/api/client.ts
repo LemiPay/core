@@ -64,10 +64,16 @@ export async function authedApiFetch<T>(path: string, options: RequestInit = {})
 		};
 	}
 
+	let errorMessage = res.statusText;
+
+	if (data && typeof data === 'object' && 'message' in data) {
+		errorMessage = String((data as Record<string, unknown>).message);
+	}
+
 	return {
 		ok: false,
 		status: res.status,
-		message: res.statusText,
+		message: errorMessage,
 		body: data
 	};
 }

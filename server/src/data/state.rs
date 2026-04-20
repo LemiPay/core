@@ -18,7 +18,7 @@ pub struct AppState {
     pub proposal_service: ProposalService,
     pub transaction_service: TransactionService,
     pub user_wallet_service: UserWalletService,
-    pub group_wallet_service: Arc<GroupWalletService>,
+    pub group_wallet_service: GroupWalletService,
 }
 
 pub type SharedState = Arc<AppState>;

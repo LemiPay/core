@@ -2,9 +2,13 @@ import { authedApiFetch } from '../client';
 
 import type { ApiResponse } from '$lib/types/client.types';
 import type {
+	FundGroupWalletData,
 	Group,
+	GroupMember,
 	GroupSummary,
+	GroupWallet,
 	NewGroupData,
+	NewGroupWalletData,
 	UpdateGroupData
 } from '$lib/types/endpoints/groups.types';
 import type { UserBadge } from '$lib/types/endpoints/auth.types';
@@ -39,8 +43,39 @@ export async function updateGroup(group_id: string, data: UpdateGroupData): ApiR
 	});
 }
 
+export async function leaveGroup(group_id: string): ApiResponse<GroupMember> {
+	return authedApiFetch(`/group/${group_id}/leave`, {
+		method: 'POST'
+	});
+}
+
 export async function deleteGroup(group_id: string): ApiResponse<Group> {
 	return authedApiFetch(`/group/${group_id}`, {
 		method: 'DELETE'
+	});
+}
+
+export async function createGroupWallet(
+	group_id: string,
+	data: NewGroupWalletData
+): ApiResponse<GroupWallet> {
+	return authedApiFetch(`/group-wallet/${group_id}/create`, {
+		method: 'POST',
+		body: JSON.stringify(data)
+	});
+}
+export async function getGroupWallets(group_id: string): ApiResponse<GroupWallet[]> {
+	return authedApiFetch(`/group-wallet/${group_id}`, {
+		method: 'GET'
+	});
+}
+
+export async function fundGroupWallet(
+	group_id: string,
+	data: FundGroupWalletData
+): ApiResponse<boolean> {
+	return authedApiFetch(`/transaction/${group_id}/fund`, {
+		method: 'POST',
+		body: JSON.stringify(data)
 	});
 }

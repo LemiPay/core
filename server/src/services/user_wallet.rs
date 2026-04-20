@@ -1,6 +1,6 @@
 use crate::errors::app_error::AppError;
 use crate::handlers::user_wallet::{AddressGroup, FundTransferRequest, NewWalletRequest};
-use crate::models::user_wallet::{NewUserWallet, UserWallet, WalletWithTickerDb};
+use crate::models::user::user_wallet::{NewUserWallet, UserWallet, WalletWithTickerDb};
 use crate::repositories::traits::currency_repo::CurrencyRepository;
 use crate::repositories::traits::user_wallet_repo::UserWalletRepository;
 use bigdecimal::{BigDecimal, Zero};
@@ -256,6 +256,7 @@ impl UserWalletService {
             let detail = WalletWithTickerDb {
                 address: wallet_row.address.to_string(),
                 wallet_id: wallet_row.wallet_id,
+                currency_id: wallet_row.currency_id,
                 ticker: wallet_row.ticker,
                 balance: wallet_row.balance,
             };

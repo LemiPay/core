@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { FileQuestion, AlertCircle, ArrowLeft } from 'lucide-svelte';
 	const isNotFound = page.status === 404;
+	const isInternalError = page.status === 500;
 </script>
 
 <svelte:head>
@@ -25,6 +26,8 @@
 		<h1 class="mb-2 text-xl font-bold text-black">
 			{#if isNotFound}
 				Página no encontrada
+			{:else if isInternalError}
+				Error del servidor
 			{:else}
 				Algo salió mal
 			{/if}
@@ -33,6 +36,8 @@
 		<p class="text-sm text-gray-500">
 			{#if isNotFound}
 				La ruta a la que intentás acceder no existe o fue movida.
+			{:else if isInternalError}
+				Ocurrió un error interno en el servidor. Por favor, intentá de nuevo más tarde.
 			{:else}
 				{page.error?.message ?? 'Ocurrió un error inesperado al procesar tu solicitud.'}
 			{/if}
