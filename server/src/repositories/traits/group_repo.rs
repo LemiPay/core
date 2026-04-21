@@ -17,6 +17,7 @@ pub trait GroupRepository: Send + Sync {
     -> Result<UserInGroup, DbError>;
     fn delete_group(&self, group_id: Uuid) -> Result<Group, DbError>;
     fn is_group_active(&self, group_id: Uuid) -> Result<bool, DbError>;
+    fn get_historic_group_members(&self, group_id: Uuid) -> Result<Vec<GroupMember>, DbError>;
     fn get_group_members(&self, group_id: Uuid) -> Result<Vec<GroupMember>, DbError>;
     fn get_user_groups(&self, user_id: Uuid) -> Result<Vec<GroupFromUser>, DbError>;
     fn update_group_info(

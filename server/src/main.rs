@@ -34,6 +34,7 @@ use crate::repositories::diesel::user_wallet_repo_impl::DieselUserWalletReposito
 
 // Services
 use crate::services::auth::AuthService;
+use crate::services::core::CoreService;
 use crate::services::expense::ExpenseService;
 use crate::services::group::GroupService;
 use crate::services::group_wallet::GroupWalletService;
@@ -80,6 +81,11 @@ async fn main() {
         proposal_repo.clone(),
         user_wallet_repo.clone(),
     );
+    let core_service = CoreService::new(
+        transaction_repo.clone(),
+        group_repo.clone(),
+        expense_repo.clone(),
+    );
     let expense_service = ExpenseService::new(expense_repo.clone());
     let state = Arc::new(AppState {
         user_service,
@@ -90,6 +96,7 @@ async fn main() {
         user_wallet_service,
         group_wallet_service,
         expense_service,
+        core_service,
     });
 
     // 🚏 Router
