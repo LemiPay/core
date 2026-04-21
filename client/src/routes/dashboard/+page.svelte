@@ -14,6 +14,7 @@
 	let error = $state('');
 	let misGrupos = $state<GroupSummary[]>([]);
 	let showNewGroup = $state(false);
+	let didInitializeStatusFilter = $state(false);
 
 	let filterRole = $state<'all' | 'Admin' | 'Member'>('all');
 	let filterStatus = $state<'all' | 'Active' | 'Ended'>('Active');
@@ -41,6 +42,11 @@
 		}
 
 		misGrupos = res.body;
+		if (!didInitializeStatusFilter) {
+			const hasActiveGroups = misGrupos.some((group) => group.status.toLowerCase() === 'active');
+			filterStatus = hasActiveGroups ? 'Active' : 'all';
+			didInitializeStatusFilter = true;
+		}
 		isLoading = false;
 	}
 
@@ -73,7 +79,7 @@
 			<div class="flex items-center gap-2">
 				<span class="text-xs font-medium text-gray-500">Rol</span>
 				<div class="flex gap-1">
-					{#each [['all', 'Todos'], ['Admin', 'Admin'], ['Member', 'Miembro']] as [val, label]}
+					{#each [['all', 'Todos'], ['Admin', 'Admin'], ['Member', 'Miembro']] as [val, label] (val)}
 						<button
 							onclick={() => (filterRole = val as typeof filterRole)}
 							class={filterRole === val
@@ -89,7 +95,7 @@
 			<div class="flex items-center gap-2">
 				<span class="text-xs font-medium text-gray-500">Estado</span>
 				<div class="flex gap-1">
-					{#each [{ val: 'all', label: 'Todos', dot: '', active: 'bg-black text-white border-transparent', inactive: 'border-gray-200 text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-black' }, { val: 'Active', label: 'Activo', dot: 'bg-green-500', active: 'text-green-800 bg-green-200 border-green-600', inactive: 'border-green-200 text-green-600 hover:bg-green-100 hover:border-green-400 hover:text-green-800' }, { val: 'Ended', label: 'Finalizado', dot: 'bg-red-400', active: 'bg-red-200 border-red-400 text-red-700', inactive: 'border-red-200 text-red-400 hover:bg-red-100 hover:border-red-400 hover:text-red-700' }] as opt}
+					{#each [{ val: 'all', label: 'Todos', dot: '', active: 'bg-black text-white border-transparent', inactive: 'border-gray-200 text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-black' }, { val: 'Active', label: 'Activo', dot: 'bg-green-500', active: 'text-green-800 bg-green-200 border-green-600', inactive: 'border-green-200 text-green-600 hover:bg-green-100 hover:border-green-400 hover:text-green-800' }, { val: 'Ended', label: 'Finalizado', dot: 'bg-red-400', active: 'bg-red-200 border-red-400 text-red-700', inactive: 'border-red-200 text-red-400 hover:bg-red-100 hover:border-red-400 hover:text-red-700' }] as opt (opt.val)}
 						<button
 							onclick={() => (filterStatus = opt.val as typeof filterStatus)}
 							class="flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition {filterStatus ===
