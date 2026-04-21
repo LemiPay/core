@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Copy, Plus, Send, ArrowDownToLine, Wallet } from 'lucide-svelte';
+	import { ArrowLeft, ArrowDownToLine, Copy, Plus, Send, Wallet } from 'lucide-svelte';
 	import type { User } from '$lib/types/endpoints/auth.types';
 	import { me } from '$lib/api/auth';
 	import { type FailedResponse, isSuccess, type SuccessResponse } from '$lib/types/client.types';
@@ -45,11 +45,17 @@
 		walletsArray = result.body;
 	}
 
-	// Función auxiliar para acortar la address visualmente (estilo 0x123...abc)
-
 	function copyToClipboard(text: string) {
 		navigator.clipboard.writeText(text);
 		// Acá podrías disparar un toast de "Copiado!"
+	}
+
+	function goBack() {
+		if (typeof history !== 'undefined' && history.length > 1) {
+			history.back();
+		} else {
+			window.location.href = '/dashboard';
+		}
 	}
 
 	loadUserProfile();
@@ -61,6 +67,14 @@
 </svelte:head>
 
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 pt-8">
+	<button
+		onclick={goBack}
+		class="flex w-fit items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-gray-400 hover:text-black"
+	>
+		<ArrowLeft class="h-3.5 w-3.5" />
+		Volver
+	</button>
+
 	<div class="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6">
 		<div class="flex flex-col">
 			<h1 class="text-2xl font-bold text-black">{user.name}</h1>

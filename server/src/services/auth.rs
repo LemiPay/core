@@ -24,16 +24,16 @@ impl AuthService {
 
     pub fn register_user(&self, user: RegisterRequest) -> Result<User, AppError> {
         // Validate data
-        let name = require_non_empty(user.name, "Name")?;
+        let name = require_non_empty(user.name, "Nombre")?;
         let email = require_non_empty(user.email, "Email")?;
-        let password = require_non_empty(user.password, "Password")?;
+        let password = require_non_empty(user.password, "Contraseña")?;
 
         let valid = ValidateEmail::validate_email(&email)
             && ValidateLength::validate_length(&password, Some(5), Some(30), None)
             && ValidateLength::validate_length(&name.trim(), Some(2), Some(50), None);
 
         if !valid {
-            return Err(AppError::BadRequest("Invalid registration data".into()));
+            return Err(AppError::BadRequest("Datos de registro inválidos".into()));
         }
 
         let password_hash =
@@ -47,7 +47,7 @@ impl AuthService {
     pub fn login_user(&self, user: LoginRequest) -> Result<String, AppError> {
         // Validate data
         let email = require_non_empty(user.email, "Email")?;
-        let password = require_non_empty(user.password, "Password")?;
+        let password = require_non_empty(user.password, "Contraseña")?;
 
         let valid = ValidateEmail::validate_email(&email)
             && ValidateLength::validate_length(&password, Some(5), Some(30), None);

@@ -3,6 +3,7 @@
 	import { authStore } from '$lib/stores/auth';
 	import { isSuccess } from '$lib/types/client.types';
 	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
+	import { page } from '$app/state';
 
 	let data = $state({
 		email: '',
@@ -12,6 +13,24 @@
 	// false: idle | true: loading | null: end
 	let status: boolean | null = $state(false);
 	let error = $state('');
+
+	function getSafeRedirectPath(redirectTo: string | null): string {
+		if (!redirectTo) return '/dashboard';
+
+		const trimmed = redirectTo.trim();
+		if (!trimmed.startsWith('/') || trimmed.startsWith('//')) {
+			return '/dashboard';
+		}
+
+		try {
+			const parsed = new URL(trimmed, window.location.origin);
+			if (parsed.origin !== window.location.origin) return '/dashboard';
+			if (!parsed.pathname.startsWith('/')) return '/dashboard';
+			return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+		} catch {
+			return '/dashboard';
+		}
+	}
 
 	async function login_user() {
 		error = '';
@@ -33,8 +52,10 @@
 			password: ''
 		};
 
+		const redirectTo = getSafeRedirectPath(page.url.searchParams.get('redirectTo'));
+
 		setTimeout(() => {
-			window.location.href = '/dashboard';
+			window.location.href = redirectTo;
 		}, 1000);
 	}
 </script>
@@ -92,5 +113,11 @@
 		>
 			{status === true ? 'Logging in...' : 'Log in'}
 		</button>
+		<a
+			href="/register"
+			class="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-center font-medium text-black transition hover:bg-gray-50"
+		>
+			Create account
+		</a>
 	</form>
 </AuthLayout>

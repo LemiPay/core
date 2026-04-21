@@ -27,6 +27,7 @@ impl TransactionRepository for DieselTransactionRepository {
         let result = conn.transaction::<Transaction, DbError, _>(|conn| {
             let debited_rows = diesel::update(user_wallet::table)
                 .filter(user_wallet::user_id.eq(new_tx.user_id))
+                .filter(user_wallet::address.eq(&new_tx.address))
                 .filter(user_wallet::currency_id.eq(new_tx.currency_id))
                 .filter(user_wallet::balance.ge(&new_tx.amount))
                 .set(user_wallet::balance.eq(user_wallet::balance - &new_tx.amount))
@@ -60,7 +61,7 @@ impl TransactionRepository for DieselTransactionRepository {
         let mut conn = self.db.get_conn()?;
         let result = transaction::table
             .filter(transaction::group_id.eq(group_id))
-            .order(transaction::created_at.desc())
+            .order(transaction::created_at.asc())
             .get_results::<Transaction>(&mut conn)?;
         Ok(result)
     }

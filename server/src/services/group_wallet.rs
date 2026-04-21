@@ -59,11 +59,11 @@ impl GroupWalletService {
     ) -> Result<FundProposalExpanded, AppError> {
         self.validate_is_admin(created_by, group_id)?;
         let target_amount = BigDecimal::from_str(&payload.target_amount)
-            .map_err(|_| AppError::BadRequest("Invalid target_amount".into()))?;
+            .map_err(|_| AppError::BadRequest("Monto objetivo inválido".into()))?;
 
         if target_amount <= BigDecimal::zero() {
             return Err(AppError::BadRequest(
-                "target_amount must be greater than zero".into(),
+                "El monto objetivo debe ser mayor a cero".into(),
             ));
         }
 
@@ -74,7 +74,7 @@ impl GroupWalletService {
             .is_some()
         {
             return Err(AppError::BadRequest(
-                "Group does not have a wallet with the specified currency".into(),
+                "El grupo no tiene una wallet con la moneda especificada".into(),
             ));
         }
 
@@ -95,11 +95,11 @@ impl GroupWalletService {
 
     fn parse_positive_amount(&self, raw: String) -> Result<BigDecimal, AppError> {
         let amount = BigDecimal::from_str(&raw)
-            .map_err(|_| AppError::BadRequest("Invalid amount".into()))?;
+            .map_err(|_| AppError::BadRequest("Monto inválido".into()))?;
 
         if amount <= BigDecimal::zero() {
             return Err(AppError::BadRequest(
-                "amount must be greater than zero".into(),
+                "El monto debe ser mayor a cero".into(),
             ));
         }
         Ok(amount)
@@ -112,7 +112,9 @@ impl GroupWalletService {
         let found = self.find_fund_round(fund_round_id)?;
 
         if found.proposal.status != MyProposalStatus::Approved {
-            return Err(AppError::BadRequest("Fund round is not active".into()));
+            return Err(AppError::BadRequest(
+                "La ronda de fondeo no está activa".into(),
+            ));
         }
 
         Ok(found)
@@ -128,7 +130,7 @@ impl GroupWalletService {
         )? {
             Some(wallet) => Ok(wallet),
             None => Err(AppError::BadRequest(
-                "Group does not have a wallet with the specified currency".into(),
+                "El grupo no tiene una wallet con la moneda especificada".into(),
             )),
         }
     }
@@ -143,24 +145,28 @@ impl GroupWalletService {
         let sender_wallet = match self.user_wallet_repo.get_wallet_info(sender_wallet_id) {
             Ok(wallet) => wallet,
             Err(DbError::Diesel(Error::NotFound)) => {
-                return Err(AppError::BadRequest("Sender wallet not found".into()));
+                return Err(AppError::BadRequest(
+                    "No se encontró la wallet de origen".into(),
+                ));
             }
             Err(err) => return Err(AppError::Db(err)),
         };
 
         if sender_wallet.user_id != user_id {
-            return Err(AppError::BadRequest("Sender wallet not found".into()));
+            return Err(AppError::BadRequest(
+                "No se encontró la wallet de origen".into(),
+            ));
         }
 
         if sender_wallet.currency_id != expected_currency_id {
             return Err(AppError::BadRequest(
-                "Sender wallet currency does not match fund round currency".into(),
+                "La moneda de la wallet de origen no coincide con la de la ronda de fondeo".into(),
             ));
         }
 
         // Pre-check UX (el repo igual lo revalida transaccionalmente)
         if sender_wallet.balance < *amount {
-            return Err(AppError::BadRequest("Insufficient funds".into()));
+            return Err(AppError::BadRequest("Fondos insuficientes".into()));
         }
 
         Ok(())
@@ -195,7 +201,7 @@ impl GroupWalletService {
             )
             .map_err(|err| match err {
                 DbError::Diesel(Error::NotFound) => AppError::BadRequest(
-                    "Fund round is not active, insufficient funds, or amount exceeds remaining target".into(),
+                    "La ronda de fondeo no está activa, no hay fondos suficientes o el monto supera el objetivo restante".into(),
                 ),
                 err => AppError::Db(err),
             })?;
@@ -278,7 +284,7 @@ impl GroupWalletService {
 
         if remaining < BigDecimal::zero() {
             return Err(AppError::BadRequest(
-                "Fund round is not active, insufficient funds, or amount exceeds remaining target"
+                "La ronda de fondeo no está activa, no hay fondos suficientes o el monto supera el objetivo restante"
                     .into(),
             ));
         }
@@ -306,12 +312,16 @@ impl GroupWalletService {
         let fund_round = self.find_fund_round(fund_round_id)?;
 
         if fund_round.proposal.status != MyProposalStatus::Approved {
-            return Err(AppError::BadRequest("Fund round is not active".into()));
+            return Err(AppError::BadRequest(
+                "La ronda de fondeo no está activa".into(),
+            ));
         }
 
         // Only the creator of the fund round can cancel it.
         if fund_round.proposal.created_by != user_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "Solo el creador la puede cancelar".into(),
+            ));
         }
 
         self.proposal_repo
@@ -339,7 +349,7 @@ impl GroupWalletService {
         {
             Ok(currency_id) => currency_id,
             Err(DbError::Diesel(Error::NotFound)) => {
-                return Err(AppError::BadRequest("That currency doesn't exist".into()));
+                return Err(AppError::BadRequest("Esa moneda no existe".into()));
             }
             Err(err) => return Err(AppError::Db(err)),
         };
@@ -351,7 +361,7 @@ impl GroupWalletService {
 
         if existing.is_some() {
             return Err(AppError::BadRequest(
-                "The group already has a wallet for this currency".into(),
+                "El grupo ya tiene una wallet para esa moneda".into(),
             ));
         }
 
@@ -362,7 +372,7 @@ impl GroupWalletService {
 
         if address_taken.is_some() {
             return Err(AppError::BadRequest(
-                "That address is already registered for this currency".into(),
+                "Esa dirección ya está registrada para esa moneda".into(),
             ));
         }
 
@@ -408,14 +418,14 @@ impl GroupWalletService {
 
     fn validate_is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<(), AppError> {
         if !self.group_repo.is_member(user_id, group_id)? {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("No es miembro del grupo".into()));
         }
         Ok(())
     }
 
     fn validate_is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<(), AppError> {
         if !self.group_repo.is_admin(user_id, group_id)? {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("No es administrador del grupo".into()));
         }
         Ok(())
     }

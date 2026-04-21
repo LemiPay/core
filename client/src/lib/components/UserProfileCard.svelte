@@ -56,8 +56,4 @@
 			<span class="text-xs text-gray-500">{wallet}</span>
 		</div>
 	</div>
-
-	<div class="text-sm font-semibold text-black">
-		${balance} <span class="text-xs font-normal text-gray-500">{currency}</span>
-	</div>
 </div>

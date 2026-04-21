@@ -1,4 +1,6 @@
 use crate::services::auth::AuthService;
+use crate::services::core::CoreService;
+use crate::services::expense::ExpenseService;
 use crate::services::group::GroupService;
 use crate::services::group_wallet::GroupWalletService;
 use crate::services::proposal::ProposalService;
@@ -19,6 +21,8 @@ pub struct AppState {
     pub transaction_service: TransactionService,
     pub user_wallet_service: UserWalletService,
     pub group_wallet_service: GroupWalletService,
+    pub expense_service: ExpenseService,
+    pub core_service: CoreService,
 }
 
 pub type SharedState = Arc<AppState>;

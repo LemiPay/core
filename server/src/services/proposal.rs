@@ -98,14 +98,14 @@ impl ProposalService {
             (None, Some(user_id)) => self
                 .user_repo
                 .find_by_id(user_id)?
-                .ok_or(AppError::BadRequest("User not found".to_string()))?,
+                .ok_or(AppError::BadRequest("Usuario no encontrado".to_string()))?,
             (Some(email), _) => self
                 .user_repo
                 .find_by_email(email)?
-                .ok_or(AppError::BadRequest("User not found".to_string()))?,
+                .ok_or(AppError::BadRequest("Usuario no encontrado".to_string()))?,
             (None, None) => {
                 return Err(AppError::BadRequest(
-                    "Either user_id or user_email must be provided".to_string(),
+                    "Se debe enviar user_id o user_email".to_string(),
                 ));
             }
         };
@@ -113,7 +113,7 @@ impl ProposalService {
         // validate: new_user not in group
         if self.group_repo.is_member(user.id, group_id)? {
             return Err(AppError::BadRequest(
-                "User is already a member of the group".to_string(),
+                "El usuario ya pertenece al grupo".to_string(),
             ));
         }
 
@@ -162,10 +162,14 @@ impl ProposalService {
             .proposal_repo
             .find_new_member_proposal_by_proposal_id(new_member_proposal_id)?;
         if search_proposal.new_member_proposal.new_member_id != destination {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "No podes aceptar una invitacion que no es tuya".into(),
+            ));
         }
         if search_proposal.proposal.status != MyProposalStatus::Approved {
-            return Err(AppError::Forbidden);
+            return Err(AppError::BadRequest(
+                "Esta invitación ya fue aceptada o rechazada".into(),
+            ));
         }
         let next_status = if approve {
             MyProposalStatus::Executed
@@ -179,7 +183,7 @@ impl ProposalService {
             next_status,
         ) {
             Ok(proposal) => Ok(proposal),
-            Err(_) => Err(AppError::BadRequest("invalid request".parse().unwrap())),
+            Err(_) => Err(AppError::BadRequest("Solicitud inválida".parse().unwrap())),
         }
     }
 
@@ -205,7 +209,7 @@ impl ProposalService {
 
         if group.id != group_id {
             return Err(AppError::BadRequest(
-                "Proposal does not belong to the group".to_string(),
+                "La propuesta no pertenece al grupo".to_string(),
             ));
         }
 
@@ -223,13 +227,13 @@ impl ProposalService {
     fn find_proposal(&self, proposal_id: Uuid) -> Result<Proposal, AppError> {
         self.proposal_repo
             .find(proposal_id)?
-            .ok_or(AppError::BadRequest("Proposal does not exist".to_string()))
+            .ok_or(AppError::BadRequest("La propuesta no existe".to_string()))
     }
 
     fn find_group(&self, group_id: Uuid) -> Result<Group, AppError> {
         self.group_repo
             .find_by_id(group_id)?
-            .ok_or(AppError::BadRequest("Group does not exist".to_string()))
+            .ok_or(AppError::BadRequest("El grupo no existe".to_string()))
     }
 
     pub fn get_all_withdraw_proposals(

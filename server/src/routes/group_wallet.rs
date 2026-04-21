@@ -4,16 +4,16 @@ use crate::handlers::group_wallet::{
     get_all_fund_rounds, get_fund_round, get_fund_round_remaining, get_group_wallets,
     get_user_contrib,
 };
+use axum::routing::{delete, get, post};
+use axum::{Router, middleware};
+
 use crate::security::middlewares::auth::auth_middleware;
 use crate::security::middlewares::is_in_group::{
     is_group_admin_middleware, is_in_group_middleware,
 };
-use axum::routing::{delete, get, post};
-use axum::{Router, middleware};
 
 pub fn group_wallet_routes(state: SharedState) -> Router {
     Router::new()
-        // Create group wallet
         .route(
             "/{group_id}/create",
             post(create_group_wallet).route_layer(middleware::from_fn_with_state(

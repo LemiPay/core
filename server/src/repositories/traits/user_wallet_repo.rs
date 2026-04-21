@@ -1,5 +1,5 @@
 use crate::data::error::DbError;
-use crate::models::user_wallet::{NewUserWallet, UserWallet, WalletWithTickerDb};
+use crate::models::user::user_wallet::{NewUserWallet, UserWallet, WalletWithTickerDb};
 use bigdecimal::BigDecimal;
 use uuid::Uuid;
 

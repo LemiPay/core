@@ -39,3 +39,7 @@ export async function executeWithdrawProposal(
 		body: JSON.stringify(execute)
 	});
 }
+
+export async function listGroupTransactions(group_id: string): ApiResponse<Transaction[]> {
+	return authedApiFetch(`/transaction/${group_id}/list`, { method: 'GET' });
+}
