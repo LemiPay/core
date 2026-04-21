@@ -79,7 +79,9 @@ impl GroupService {
 
     pub fn delete(&self, user_id: Uuid, group_id: Uuid) -> Result<Group, AppError> {
         if !self.is_admin(user_id, group_id)? {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "Solo el admin puede borrar el grupo".into(),
+            ));
         }
 
         let result = self.group_repo.delete_group(group_id)?;
@@ -124,7 +126,9 @@ impl GroupService {
         update: GroupUpdate,
     ) -> Result<Group, AppError> {
         if !self.is_admin(user_id, group_id)? {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "Solo el admin puede actualizar el grupo.".into(),
+            ));
         }
 
         if update.name.is_none() && update.description.is_none() {

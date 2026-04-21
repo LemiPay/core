@@ -82,7 +82,9 @@ impl ExpenseService {
         let expense = self.get_active(expense_id)?;
 
         if expense.user_id != user_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "Solo el creador o el admin pueden editar".into(),
+            ));
         }
 
         self.apply_update(&expense, payload)
@@ -100,8 +102,11 @@ impl ExpenseService {
     ) -> Result<Expense, AppError> {
         let expense = self.get_active(expense_id)?;
 
+        //aca en vez de tirar forbidden y decir que esa expense no pertenece a este grupo
+        //tiro not found asi no pueden saber si esa expense existe o no
+        //porque es de otro grupo
         if expense.group_id != group_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::NotFound);
         }
 
         self.apply_update(&expense, payload)
@@ -113,7 +118,9 @@ impl ExpenseService {
         let expense = self.get_active(expense_id)?;
 
         if expense.user_id != user_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "Solo el creador o el admin pueden editar".into(),
+            ));
         }
 
         let result = self.expense_repo.soft_delete(expense_id)?;
@@ -125,8 +132,9 @@ impl ExpenseService {
     pub fn delete_as_admin(&self, group_id: Uuid, expense_id: Uuid) -> Result<Expense, AppError> {
         let expense = self.get_active(expense_id)?;
 
+        //misma razon del not found de mas arriba
         if expense.group_id != group_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::NotFound);
         }
 
         let result = self.expense_repo.soft_delete(expense_id)?;

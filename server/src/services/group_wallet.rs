@@ -311,7 +311,9 @@ impl GroupWalletService {
 
         // Only the creator of the fund round can cancel it.
         if fund_round.proposal.created_by != user_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "Solo el creador la puede cancelar".into(),
+            ));
         }
 
         self.proposal_repo
@@ -408,14 +410,14 @@ impl GroupWalletService {
 
     fn validate_is_member(&self, user_id: Uuid, group_id: Uuid) -> Result<(), AppError> {
         if !self.group_repo.is_member(user_id, group_id)? {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("No es miembro del grupo".into()));
         }
         Ok(())
     }
 
     fn validate_is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<(), AppError> {
         if !self.group_repo.is_admin(user_id, group_id)? {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("no es admin del grupo".into()));
         }
         Ok(())
     }

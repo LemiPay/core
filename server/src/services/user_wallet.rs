@@ -44,7 +44,9 @@ impl UserWalletService {
 
         if let Some(owner_id) = owner_opt {
             if owner_id != user_id {
-                return Err(AppError::Forbidden);
+                return Err(AppError::Forbidden(
+                    "Esa address ya esta tomada, elija otra".into(),
+                ));
             }
         }
 
@@ -55,7 +57,7 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if existing_currency_wallet.is_some() {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("Esa currency no existe".into()));
         }
 
         //la creo
@@ -85,7 +87,9 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if wallet.user_id != user_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "No podes fondear una wallet que no es tuya".into(),
+            ));
         }
         self.user_wallet_repo
             .add_money_to_wallet(wallet_id, amount)
@@ -106,7 +110,9 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if wallet.user_id != current_user_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "No podes retirar de una wallet que no es tuya".into(),
+            ));
         }
         if wallet.balance < amount {
             return Err(AppError::BadRequest("Insuficient funds".into()));
@@ -134,7 +140,9 @@ impl UserWalletService {
             .map_err(|_| AppError::BadRequest("wallet doesn't exist".into()))?;
 
         if sender_wallet.user_id != current_user_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "No podes retirar de una wallet que no es tuya".into(),
+            ));
         }
 
         if sender_wallet.balance < amount {
@@ -179,7 +187,7 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if wallet.user_id != user_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("Esta wallet no es tuya".into()));
         }
         Ok(wallet)
     }
@@ -206,7 +214,7 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if wallet.user_id != current_user_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("Esta wallet no es tuya".into()));
         }
 
         Ok(wallet)
@@ -232,7 +240,7 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if !is_owner {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("Esta wallet no es tuya".into()));
         }
 
         Ok(wallet_id)

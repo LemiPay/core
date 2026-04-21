@@ -135,11 +135,13 @@ impl TransactionService {
         }?;
 
         if expanded_valid.proposal.group_id != group_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::NotFound);
         }
 
         if expanded_valid.proposal.created_by != user_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "Solo el creador la puede ejecutar".into(),
+            ));
         }
         let group_wallet = self
             .transaction_repo
@@ -187,7 +189,7 @@ impl TransactionService {
             .ok_or(AppError::NotFound)?;
 
         if tx.group_id != group_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::NotFound);
         }
 
         Ok(tx)

@@ -162,10 +162,14 @@ impl ProposalService {
             .proposal_repo
             .find_new_member_proposal_by_proposal_id(new_member_proposal_id)?;
         if search_proposal.new_member_proposal.new_member_id != destination {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "No podes aceptar una invitacion que no es tuya".into(),
+            ));
         }
         if search_proposal.proposal.status != MyProposalStatus::Approved {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "Esta invitación ya fue aceptada o rechazada".into(),
+            ));
         }
         let next_status = if approve {
             MyProposalStatus::Executed
