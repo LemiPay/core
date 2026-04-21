@@ -113,5 +113,11 @@
 		>
 			{status === true ? 'Logging in...' : 'Log in'}
 		</button>
+		<a
+			href="/register"
+			class="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-center font-medium text-black transition hover:bg-gray-50"
+		>
+			Create account
+		</a>
 	</form>
 </AuthLayout>
