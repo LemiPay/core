@@ -37,24 +37,24 @@ impl TransactionService {
         payload: FundGroupRequest,
     ) -> Result<Transaction, AppError> {
         if payload.amount <= BigDecimal::zero() {
-            return Err(AppError::BadRequest("Amount must be greater than 0".into()));
+            return Err(AppError::BadRequest("El monto debe ser mayor a 0".into()));
         }
 
         let user_wallet = self
             .transaction_repo
             .get_user_wallet(user_id, payload.address.clone(), payload.currency_id)?
             .ok_or(AppError::BadRequest(
-                "User does not have a wallet for this currency".into(),
+                "El usuario no tiene una wallet para esta moneda".into(),
             ))?;
 
         if user_wallet.balance < payload.amount {
-            return Err(AppError::BadRequest("Insufficient balance".into()));
+            return Err(AppError::BadRequest("Saldo insuficiente".into()));
         }
 
         self.transaction_repo
             .get_group_wallet(group_id, payload.currency_id)?
             .ok_or(AppError::BadRequest(
-                "Group does not have a wallet for this currency".into(),
+                "El grupo no tiene una wallet para esta moneda".into(),
             ))?;
 
         let new_tx = NewTransaction {
@@ -84,24 +84,24 @@ impl TransactionService {
         }: WithdrawProposalRequest,
     ) -> Result<WithdrawProposalExpanded, AppError> {
         if amount <= BigDecimal::zero() {
-            return Err(AppError::BadRequest("Amount must be greater than 0".into()));
+            return Err(AppError::BadRequest("El monto debe ser mayor a 0".into()));
         }
 
         let group_wallet = self
             .transaction_repo
             .get_group_wallet(group_id, currency_id)?
             .ok_or(AppError::BadRequest(
-                "Group does not have a wallet for this currency".into(),
+                "El grupo no tiene una wallet para esta moneda".into(),
             ))?;
 
         if group_wallet.balance < amount {
-            return Err(AppError::BadRequest("Insufficient group balance".into()));
+            return Err(AppError::BadRequest("Saldo insuficiente del grupo".into()));
         }
 
         self.transaction_repo
             .get_user_wallet(user_id, address, currency_id)?
             .ok_or(AppError::BadRequest(
-                "User does not have a wallet for this currency".into(),
+                "El usuario no tiene una wallet para esta moneda".into(),
             ))?;
 
         let result =
@@ -128,9 +128,9 @@ impl TransactionService {
 
         let expanded_valid = match expanded.proposal.status {
             MyProposalStatus::Approved => Ok(expanded),
-            MyProposalStatus::Executed => Err(AppError::BadRequest(
-                "Proposal has already been executed".into(),
-            )),
+            MyProposalStatus::Executed => {
+                Err(AppError::BadRequest("Propuesta ya fue ejecutada".into()))
+            }
             _ => Err(AppError::NotFound),
         }?;
 
@@ -147,17 +147,17 @@ impl TransactionService {
             .transaction_repo
             .get_group_wallet(group_id, currency_id)?
             .ok_or(AppError::BadRequest(
-                "Group does not have a wallet for this currency".into(),
+                "Grupo no tiene una dirección para esa moneda".into(),
             ))?;
 
         if group_wallet.balance < expanded_valid.withdraw_proposal.amount {
-            return Err(AppError::BadRequest("Insufficient group balance".into()));
+            return Err(AppError::BadRequest("Fondo de grupo insuficiente".into()));
         }
 
         self.transaction_repo
             .get_user_wallet(user_id, address.clone(), currency_id)?
             .ok_or(AppError::BadRequest(
-                "User does not have a wallet for this currency".into(),
+                "El usuario no tiene una wallet para esa moneda".into(),
             ))?;
 
         let new_tx = NewTransaction {

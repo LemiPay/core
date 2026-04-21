@@ -148,7 +148,7 @@ impl ExpenseService {
             .ok_or(AppError::NotFound)?;
 
         if expense.status == MyExpenseStatus::Deleted {
-            return Err(AppError::BadRequest("Expense is already deleted".into()));
+            return Err(AppError::BadRequest("El gasto ya fue eliminado".into()));
         }
 
         Ok(expense)
@@ -169,7 +169,7 @@ impl ExpenseService {
             && description.is_none()
             && participants.is_none()
         {
-            return Err(AppError::BadRequest("No fields to update".into()));
+            return Err(AppError::BadRequest("No hay campos para actualizar".into()));
         }
 
         // Monto efectivo que tendrá la expense tras el update.
@@ -207,7 +207,7 @@ impl ExpenseService {
 
     fn validate_amount(amount: &BigDecimal) -> Result<(), AppError> {
         if amount <= &BigDecimal::zero() {
-            return Err(AppError::BadRequest("Amount must be greater than 0".into()));
+            return Err(AppError::BadRequest("El monto debe ser mayor a 0".into()));
         }
         Ok(())
     }
@@ -215,7 +215,7 @@ impl ExpenseService {
     fn validate_participants(participants: &[ParticipantInput]) -> Result<(), AppError> {
         if participants.is_empty() {
             return Err(AppError::BadRequest(
-                "Expense must have at least one participant".into(),
+                "El gasto debe tener al menos un participante".into(),
             ));
         }
 
@@ -224,7 +224,7 @@ impl ExpenseService {
         for p in participants {
             if !seen.insert(p.user_id) {
                 return Err(AppError::BadRequest(
-                    "Duplicated participant in expense".into(),
+                    "Hay un participante duplicado en el gasto".into(),
                 ));
             }
         }
@@ -237,7 +237,7 @@ impl ExpenseService {
         participants_len: usize,
     ) -> Result<BigDecimal, AppError> {
         let participants_count = i64::try_from(participants_len)
-            .map_err(|_| AppError::BadRequest("Too many participants".into()))?;
+            .map_err(|_| AppError::BadRequest("Hay demasiados participantes".into()))?;
         let divisor = BigDecimal::from(participants_count);
         Ok(total / divisor)
     }

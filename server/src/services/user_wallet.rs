@@ -34,7 +34,7 @@ impl UserWalletService {
         let currency_id = self
             .currency_repo
             .get_currency_id_by_ticker(wallet_request.currency_ticker.clone())
-            .map_err(|_| AppError::BadRequest("that currency doesn't exist".into()))?;
+            .map_err(|_| AppError::BadRequest("Esa moneda no existe".into()))?;
 
         //chequeo si el user ya tiene esa address asignada por otra currency
         let owner_opt = self
@@ -45,7 +45,7 @@ impl UserWalletService {
         if let Some(owner_id) = owner_opt {
             if owner_id != user_id {
                 return Err(AppError::Forbidden(
-                    "Esa address ya esta tomada, elija otra".into(),
+                    "Esa dirección ya está tomada, elegí otra".into(),
                 ));
             }
         }
@@ -58,7 +58,7 @@ impl UserWalletService {
 
         if existing_currency_wallet.is_some() {
             return Err(AppError::Forbidden(
-                "Esa address ya esta registrada para esa currency".into(),
+                "Esa dirección ya está registrada para esa moneda".into(),
             ));
         }
 
@@ -80,7 +80,9 @@ impl UserWalletService {
         amount: BigDecimal,
     ) -> Result<UserWallet, AppError> {
         if amount <= BigDecimal::zero() {
-            return Err(AppError::BadRequest("amount must be higher than 0".into()));
+            return Err(AppError::BadRequest(
+                "La cantidad tiene que ser mayor a 0".into(),
+            ));
         }
 
         let wallet = self
@@ -104,7 +106,9 @@ impl UserWalletService {
         amount: BigDecimal,
     ) -> Result<UserWallet, AppError> {
         if amount <= BigDecimal::zero() {
-            return Err(AppError::BadRequest("amount must be higher than 0".into()));
+            return Err(AppError::BadRequest(
+                "La cantidad tiene que ser mayor a 0".into(),
+            ));
         }
         let wallet = self
             .user_wallet_repo
@@ -117,7 +121,7 @@ impl UserWalletService {
             ));
         }
         if wallet.balance < amount {
-            return Err(AppError::BadRequest("Insuficient funds".into()));
+            return Err(AppError::BadRequest("Fondos insuficientes".into()));
         }
 
         self.user_wallet_repo
@@ -133,13 +137,15 @@ impl UserWalletService {
             .map_err(|_| AppError::BadRequest("Monto inválido".into()))?;
 
         if amount <= BigDecimal::zero() {
-            return Err(AppError::BadRequest("Amount must be higher than 0".into()));
+            return Err(AppError::BadRequest(
+                "La cantidad tiene que ser mayor a 0".into(),
+            ));
         }
 
         let sender_wallet = self
             .user_wallet_repo
             .get_wallet_info(request.sender_wallet_id)
-            .map_err(|_| AppError::BadRequest("wallet doesn't exist".into()))?;
+            .map_err(|_| AppError::BadRequest("Esa wallet no existe".into()))?;
 
         if sender_wallet.user_id != current_user_id {
             return Err(AppError::Forbidden(
@@ -148,12 +154,12 @@ impl UserWalletService {
         }
 
         if sender_wallet.balance < amount {
-            return Err(AppError::BadRequest("Insuficient funds".into()));
+            return Err(AppError::BadRequest("Fondos insuficientes".into()));
         }
 
         if sender_wallet.address == request.receiver_address {
             return Err(AppError::BadRequest(
-                "You can't transfer to the same address".into(),
+                "No podés transferir a la misma dirección".into(),
             ));
         }
 
@@ -169,7 +175,7 @@ impl UserWalletService {
             Some(id) => id,
             None => {
                 return Err(AppError::BadRequest(
-                    "Receiver wallet doesn't exist or doesn't support this currency".into(),
+                    "Esa dirección no existe o no soporta esta moneda".into(),
                 ));
             }
         };
@@ -202,7 +208,7 @@ impl UserWalletService {
         let currency_id = self
             .currency_repo
             .get_currency_id_by_ticker(ticker)
-            .map_err(|_| AppError::BadRequest("that currency doesn't exist".into()))?;
+            .map_err(|_| AppError::BadRequest("Esa moneda no existe".into()))?;
 
         let wallet_id = self
             .user_wallet_repo
