@@ -32,7 +32,7 @@ pub enum AppError {
     #[error("Forbidden")]
     Forbidden,
 
-    #[error("Core")]
+    #[error("Core operation failed")]
     Core,
 }
 
