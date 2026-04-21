@@ -5,13 +5,39 @@
 	import { authStore } from '$lib/stores/auth';
 	import Navbar from '$lib/components/ui/Navbar.svelte';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 
 	let { children } = $props();
 	let initialized = $state(false);
 
+	const PUBLIC_ROUTES = ['/', '/login', '/register'];
+	const AUTH_ONLY_ROUTES = ['/login', '/register'];
+
+	function isPublic(pathname: string) {
+		return PUBLIC_ROUTES.includes(pathname);
+	}
+
 	onMount(async () => {
 		await authStore.init();
 		initialized = true;
+	});
+
+	$effect(() => {
+		if (!initialized) return;
+
+		const pathname = page.url.pathname;
+		const authed = $authStore.isAuthenticated;
+
+		if (!authed && !isPublic(pathname)) {
+			const redirectTo = encodeURIComponent(pathname + page.url.search);
+			goto(`/login?redirectTo=${redirectTo}`, { replaceState: true });
+			return;
+		}
+
+		if (authed && AUTH_ONLY_ROUTES.includes(pathname)) {
+			goto('/dashboard', { replaceState: true });
+		}
 	});
 </script>
 

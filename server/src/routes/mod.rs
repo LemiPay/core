@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod core;
+pub mod expense;
 pub mod group;
 pub mod group_wallet;
 pub mod proposal;
