@@ -1,4 +1,4 @@
-use axum::routing::{get, post};
+use axum::routing::get;
 use axum::{Router, middleware};
 
 use crate::data::state::SharedState;
