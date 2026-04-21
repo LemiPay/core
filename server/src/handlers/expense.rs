@@ -11,7 +11,6 @@ use uuid::Uuid;
 #[derive(Deserialize)]
 pub struct ParticipantInput {
     pub user_id: Uuid,
-    pub amount: BigDecimal,
 }
 
 #[derive(Deserialize)]

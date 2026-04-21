@@ -24,7 +24,7 @@ impl ExpenseService {
     ///
     /// ### Errors
     /// - [`AppError::BadRequest`] si el monto es <= 0, la lista de participantes
-    ///   está vacía, tiene duplicados, o los montos no suman el total.
+    ///   está vacía o tiene duplicados.
     /// - [`AppError::Db`] ante cualquier error de base.
     pub fn create_expense(
         &self,
@@ -38,7 +38,8 @@ impl ExpenseService {
         }: CreateExpenseRequest,
     ) -> Result<Expense, AppError> {
         Self::validate_amount(&amount)?;
-        Self::validate_participants(&participants, &amount)?;
+        Self::validate_participants(&participants)?;
+        let amount_per_participant = Self::split_amount_equally(&amount, participants.len())?;
 
         let new_expense = NewExpense {
             user_id,
@@ -50,7 +51,7 @@ impl ExpenseService {
 
         let participants: Vec<(Uuid, BigDecimal)> = participants
             .into_iter()
-            .map(|p| (p.user_id, p.amount))
+            .map(|p| (p.user_id, amount_per_participant.clone()))
             .collect();
 
         let result = self.expense_repo.create(new_expense, participants)?;
@@ -172,10 +173,14 @@ impl ExpenseService {
         // Si vienen participantes, deben ser coherentes con el monto efectivo.
         let participants: Option<Vec<(Uuid, BigDecimal)>> = match participants {
             Some(ps) => {
-                Self::validate_participants(&ps, &effective_amount)?;
+                Self::validate_participants(&ps)?;
+                let amount_per_participant =
+                    Self::split_amount_equally(&effective_amount, ps.len())?;
 
-                let mapped: Vec<(Uuid, BigDecimal)> =
-                    ps.into_iter().map(|p| (p.user_id, p.amount)).collect();
+                let mapped: Vec<(Uuid, BigDecimal)> = ps
+                    .into_iter()
+                    .map(|p| (p.user_id, amount_per_participant.clone()))
+                    .collect();
 
                 Some(mapped)
             }
@@ -201,10 +206,7 @@ impl ExpenseService {
         Ok(())
     }
 
-    fn validate_participants(
-        participants: &[ParticipantInput],
-        total: &BigDecimal,
-    ) -> Result<(), AppError> {
+    fn validate_participants(participants: &[ParticipantInput]) -> Result<(), AppError> {
         if participants.is_empty() {
             return Err(AppError::BadRequest(
                 "Expense must have at least one participant".into(),
@@ -212,8 +214,6 @@ impl ExpenseService {
         }
 
         let mut seen = HashSet::new();
-        let zero = BigDecimal::zero();
-        let mut sum = BigDecimal::zero();
 
         for p in participants {
             if !seen.insert(p.user_id) {
@@ -221,22 +221,18 @@ impl ExpenseService {
                     "Duplicated participant in expense".into(),
                 ));
             }
-
-            if p.amount <= zero {
-                return Err(AppError::BadRequest(
-                    "Each participant amount must be greater than 0".into(),
-                ));
-            }
-
-            sum += &p.amount;
-        }
-
-        if &sum != total {
-            return Err(AppError::BadRequest(
-                "Participants' amounts must sum the total expense amount".into(),
-            ));
         }
 
         Ok(())
+    }
+
+    fn split_amount_equally(
+        total: &BigDecimal,
+        participants_len: usize,
+    ) -> Result<BigDecimal, AppError> {
+        let participants_count = i64::try_from(participants_len)
+            .map_err(|_| AppError::BadRequest("Too many participants".into()))?;
+        let divisor = BigDecimal::from(participants_count);
+        Ok(total / divisor)
     }
 }

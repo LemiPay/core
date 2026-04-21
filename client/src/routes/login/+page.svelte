@@ -3,6 +3,7 @@
 	import { authStore } from '$lib/stores/auth';
 	import { isSuccess } from '$lib/types/client.types';
 	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
+	import { page } from '$app/state';
 
 	let data = $state({
 		email: '',
@@ -33,8 +34,10 @@
 			password: ''
 		};
 
+		const redirectTo = page.url.searchParams.get('redirectTo') || '/dashboard';
+
 		setTimeout(() => {
-			window.location.href = '/dashboard';
+			window.location.href = redirectTo;
 		}, 1000);
 	}
 </script>
