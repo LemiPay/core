@@ -212,6 +212,7 @@ impl ExpenseService {
         }
 
         let mut seen = HashSet::new();
+        let zero = BigDecimal::zero();
         let mut sum = BigDecimal::zero();
 
         for p in participants {
@@ -221,7 +222,7 @@ impl ExpenseService {
                 ));
             }
 
-            if p.amount.clone() <= BigDecimal::zero() {
+            if p.amount <= zero {
                 return Err(AppError::BadRequest(
                     "Each participant amount must be greater than 0".into(),
                 ));
