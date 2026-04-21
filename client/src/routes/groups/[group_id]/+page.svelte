@@ -35,6 +35,7 @@
 		getGroupFundRoundProposals,
 		getMyFundRoundContribution
 	} from '$lib/api/endpoints/fund_rounds';
+	import { getExpenses } from '$lib/api/endpoints/expenses';
 	import { getMyWallets } from '$lib/api/endpoints/wallets';
 
 	// Stores
@@ -48,6 +49,7 @@
 	import type { UserBadge } from '$lib/types/endpoints/auth.types';
 	import type { GroupWallet } from '$lib/types/endpoints/groups.types';
 	import type { FundRoundStatusResponse } from '$lib/types/endpoints/fund_rounds.types';
+	import type { Expense } from '$lib/types/endpoints/expenses.types';
 	import type { WalletCurrency } from '$lib/types/endpoints/wallets.types';
 
 	// Components
@@ -63,6 +65,7 @@
 	import { getProposalStatusDisplay } from '$lib/utils/proposal_status';
 	import ProposeWithdrawModal from '$lib/components/modals/ProposeWithdrawModal.svelte';
 	import WithdrawProposalDrawer from '$lib/components/WithdrawProposalDrawer.svelte';
+	import CreateExpenseModal from '$lib/components/modals/CreateExpenseModal.svelte';
 
 	// --- STATES ---
 	let loading = $state(true);
@@ -77,7 +80,7 @@
 	const groupId = page.params.group_id as string;
 
 	// Sistema de Tabs
-	type Tab = 'general' | 'wallets' | 'fund_rounds';
+	type Tab = 'general' | 'wallets' | 'fund_rounds' | 'expenses';
 	let activeTab = $state<Tab>('general');
 
 	// Modals
@@ -90,6 +93,7 @@
 	let showWithdrawModal = $state(false);
 	let showProposalsDrawer = $state(false);
 	let showCreateFundRoundModal = $state(false);
+	let showCreateExpenseModal = $state(false);
 	let selectedCurrencyIdToWithdraw = $state<string>('');
 	let selectedWalletIdToFund = $state<string>('');
 	let selectedCurrencyId = $state<string>('');
@@ -117,9 +121,16 @@
 	let cancelFundRoundError = $state('');
 
 	let showPastFundRounds = $state(false);
+	let expenses = $state<Expense[]>([]);
+	let loadingExpenses = $state(true);
+	let expensesError = $state('');
 
 	const currentUserId = $derived($authStore.user?.id);
-
+	const recentExpenses = $derived(
+		[...expenses]
+			.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+			.slice(0, 3)
+	);
 	// Activas: las que todavía pueden recibir aportes o están a la espera.
 	// Pasadas: finalizadas, canceladas o que no pueden avanzar.
 	const activeFundRounds = $derived(
@@ -142,6 +153,19 @@
 
 	function formatAmount(value: number): string {
 		return value.toFixed(2);
+	}
+
+	function formatExpenseDate(value: string): string {
+		return new Date(value).toLocaleDateString('es-AR', {
+			day: '2-digit',
+			month: '2-digit',
+			year: 'numeric'
+		});
+	}
+
+	function getMemberName(userId: string): string {
+		const member = members.find((item) => item.user_id === userId);
+		return member?.name ?? 'Usuario';
 	}
 
 	// --- LOGIC ---
@@ -268,6 +292,21 @@
 		loadingFundRounds = false;
 	}
 
+	async function loadExpensesData() {
+		loadingExpenses = true;
+		expensesError = '';
+		try {
+			const res = await getExpenses(groupId);
+			if (!isSuccess(res)) {
+				expensesError = res.message || 'No se pudieron cargar los gastos.';
+				return;
+			}
+			expenses = res.body;
+		} finally {
+			loadingExpenses = false;
+		}
+	}
+
 	function toggleFundRoundAccordion(fundRoundId: string) {
 		if (expandedFundRoundId === fundRoundId) {
 			expandedFundRoundId = null;
@@ -359,9 +398,16 @@
 		}
 	});
 
+	$effect(() => {
+		if (activeTab === 'expenses') {
+			loadExpensesData();
+		}
+	});
+
 	loadGroupData();
 	loadMembersData();
 	loadWalletsData();
+	loadExpensesData();
 </script>
 
 <svelte:head>
@@ -440,7 +486,7 @@
 		<!-- TABS NAV -->
 		<div class="w-full max-w-4xl">
 			<div class="flex border-b border-gray-200">
-				{#each [{ key: 'general', label: 'General' }, { key: 'wallets', label: 'Billeteras' }, { key: 'fund_rounds', label: 'Rondas de Fondeo' }] as const as tab}
+				{#each [{ key: 'general', label: 'General' }, { key: 'wallets', label: 'Billeteras' }, { key: 'fund_rounds', label: 'Rondas de Fondeo' }, { key: 'expenses', label: 'División de Gastos' }] as const as tab}
 					<button
 						onclick={() => (activeTab = tab.key)}
 						class={[
@@ -927,6 +973,61 @@
 						{/if}
 					</div>
 				{/if}
+
+				{#if activeTab === 'expenses'}
+					<div class="animate-in fade-in slide-in-from-bottom-2 space-y-4 duration-300">
+						<div class="flex items-center justify-between gap-3">
+							<div>
+								<h3 class="text-sm font-semibold text-black">Ultimos Gastos</h3>
+								<p class="text-xs text-gray-500">Se muestran los gastos mas recientes del grupo.</p>
+							</div>
+							<Button label="Agregar Gasto" onclick={() => (showCreateExpenseModal = true)} />
+						</div>
+
+						{#if loadingExpenses}
+							<div
+								class="flex items-center justify-center rounded-xl border border-gray-200 bg-white p-6"
+							>
+								<div
+									class="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-black"
+								></div>
+							</div>
+						{:else if expensesError}
+							<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+								{expensesError}
+							</div>
+						{:else if recentExpenses.length === 0}
+							<div
+								class="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500"
+							>
+								No hay expenses todavia. Crea la primera desde el boton de arriba.
+							</div>
+						{:else}
+							<div class="space-y-2">
+								{#each recentExpenses as expense (expense.expense_id)}
+									<div class="rounded-xl border border-gray-200 bg-white p-4">
+										<div class="flex items-start justify-between gap-3">
+											<div class="space-y-1">
+												<p class="text-sm font-semibold text-black">
+													{expense.description || 'Sin descripcion'}
+												</p>
+												<p class="text-xs text-gray-500">
+													Creado por {getMemberName(expense.user_id)}
+												</p>
+											</div>
+											<div class="text-right">
+												<p class="text-sm font-semibold text-black">{expense.amount}</p>
+												<p class="text-xs text-gray-500">
+													{formatExpenseDate(expense.created_at)}
+												</p>
+											</div>
+										</div>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</div>
 
@@ -991,6 +1092,13 @@
 			group_id={groupData.id}
 			onclose={() => (showCreateFundRoundModal = false)}
 			onsuccess={loadFundRoundsData}
+		/>
+		<CreateExpenseModal
+			open={showCreateExpenseModal}
+			group_id={groupData.id}
+			{members}
+			onclose={() => (showCreateExpenseModal = false)}
+			onsuccess={loadExpensesData}
 		/>
 		<Confirm
 			open={showLeaveModal}
