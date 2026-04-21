@@ -1,5 +1,4 @@
 import { authedApiFetch } from '../client';
-
 import type { ApiResponse } from '$lib/types/client.types';
 import type {
 	CreateExpenseData,
@@ -58,4 +57,8 @@ export async function adminDeleteExpense(
 	return authedApiFetch(`/expense/admin/${group_id}/${expense_id}`, {
 		method: 'DELETE'
 	});
+}
+
+export async function getGroupExpenses(groupId: string): ApiResponse<Expense[]> {
+	return authedApiFetch(`/expense/${groupId}/list`, { method: 'GET' });
 }
