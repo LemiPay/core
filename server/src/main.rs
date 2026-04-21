@@ -1,6 +1,7 @@
 use axum::serve;
 use std::sync::Arc;
 
+mod core;
 mod data;
 pub mod errors;
 mod handlers;
