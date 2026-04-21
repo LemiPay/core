@@ -173,7 +173,7 @@
 						<option value="" disabled>Elegí una moneda</option>
 						{#each groupWallets as wallet (wallet.id)}
 							<option value={wallet.currency_id}>
-								{wallet.currency_ticker ?? 'USDC'} (saldo: ${wallet.balance})
+								{wallet.currency_ticker ?? 'USDC'}
 							</option>
 						{/each}
 					</select>
@@ -200,7 +200,7 @@
 					class="w-full resize-none rounded-md border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-400 transition focus:border-gray-400 focus:ring-0 focus:outline-none"
 				></textarea>
 			</div>
-
+			<!--
 			<div>
 				<p class="mb-1.5 text-sm font-medium text-black">Participantes</p>
 				{#if hasMembers}
@@ -223,7 +223,7 @@
 						No hay miembros para agregar en el gasto.
 					</p>
 				{/if}
-			</div>
+			</div>-->
 		</form>
 	{/snippet}
 

@@ -43,7 +43,7 @@
 
 		success = 'Invite sent successfully';
 
-		email = '';
+		//email = '';
 		attempted = false;
 
 		setTimeout(() => {
