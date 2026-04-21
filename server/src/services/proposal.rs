@@ -167,7 +167,7 @@ impl ProposalService {
             ));
         }
         if search_proposal.proposal.status != MyProposalStatus::Approved {
-            return Err(AppError::Forbidden(
+            return Err(AppError::BadRequest(
                 "Esta invitación ya fue aceptada o rechazada".into(),
             ));
         }
