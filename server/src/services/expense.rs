@@ -102,9 +102,7 @@ impl ExpenseService {
     ) -> Result<Expense, AppError> {
         let expense = self.get_active(expense_id)?;
 
-        //aca en vez de tirar forbidden y decir que esa expense no pertenece a este grupo
-        //tiro not found asi no pueden saber si esa expense existe o no
-        //porque es de otro grupo
+        // Return NotFound to avoid disclosing whether the expense exists in another group.
         if expense.group_id != group_id {
             return Err(AppError::NotFound);
         }
