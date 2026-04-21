@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { apiFetch } from '$lib/api/client';
+	import { authStore } from '$lib/stores/auth';
 	import { ArrowLeft, Mail, User as UserIcon } from 'lucide-svelte';
 
 	type UserSummary = {
@@ -38,6 +40,12 @@
 		if (!userId) {
 			error = 'No se encontro el id del usuario.';
 			isLoading = false;
+			return;
+		}
+
+		const currentUserId = $authStore.user?.id;
+		if (currentUserId && userId === currentUserId) {
+			await goto('/profile/me', { replaceState: true });
 			return;
 		}
 
