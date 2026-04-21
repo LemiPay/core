@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 #[derive(Serialize)]
 pub struct UserBalance {
+    pub user_name: String,
     pub user_id: Uuid,
     pub balance: BigDecimal,
 }
@@ -27,7 +28,7 @@ pub async fn get_balances(
     State(state): State<SharedState>,
     Path(group_id): Path<Uuid>,
     user: AuthUser,
-) -> Result<Json<Vec<Balances>>, AppError> {
-    let result;
+) -> Result<Json<Balances>, AppError> {
+    let result = state.core_service.get_balances(group_id)?;
     Ok(Json(result))
 }

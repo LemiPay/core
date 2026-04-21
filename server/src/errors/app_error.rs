@@ -31,6 +31,9 @@ pub enum AppError {
 
     #[error("Forbidden")]
     Forbidden,
+
+    #[error("Core")]
+    Core,
 }
 
 #[derive(Serialize)]
@@ -48,6 +51,7 @@ impl IntoResponse for AppError {
             AppError::PasswordHash(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, self.to_string()),
             AppError::Forbidden => (StatusCode::FORBIDDEN, self.to_string()),
+            AppError::Core => (StatusCode::CONFLICT, self.to_string()),
         };
 
         let body = Json(ErrorResponse { message });

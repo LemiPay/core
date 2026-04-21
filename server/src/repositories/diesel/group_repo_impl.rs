@@ -123,6 +123,28 @@ impl GroupRepository for DieselGroupRepository {
         Ok(result.is_some())
     }
 
+    fn get_historic_group_members(&self, group_id: Uuid) -> Result<Vec<GroupMember>, DbError> {
+        let mut conn = self.db.get_conn()?;
+        let raw_result = user_in_group::table
+            .inner_join(user::table)
+            .filter(user_in_group::group_id.eq(group_id))
+            .get_results::<(UserInGroup, User)>(&mut conn)?;
+
+        let members = raw_result
+            .into_iter()
+            .map(|(rel, u)| GroupMember {
+                user_id: u.id,
+                group_id: rel.group_id,
+                name: u.name,
+                email: u.email,
+                status: rel.status,
+                role: rel.role,
+            })
+            .collect();
+
+        Ok(members)
+    }
+
     fn get_group_members(&self, group_id: Uuid) -> Result<Vec<GroupMember>, DbError> {
         let mut conn = self.db.get_conn()?;
         let raw_result = user_in_group::table
