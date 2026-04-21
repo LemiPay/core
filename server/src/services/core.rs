@@ -41,10 +41,7 @@ impl CoreService {
         let expenses = self.expense_repo.find_by_group(group_id)?;
 
         //call core
-        let result = core(users_ids, transactions, expenses).map_err(|err| {
-            eprintln!("core(users_ids, transactions, expenses) failed for group {group_id}: {err:?}");
-            AppError::Core
-        })?;
+        let result = core(users_ids, transactions, expenses).map_err(|_| AppError::Core)?;
 
         //map core pretty
         let balances = historic_members
