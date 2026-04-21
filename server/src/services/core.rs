@@ -6,7 +6,6 @@ use bigdecimal::{BigDecimal, Zero};
 
 use crate::errors::app_error::AppError;
 use crate::handlers::core::{Balances, UserBalance};
-use crate::models::expense::Expense;
 use crate::repositories::traits::expense_repo::ExpenseRepository;
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::repositories::traits::transaction_repo::TransactionRepository;
