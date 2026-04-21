@@ -813,7 +813,7 @@
 											{@const isDebt = mb.balance < -0.01}
 											{@const pct = Math.min(100, (Math.abs(mb.balance) / maxAbs) * 100)}
 											<a
-												href="/users/{mb.user.user_id}"
+												href={`/users/${mb.user.user_id}`}
 												class="flex items-center gap-4 px-4 py-3 transition hover:bg-gray-50"
 											>
 												<!-- Avatar con iniciales -->
