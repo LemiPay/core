@@ -13,7 +13,14 @@
 		Users,
 		Calendar,
 		Target,
-		Ban
+		Ban,
+		TrendingUp,
+		TrendingDown,
+		ArrowRight,
+		Scale,
+		CircleUser,
+		Sparkles,
+		Info
 	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/state';
@@ -73,11 +80,14 @@
 	let groupData = $state({} as Group);
 	let members = $state([] as UserBadge[]);
 	let wallets = $state([] as GroupWallet[]);
+	const groupWalletsBalance = $derived(
+		wallets.reduce((acc, wallet) => acc + Number(wallet.balance || 0), 0)
+	);
 
 	const groupId = page.params.group_id as string;
 
 	// Sistema de Tabs
-	type Tab = 'general' | 'wallets' | 'fund_rounds';
+	type Tab = 'general' | 'wallets' | 'fund_rounds' | 'balances';
 	let activeTab = $state<Tab>('general');
 
 	// Modals
@@ -143,6 +153,74 @@
 	function formatAmount(value: number): string {
 		return value.toFixed(2);
 	}
+
+	// --- BALANCES (MOCK) ---
+	// TODO: reemplazar por data real del backend cuando esté el endpoint.
+	// Balance positivo: al miembro le deben. Balance negativo: el miembro debe.
+	const MOCK_BALANCES_TICKER = 'USDC';
+
+	type MemberBalance = { user: UserBadge; balance: number };
+	type Settlement = { from: UserBadge; to: UserBadge; amount: number };
+
+	function hashUserId(id: string): number {
+		let h = 0;
+		for (let i = 0; i < id.length; i++) {
+			h = (h * 31 + id.charCodeAt(i)) | 0;
+		}
+		return Math.abs(h);
+	}
+
+	// Genera balances determinísticos a partir del user_id y los normaliza para que sumen 0.
+	const memberBalances = $derived.by<MemberBalance[]>(() => {
+		if (members.length === 0) return [];
+		const raw: MemberBalance[] = members.map((m) => ({
+			user: m,
+			balance: Math.round((((hashUserId(m.user_id) % 20001) - 10000) / 100) * 100) / 100
+		}));
+		const sum = raw.reduce((acc, x) => acc + x.balance, 0);
+		raw[0].balance = Math.round((raw[0].balance - sum) * 100) / 100;
+		return raw;
+	});
+
+	const sortedMemberBalances = $derived([...memberBalances].sort((a, b) => b.balance - a.balance));
+
+	const totalToReceive = $derived(
+		memberBalances.filter((m) => m.balance > 0).reduce((acc, x) => acc + x.balance, 0)
+	);
+	const totalToPay = $derived(
+		memberBalances.filter((m) => m.balance < 0).reduce((acc, x) => acc + Math.abs(x.balance), 0)
+	);
+
+	// Algoritmo greedy: al que más le deben contra el que más debe, hasta saldar todo.
+	const settlements = $derived.by<Settlement[]>(() => {
+		const creditors = memberBalances
+			.filter((m) => m.balance > 0.01)
+			.map((m) => ({ user: m.user, remaining: m.balance }))
+			.sort((a, b) => b.remaining - a.remaining);
+		const debtors = memberBalances
+			.filter((m) => m.balance < -0.01)
+			.map((m) => ({ user: m.user, remaining: -m.balance }))
+			.sort((a, b) => b.remaining - a.remaining);
+
+		const result: Settlement[] = [];
+		let i = 0;
+		let j = 0;
+		while (i < debtors.length && j < creditors.length) {
+			const amount = Math.min(debtors[i].remaining, creditors[j].remaining);
+			if (amount > 0.01) {
+				result.push({
+					from: debtors[i].user,
+					to: creditors[j].user,
+					amount: Math.round(amount * 100) / 100
+				});
+			}
+			debtors[i].remaining -= amount;
+			creditors[j].remaining -= amount;
+			if (debtors[i].remaining < 0.01) i++;
+			if (creditors[j].remaining < 0.01) j++;
+		}
+		return result;
+	});
 
 	// --- LOGIC ---
 	async function handleEditGroup(data: { name: string; description: string }) {
@@ -440,7 +518,7 @@
 		<!-- TABS NAV -->
 		<div class="w-full max-w-4xl">
 			<div class="flex border-b border-gray-200">
-				{#each [{ key: 'general', label: 'General' }, { key: 'wallets', label: 'Billeteras' }, { key: 'fund_rounds', label: 'Rondas de Fondeo' }] as const as tab}
+				{#each [{ key: 'general', label: 'General' }, { key: 'wallets', label: 'Billeteras' }, { key: 'fund_rounds', label: 'Rondas de Fondeo' }, { key: 'balances', label: 'Balances' }] as const as tab}
 					<button
 						onclick={() => (activeTab = tab.key)}
 						class={[
@@ -459,32 +537,292 @@
 			<div class="py-8">
 				<!-- GENERAL TAB -->
 				{#if activeTab === 'general'}
-					<div class="animate-in fade-in slide-in-from-bottom-2 space-y-6 duration-300">
-						<div class="flex items-center justify-between">
-							<h2 class="text-sm font-medium text-black">Miembros</h2>
-							<Button
-								label="Invitar"
-								variant="secondary"
-								onclick={() => (showNewMemberModal = true)}
-							>
-								{#snippet icon()}
-									<Plus class="h-4 w-4" />
-								{/snippet}
-							</Button>
+					<div class="animate-in fade-in slide-in-from-bottom-2 space-y-8 duration-300">
+						<!-- Sección: Miembros -->
+						<div class="space-y-4">
+							<div class="flex items-center justify-between gap-3">
+								<div class="flex items-center gap-2">
+									<h2 class="text-sm font-medium text-black">Miembros</h2>
+									{#if !loadingMembers && members.length > 0}
+										<span
+											class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600"
+										>
+											{members.length}
+										</span>
+									{/if}
+								</div>
+								<Button
+									label="Invitar"
+									variant="secondary"
+									onclick={() => (showNewMemberModal = true)}
+								>
+									{#snippet icon()}
+										<Plus class="h-4 w-4" />
+									{/snippet}
+								</Button>
+							</div>
+
+							{#if loadingMembers}
+								<div
+									class="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-black"
+								></div>
+							{:else if members.length > 0}
+								<div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+									{#each members as member (member.user_id)}
+										{@const isAdmin = member.role === 'Admin'}
+										{@const initials =
+											member.name
+												.trim()
+												.split(/\s+/)
+												.slice(0, 2)
+												.map((p) => p[0]?.toUpperCase() ?? '')
+												.join('') || '?'}
+										<a
+											href="/users/{member.user_id}"
+											class="group flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2.5 transition hover:border-gray-300 hover:shadow-sm"
+										>
+											<div
+												class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-semibold {isAdmin
+													? 'border-gray-900 bg-gray-900 text-white'
+													: 'border-gray-200 bg-gray-50 text-gray-700'} transition group-hover:border-black"
+											>
+												{initials}
+											</div>
+											<div class="min-w-0 flex-1 space-y-0.5">
+												<p class="truncate text-sm font-medium text-black group-hover:underline">
+													{member.name}
+												</p>
+												<p class="text-[11px] text-gray-400">
+													{isAdmin ? 'Admin' : 'Miembro'}
+												</p>
+											</div>
+										</a>
+									{/each}
+
+									<!-- Card para invitar más miembros -->
+									<button
+										type="button"
+										onclick={() => (showNewMemberModal = true)}
+										class="group flex items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-white px-3 py-2.5 text-left transition hover:border-black hover:bg-gray-50"
+									>
+										<div
+											class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 bg-white text-gray-400 transition group-hover:border-black group-hover:text-black"
+										>
+											<Plus class="h-4 w-4" />
+										</div>
+										<div class="min-w-0 space-y-0.5">
+											<p class="truncate text-sm font-medium text-gray-500 group-hover:text-black">
+												Invitar miembro
+											</p>
+											<p class="text-[11px] text-gray-400">Sumá a alguien al grupo</p>
+										</div>
+									</button>
+								</div>
+							{:else}
+								<div
+									class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center"
+								>
+									<Users class="mx-auto mb-3 h-8 w-8 text-gray-400" />
+									<p class="text-sm font-medium text-black">Sin miembros aún</p>
+									<p class="mb-4 text-sm text-gray-500">
+										Invitá a alguien para empezar a mover plata en grupo.
+									</p>
+									<Button
+										label="Invitar primer miembro"
+										variant="secondary"
+										onclick={() => (showNewMemberModal = true)}
+									>
+										{#snippet icon()}
+											<Plus class="h-4 w-4" />
+										{/snippet}
+									</Button>
+								</div>
+							{/if}
 						</div>
 
-						{#if loadingMembers}
-							<div
-								class="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-black"
-							></div>
-						{:else if members.length > 0}
-							<div class="flex flex-wrap gap-2 pt-1">
-								{#each members as member}
-									<UserIconBadge user={member} />
-								{/each}
+						<!-- BALANCE DASHBOARD -->
+						{#if !loadingMembers && memberBalances.length > 0}
+							{@const maxAbs = Math.max(1, ...memberBalances.map((m) => Math.abs(m.balance)))}
+							{@const topMovers = sortedMemberBalances.slice(0, 5)}
+
+							<div class="space-y-5">
+								<!-- Header del dashboard -->
+								<div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+									<div class="space-y-1">
+										<div class="flex items-center gap-2">
+											<h2 class="text-sm font-medium text-black">Balance del grupo</h2>
+											<span
+												class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700"
+											>
+												<Sparkles class="h-3 w-3" />
+												Preview
+											</span>
+										</div>
+										<p class="text-xs text-gray-500">
+											Resumen de cuánto debe o tiene a favor cada miembro.
+										</p>
+									</div>
+									<div
+										class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600"
+									>
+										<span class="text-gray-400">Moneda</span>
+										<span
+											class="rounded bg-black px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase"
+										>
+											{MOCK_BALANCES_TICKER}
+										</span>
+									</div>
+								</div>
+
+								<!-- Balance actual del grupo -->
+								<div
+									class="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-5 transition hover:border-gray-300 hover:shadow-sm"
+								>
+									<div class="space-y-1">
+										<p class="text-[11px] font-medium tracking-wider text-gray-400 uppercase">
+											Balance del grupo
+										</p>
+										<p class="flex items-baseline gap-2">
+											<span class="text-3xl font-bold tracking-tight text-black">
+												${formatAmount(groupWalletsBalance)}
+											</span>
+											<span
+												class="rounded bg-black px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase"
+											>
+												{MOCK_BALANCES_TICKER}
+											</span>
+										</p>
+										<p class="text-xs text-gray-500">Suma de balances de billeteras del grupo</p>
+									</div>
+									<div
+										class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600"
+									>
+										<Scale class="h-5 w-5" />
+									</div>
+								</div>
+
+								<!-- Top movers -->
+								<div class="space-y-3">
+									<div class="flex items-center justify-between">
+										<h3 class="text-xs font-medium tracking-wider text-gray-500 uppercase">
+											{memberBalances.length > 5 ? 'Top movimientos' : 'Detalle por miembro'}
+										</h3>
+										<span class="text-[11px] text-gray-400">Ordenado por balance</span>
+									</div>
+
+									<div
+										class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white"
+									>
+										{#each topMovers as mb (mb.user.user_id)}
+											{@const isCredit = mb.balance > 0.01}
+											{@const isDebt = mb.balance < -0.01}
+											{@const pct = Math.min(100, (Math.abs(mb.balance) / maxAbs) * 100)}
+											<a
+												href="/users/{mb.user.user_id}"
+												class="flex items-center gap-4 px-4 py-3 transition hover:bg-gray-50"
+											>
+												<!-- Avatar con iniciales -->
+												<div
+													class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-semibold {isCredit
+														? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+														: isDebt
+															? 'border-rose-200 bg-rose-50 text-rose-700'
+															: 'border-gray-200 bg-gray-50 text-gray-500'}"
+												>
+													{mb.user.name
+														.trim()
+														.split(/\s+/)
+														.slice(0, 2)
+														.map((p) => p[0]?.toUpperCase() ?? '')
+														.join('') || '?'}
+												</div>
+
+												<!-- Nombre + barra centrada en cero -->
+												<div class="min-w-0 flex-1 space-y-1.5">
+													<div class="flex items-center gap-2">
+														<span class="truncate text-sm font-medium text-black">
+															{mb.user.name}
+														</span>
+														{#if mb.user.role === 'Admin'}
+															<span
+																class="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-gray-500 uppercase"
+															>
+																Admin
+															</span>
+														{/if}
+													</div>
+
+													<div class="relative h-1.5 w-full rounded-full bg-gray-100">
+														<div class="absolute top-0 bottom-0 left-1/2 w-px bg-gray-300"></div>
+														{#if isCredit}
+															<div
+																class="absolute top-0 bottom-0 left-1/2 rounded-r-full bg-linear-to-r from-emerald-400 to-emerald-600 transition-all duration-700"
+																style="width: {pct / 2}%"
+															></div>
+														{:else if isDebt}
+															<div
+																class="absolute top-0 right-1/2 bottom-0 rounded-l-full bg-linear-to-l from-rose-400 to-rose-600 transition-all duration-700"
+																style="width: {pct / 2}%"
+															></div>
+														{/if}
+													</div>
+												</div>
+
+												<!-- Monto -->
+												<div class="shrink-0 text-right">
+													<p
+														class="text-sm font-semibold tabular-nums {isCredit
+															? 'text-emerald-700'
+															: isDebt
+																? 'text-rose-700'
+																: 'text-gray-500'}"
+													>
+														{isCredit ? '+' : isDebt ? '-' : ''}${formatAmount(
+															Math.abs(mb.balance)
+														)}
+													</p>
+													<p
+														class="text-[10px] font-medium tracking-wider uppercase {isCredit
+															? 'text-emerald-600/70'
+															: isDebt
+																? 'text-rose-600/70'
+																: 'text-gray-400'}"
+													>
+														{isCredit ? 'a favor' : isDebt ? 'debe' : 'saldado'}
+													</p>
+												</div>
+											</a>
+										{/each}
+									</div>
+								</div>
+
+								<!-- Call-to-action hacia la tab detallada -->
+								<button
+									type="button"
+									onclick={() => (activeTab = 'balances')}
+									class="group flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition hover:border-gray-300 hover:shadow-sm"
+								>
+									<div class="min-w-0 space-y-0.5">
+										<p class="flex items-center gap-2 text-sm font-medium text-black">
+											<Scale class="h-4 w-4 text-gray-500" />
+											Ver detalle de deudas
+										</p>
+										<p class="text-[11px] text-gray-500">
+											{#if settlements.length > 0}
+												{settlements.length}
+												{settlements.length === 1
+													? 'transferencia sugerida'
+													: 'transferencias sugeridas'} para saldar todo
+											{:else}
+												Nadie le debe nada a nadie. ¡Todo saldado!
+											{/if}
+										</p>
+									</div>
+									<ArrowRight
+										class="h-4 w-4 shrink-0 text-gray-400 transition group-hover:translate-x-0.5 group-hover:text-black"
+									/>
+								</button>
 							</div>
-						{:else}
-							<p class="text-sm text-gray-400">No hay miembros aún.</p>
 						{/if}
 					</div>
 				{/if}
@@ -923,6 +1261,185 @@
 										</div>
 									{/if}
 								{/if}
+							</div>
+						{/if}
+					</div>
+				{/if}
+
+				<!-- BALANCES TAB -->
+				{#if activeTab === 'balances'}
+					<div class="animate-in fade-in slide-in-from-bottom-2 space-y-6 duration-300">
+						<div class="flex items-start justify-between gap-4">
+							<div class="space-y-1">
+								<h2 class="text-sm font-medium text-black">Balances del grupo</h2>
+								<p class="text-xs text-gray-500">
+									Quién debe a quién dentro del grupo, consolidado en una sola vista.
+								</p>
+							</div>
+							<span
+								class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700"
+							>
+								<Sparkles class="h-3 w-3" />
+								Datos de ejemplo
+							</span>
+						</div>
+
+						{#if loadingMembers}
+							<div
+								class="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-black"
+							></div>
+						{:else if memberBalances.length === 0}
+							<div class="rounded-lg border border-dashed border-gray-300 p-8 text-center">
+								<Scale class="mx-auto mb-3 h-8 w-8 text-gray-400" />
+								<p class="text-sm font-medium text-black">Sin balances</p>
+								<p class="text-sm text-gray-500">
+									Invitá miembros al grupo para ver balances y deudas.
+								</p>
+							</div>
+						{:else}
+							<!-- Lista de miembros con balance -->
+							<div class="space-y-2">
+								<h3 class="text-[11px] font-medium tracking-wider text-gray-500 uppercase">
+									Por miembro
+								</h3>
+								<div
+									class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white"
+								>
+									{#each sortedMemberBalances as mb (mb.user.user_id)}
+										{@const isPositive = mb.balance > 0.01}
+										{@const isNegative = mb.balance < -0.01}
+										<div class="flex items-center justify-between gap-3 px-4 py-3">
+											<a
+												href="/users/{mb.user.user_id}"
+												class="group flex min-w-0 items-center gap-3"
+											>
+												<div
+													class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-700 transition group-hover:border-gray-300 group-hover:text-black"
+												>
+													<CircleUser
+														class="h-5 w-5"
+														strokeWidth={mb.user.role === 'Admin' ? 2.5 : 2}
+													/>
+												</div>
+												<div class="min-w-0 space-y-0.5">
+													<p class="truncate text-sm font-medium text-black group-hover:underline">
+														{mb.user.name}
+													</p>
+													<p class="text-[11px] text-gray-400">
+														{mb.user.role === 'Admin' ? 'Admin' : 'Miembro'}
+													</p>
+												</div>
+											</a>
+
+											<div class="flex shrink-0 items-center gap-2">
+												{#if isPositive}
+													<span class="hidden text-[11px] text-gray-500 sm:inline">le deben</span>
+													<span
+														class="inline-flex items-center gap-1 rounded-md border border-green-200 bg-green-50 px-2 py-1 text-xs font-semibold text-green-700"
+													>
+														<TrendingUp class="h-3 w-3" />
+														+${formatAmount(mb.balance)}
+														{MOCK_BALANCES_TICKER}
+													</span>
+												{:else if isNegative}
+													<span class="hidden text-[11px] text-gray-500 sm:inline">debe</span>
+													<span
+														class="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-600"
+													>
+														<TrendingDown class="h-3 w-3" />
+														-${formatAmount(Math.abs(mb.balance))}
+														{MOCK_BALANCES_TICKER}
+													</span>
+												{:else}
+													<span
+														class="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-semibold text-gray-500"
+													>
+														<CircleCheckBig class="h-3 w-3" />
+														Saldado
+													</span>
+												{/if}
+											</div>
+										</div>
+									{/each}
+								</div>
+							</div>
+
+							<!-- Sugerencias para saldar -->
+							<div class="space-y-2">
+								<h3 class="text-[11px] font-medium tracking-wider text-gray-500 uppercase">
+									Sugerencias para saldar
+								</h3>
+
+								{#if settlements.length === 0}
+									<div
+										class="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50/60 p-4"
+									>
+										<div
+											class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700"
+										>
+											<CircleCheckBig class="h-5 w-5" />
+										</div>
+										<div class="space-y-0.5">
+											<p class="text-sm font-medium text-black">Todo al día</p>
+											<p class="text-xs text-gray-500">Nadie le debe nada a nadie en este grupo.</p>
+										</div>
+									</div>
+								{:else}
+									<div class="space-y-2">
+										{#each settlements as s, idx (idx)}
+											<div
+												class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-3"
+											>
+												<div class="flex min-w-0 flex-1 items-center gap-2">
+													<div class="flex min-w-0 items-center gap-2">
+														<div
+															class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-red-100 bg-red-50 text-red-500"
+														>
+															<CircleUser class="h-4 w-4" />
+														</div>
+														<span class="truncate text-sm font-medium text-black">
+															{s.from.name}
+														</span>
+													</div>
+
+													<ArrowRight class="h-4 w-4 shrink-0 text-gray-300" />
+
+													<div class="flex min-w-0 items-center gap-2">
+														<div
+															class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-green-100 bg-green-50 text-green-600"
+														>
+															<CircleUser class="h-4 w-4" />
+														</div>
+														<span class="truncate text-sm font-medium text-black">
+															{s.to.name}
+														</span>
+													</div>
+												</div>
+
+												<span class="flex shrink-0 items-baseline gap-1.5">
+													<span class="text-sm font-semibold text-black">
+														${formatAmount(s.amount)}
+													</span>
+													<span
+														class="rounded bg-black px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase"
+													>
+														{MOCK_BALANCES_TICKER}
+													</span>
+												</span>
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+
+							<div
+								class="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50/60 p-3 text-xs text-gray-500"
+							>
+								<Info class="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" />
+								<span>
+									Los balances se muestran con datos de ejemplo. Cuando conectemos los movimientos
+									reales del grupo, esta vista se va a actualizar sola.
+								</span>
 							</div>
 						{/if}
 					</div>
