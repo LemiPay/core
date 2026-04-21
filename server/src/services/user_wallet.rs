@@ -57,7 +57,9 @@ impl UserWalletService {
             .map_err(AppError::Db)?;
 
         if existing_currency_wallet.is_some() {
-            return Err(AppError::Forbidden("Esa currency no existe".into()));
+            return Err(AppError::Forbidden(
+                "Esa address ya esta registrada para esa currency".into(),
+            ));
         }
 
         //la creo
