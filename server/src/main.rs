@@ -77,6 +77,7 @@ async fn main() {
         proposal_repo.clone(),
         user_wallet_repo.clone(),
     );
+    let core_service = 
     let state = Arc::new(AppState {
         user_service,
         auth_service,
