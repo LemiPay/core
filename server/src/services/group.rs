@@ -26,15 +26,15 @@ impl GroupService {
     }
 
     pub fn create_group(&self, group: NewGroupRequest, id: Uuid) -> Result<Uuid, AppError> {
-        let name = require_non_empty(group.name, "Name")?;
-        let description = require_non_empty(group.description, "Description")?;
+        let name = require_non_empty(group.name, "Nombre")?;
+        let description = require_non_empty(group.description, "Descripción")?;
 
         let valid = ValidateLength::validate_length(&name, Some(4), Some(30), None)
             && ValidateLength::validate_length(&description, Some(8), Some(30), None);
 
         if !valid {
             return Err(AppError::BadRequest(
-                "Invalid group name or description".into(),
+                "Nombre o descripción del grupo inválidos".into(),
             ));
         }
 
@@ -65,12 +65,16 @@ impl GroupService {
     pub fn make_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<UserInGroup, AppError> {
         // Validate if user in group
         if !self.group_repo.is_member(user_id, group_id)? {
-            return Err(AppError::BadRequest("User not in group".into()));
+            return Err(AppError::BadRequest(
+                "El usuario no pertenece al grupo".into(),
+            ));
         }
 
         // Validate if not admin
         if self.is_admin(user_id, group_id)? {
-            return Err(AppError::BadRequest("User is already an admin".into()));
+            return Err(AppError::BadRequest(
+                "El usuario ya es administrador".into(),
+            ));
         }
 
         let result = self.group_repo.make_admin(user_id, group_id)?;
@@ -79,7 +83,9 @@ impl GroupService {
 
     pub fn delete(&self, user_id: Uuid, group_id: Uuid) -> Result<Group, AppError> {
         if !self.is_admin(user_id, group_id)? {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "Solo el administrador puede borrar el grupo".into(),
+            ));
         }
 
         let result = self.group_repo.delete_group(group_id)?;
@@ -107,7 +113,7 @@ impl GroupService {
 
             if !has_other_admin {
                 return Err(AppError::BadRequest(
-                    "El grupo tiene que tener al menos un admin".into(),
+                    "El grupo tiene que tener al menos un administrador".into(),
                 ));
             }
         }
@@ -124,17 +130,19 @@ impl GroupService {
         update: GroupUpdate,
     ) -> Result<Group, AppError> {
         if !self.is_admin(user_id, group_id)? {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden(
+                "Solo el administrador puede actualizar el grupo.".into(),
+            ));
         }
 
         if update.name.is_none() && update.description.is_none() {
-            return Err(AppError::BadRequest("No fields to update".into()));
+            return Err(AppError::BadRequest("No hay campos para actualizar".into()));
         }
 
         if let Some(ref name) = update.name {
             if !ValidateLength::validate_length(name.trim(), Some(4), Some(30), None) {
                 return Err(AppError::BadRequest(
-                    "Invalid group name: must be 4–30 characters".into(),
+                    "Nombre de grupo inválido: debe tener entre 4 y 30 caracteres".into(),
                 ));
             }
         }
@@ -142,7 +150,7 @@ impl GroupService {
         if let Some(ref description) = update.description {
             if !ValidateLength::validate_length(description.trim(), Some(8), Some(30), None) {
                 return Err(AppError::BadRequest(
-                    "Invalid group description: must be 8–30 characters".into(),
+                    "Descripción de grupo inválida: debe tener entre 8 y 30 caracteres".into(),
                 ));
             }
         }
