@@ -4,7 +4,7 @@ use crate::security::auth_extractor::AuthUser;
 
 use axum::{
     Json,
-    extract::{Path, Query, State},
+    extract::{Path, State},
 };
 
 use bigdecimal::BigDecimal;
