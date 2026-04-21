@@ -5,6 +5,13 @@ use bigdecimal::{BigDecimal, Zero};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+// definís tu error
+#[derive(Debug)]
+pub enum CoreError {
+    UserNotFound,
+    InsufficientFunds,
+}
+
 /// Función central de LemiPay que reconstruye el estado actual de los balances.
 ///
 /// # ¡Importante sobre los Usuarios!
@@ -18,41 +25,43 @@ pub fn core(
     users_id: Vec<Uuid>,
     transactions: Vec<Transaction>,
     expenses: Vec<Expense>,
-) -> BalancesMap {
+) -> Result<BalancesMap, CoreError> {
     let balances = create_empty_map(users_id);
-
-    let balances = read_all_tx(transactions, balances);
-    read_all_expenses(expenses, balances)
+    let balances = read_all_tx(transactions, balances)?;
+    Ok(read_all_expenses(expenses, balances)?)
 }
 
-fn read_all_tx(transactions: Vec<Transaction>, mut balances: BalancesMap) -> BalancesMap {
+fn read_all_tx(
+    transactions: Vec<Transaction>,
+    mut balances: BalancesMap,
+) -> Result<BalancesMap, CoreError> {
     for tx in transactions {
         balances = match tx.tx_type {
             MyTransactionType::Deposit => balances
                 .add_balance_to_user(tx.user_id, tx.amount)
-                .expect("Error de Integridad: Usuario no encontrado."),
+                .map_err(|_| CoreError::UserNotFound)?,
             MyTransactionType::Withdraw => balances
                 .remove_to_all(tx.amount)
-                .expect("Error de Integridad: Fondos insuficientes."),
-            MyTransactionType::Investment => {
-                todo!()
-            }
+                .map_err(|_| CoreError::InsufficientFunds)?,
             _ => balances,
         };
     }
-    balances
+    Ok(balances)
 }
-fn read_all_expenses(expenses: Vec<Expense>, mut balances: BalancesMap) -> BalancesMap {
+fn read_all_expenses(
+    expenses: Vec<Expense>,
+    mut balances: BalancesMap,
+) -> Result<BalancesMap, CoreError> {
     for expense in expenses {
         balances = balances
             .add_balance_to_user(expense.user_id, expense.amount.clone())
-            .expect("Error de Integridad: Usuario de expense no encontrado.");
+            .map_err(|_| CoreError::UserNotFound)?;
 
         balances = balances
             .remove_to_all(expense.amount)
-            .expect("Error de Integridad: Fondos insuficientes en expense.");
+            .map_err(|_| CoreError::InsufficientFunds)?;
     }
-    balances
+    Ok(balances)
 }
 
 pub fn create_empty_map(users_id: Vec<Uuid>) -> BalancesMap {
