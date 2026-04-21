@@ -1,7 +1,8 @@
 [package]
 name = "server"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
+default-run = "server"
 
 [dependencies]
 diesel = { version = "2.2.0", features = ["postgres", "uuid", "r2d2", "chrono", "numeric"] }
@@ -21,3 +22,5 @@ jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 argon2 = "0.5.3"
 rand = "0.8.5"
 validator = "0.20.0"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+serde_json = "1.0"

@@ -43,9 +43,9 @@ impl BalancesMap {
     pub fn get_group_balance(&self) -> &BigDecimal {
         &self.group_balance
     }
-    pub fn get_all_balances(&self) -> &HashMap<Uuid, BigDecimal> {
-        &self.balances
-    }
+    // pub fn get_all_balances(&self) -> &HashMap<Uuid, BigDecimal> {
+    //     &self.balances
+    // }
 
     /// Resta un balance distribuido entre todos los usuarios.
     /// Retorna Ok(BalancesMap) si la operación es válida,
