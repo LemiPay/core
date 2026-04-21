@@ -683,7 +683,7 @@
 												.map((p) => p[0]?.toUpperCase() ?? '')
 												.join('') || '?'}
 										<a
-											href="/users/{member.user_id}"
+											href={`/users/${member.user_id}`}
 											class="group flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2.5 transition hover:border-gray-300 hover:shadow-sm"
 										>
 											<div
