@@ -342,7 +342,6 @@
 		coreBalancesError = '';
 		try {
 			const res = await getGroupBalances(groupId);
-			console.log(res);
 
 			if (!isSuccess(res)) {
 				coreBalancesError = res.message || 'No se pudieron cargar los balances del grupo.';
