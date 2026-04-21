@@ -7,6 +7,7 @@ use bigdecimal::{BigDecimal, Zero};
 use crate::errors::app_error::AppError;
 use crate::handlers::core::{Balances, UserBalance};
 use crate::models::expense::Expense;
+use crate::repositories::traits::expense_repo::ExpenseRepository;
 use crate::repositories::traits::group_repo::GroupRepository;
 use crate::repositories::traits::transaction_repo::TransactionRepository;
 
@@ -14,15 +15,18 @@ use crate::repositories::traits::transaction_repo::TransactionRepository;
 pub struct CoreService {
     transaction_repo: Arc<dyn TransactionRepository>,
     group_repo: Arc<dyn GroupRepository>,
+    expense_repo: Arc<dyn ExpenseRepository>,
 }
 impl CoreService {
     pub fn new(
         transaction_repo: Arc<dyn TransactionRepository>,
         group_repo: Arc<dyn GroupRepository>,
+        expense_repo: Arc<dyn ExpenseRepository>,
     ) -> Self {
         Self {
             transaction_repo,
             group_repo,
+            expense_repo,
         }
     }
 
@@ -35,11 +39,12 @@ impl CoreService {
         let transactions = self.transaction_repo.find_by_group(group_id)?;
 
         //get all expenses
-        let expenses = vec![] as Vec<Expense>;
+        let expenses = self.expense_repo.find_by_group(group_id)?;
 
         //call core
         let result = core(users_ids, transactions, expenses).map_err(|_| AppError::Core)?;
 
+        //map core pretty
         let balances = historic_members
             .iter()
             .map(|member| UserBalance {

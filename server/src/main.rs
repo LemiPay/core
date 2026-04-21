@@ -81,7 +81,11 @@ async fn main() {
         proposal_repo.clone(),
         user_wallet_repo.clone(),
     );
-    let core_service = CoreService::new(transaction_repo.clone());
+    let core_service = CoreService::new(
+        transaction_repo.clone(),
+        group_repo.clone(),
+        expense_repo.clone(),
+    );
     let expense_service = ExpenseService::new(expense_repo.clone());
     let state = Arc::new(AppState {
         user_service,

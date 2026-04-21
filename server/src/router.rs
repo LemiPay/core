@@ -9,6 +9,7 @@ use tower_http::cors::CorsLayer;
 
 // Routes
 use crate::routes::auth::auth_routes;
+use crate::routes::core::core_routes;
 use crate::routes::expense::expense_routes;
 use crate::routes::group::group_routes;
 use crate::routes::group_wallet::group_wallet_routes;
@@ -35,5 +36,6 @@ pub fn create_router(state: SharedState) -> Router {
         .nest("/wallet", user_wallet_routes(state.clone()))
         .nest("/group-wallet", group_wallet_routes(state.clone()))
         .nest("/expense", expense_routes(state.clone()))
+        .nest("/core", core_routes(state.clone()))
         .layer(cors) //este layer tiene que ir al final de la creación del Router por si dsp hay que agregar otros nest
 }

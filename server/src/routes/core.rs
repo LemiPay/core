@@ -8,7 +8,7 @@ use crate::security::middlewares::is_in_group::is_in_group_middleware;
 
 pub fn core_routes(state: SharedState) -> Router {
     Router::new()
-        .route("/balances", get(get_balances))
+        .route("/balances/{group_id}", get(get_balances))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             is_in_group_middleware,
