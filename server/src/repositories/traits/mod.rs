@@ -1,5 +1,6 @@
 pub mod auth_repo;
 pub mod currency_repo;
+pub mod expense_repo;
 pub mod fund_round_repo;
 pub mod group_repo;
 pub mod group_wallet_repo;
