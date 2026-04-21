@@ -27,7 +27,7 @@ pub struct Balances {
 pub async fn get_balances(
     State(state): State<SharedState>,
     Path(group_id): Path<Uuid>,
-    user: AuthUser,
+    _user: AuthUser,
 ) -> Result<Json<Balances>, AppError> {
     let result = state.core_service.get_balances(group_id)?;
     Ok(Json(result))
