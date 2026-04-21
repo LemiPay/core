@@ -1443,7 +1443,7 @@
 										{@const isNegative = mb.balance < -0.01}
 										<div class="flex items-center justify-between gap-3 px-4 py-3">
 											<a
-												href="/users/{mb.user.user_id}"
+												href={`/users/${mb.user.user_id}`}
 												class="group flex min-w-0 items-center gap-3"
 											>
 												<div
