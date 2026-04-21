@@ -417,7 +417,7 @@ impl GroupWalletService {
 
     fn validate_is_admin(&self, user_id: Uuid, group_id: Uuid) -> Result<(), AppError> {
         if !self.group_repo.is_admin(user_id, group_id)? {
-            return Err(AppError::Forbidden("no es admin del grupo".into()));
+            return Err(AppError::Forbidden("No es admin del grupo".into()));
         }
         Ok(())
     }
