@@ -19,7 +19,6 @@
 		ArrowRight,
 		Scale,
 		CircleUser,
-		Sparkles,
 		Info
 	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
@@ -42,6 +41,9 @@
 		getGroupFundRoundProposals,
 		getMyFundRoundContribution
 	} from '$lib/api/endpoints/fund_rounds';
+	import { getGroupBalances } from '$lib/api/endpoints/core';
+	import { getGroupExpenses } from '$lib/api/endpoints/expenses';
+	import { listGroupTransactions } from '$lib/api/endpoints/transactions';
 	import { getMyWallets } from '$lib/api/endpoints/wallets';
 
 	// Stores
@@ -55,6 +57,9 @@
 	import type { UserBadge } from '$lib/types/endpoints/auth.types';
 	import type { GroupWallet } from '$lib/types/endpoints/groups.types';
 	import type { FundRoundStatusResponse } from '$lib/types/endpoints/fund_rounds.types';
+	import type { GroupBalancesResponse } from '$lib/types/endpoints/core.types';
+	import type { Expense } from '$lib/types/endpoints/expenses.types';
+	import type { Transaction } from '$lib/types/endpoints/transactions.types';
 	import type { WalletCurrency } from '$lib/types/endpoints/wallets.types';
 
 	// Components
@@ -154,33 +159,81 @@
 		return value.toFixed(2);
 	}
 
-	// --- BALANCES (MOCK) ---
-	// TODO: reemplazar por data real del backend cuando esté el endpoint.
+	function parseBalanceValue(v: string | number): number {
+		if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+		const n = Number(v);
+		return Number.isFinite(n) ? n : 0;
+	}
+
+	function formatTxType(t: string): string {
+		const map: Record<string, string> = {
+			Deposit: 'Depósito',
+			Withdraw: 'Retiro',
+			Expense: 'Gasto',
+			Investment: 'Inversión'
+		};
+		return map[t] ?? t;
+	}
+
+	function formatDateTimeShort(iso: string): string {
+		const d = new Date(iso);
+		if (Number.isNaN(d.getTime())) return iso;
+		return d.toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
+	}
+
+	function userBadgeFromCoreRow(
+		row: { user_id: string; user_name: string },
+		memberList: UserBadge[]
+	): UserBadge {
+		const m = memberList.find((x) => x.user_id === row.user_id);
+		return m ?? { user_id: row.user_id, name: row.user_name, role: 'Miembro' };
+	}
+
+	// --- BALANCES (API /core/balances/:groupId) ---
 	// Balance positivo: al miembro le deben. Balance negativo: el miembro debe.
-	const MOCK_BALANCES_TICKER = 'USDC';
+	let coreBalancesData = $state(null as GroupBalancesResponse | null);
+	let loadingCoreBalances = $state(true);
+	let coreBalancesError = $state('');
+
+	let groupTransactions = $state([] as Transaction[]);
+	let groupExpenses = $state([] as Expense[]);
+	let loadingBalancesDetail = $state(false);
+	let transactionsDetailError = $state('');
+	let expensesDetailError = $state('');
+	let showAllTransactions = $state(false);
+	let showAllExpenses = $state(false);
 
 	type MemberBalance = { user: UserBadge; balance: number };
 	type Settlement = { from: UserBadge; to: UserBadge; amount: number };
 
-	function hashUserId(id: string): number {
-		let h = 0;
-		for (let i = 0; i < id.length; i++) {
-			h = (h * 31 + id.charCodeAt(i)) | 0;
-		}
-		return Math.abs(h);
-	}
-
-	// Genera balances determinísticos a partir del user_id y los normaliza para que sumen 0.
 	const memberBalances = $derived.by<MemberBalance[]>(() => {
-		if (members.length === 0) return [];
-		const raw: MemberBalance[] = members.map((m) => ({
-			user: m,
-			balance: Math.round((((hashUserId(m.user_id) % 20001) - 10000) / 100) * 100) / 100
+		if (!coreBalancesData?.balances?.length) return [];
+		return coreBalancesData.balances.map((b) => ({
+			user: userBadgeFromCoreRow(b, members),
+			balance: parseBalanceValue(b.balance)
 		}));
-		const sum = raw.reduce((acc, x) => acc + x.balance, 0);
-		raw[0].balance = Math.round((raw[0].balance - sum) * 100) / 100;
-		return raw;
 	});
+
+	const coreGroupBalance = $derived(
+		coreBalancesData ? parseBalanceValue(coreBalancesData.group_balance) : 0
+	);
+
+	const sortedGroupTransactions = $derived(
+		[...groupTransactions].sort(
+			(a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+		)
+	);
+	const sortedGroupExpenses = $derived(
+		[...groupExpenses].sort(
+			(a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+		)
+	);
+	const visibleGroupTransactions = $derived(
+		showAllTransactions ? sortedGroupTransactions : sortedGroupTransactions.slice(0, 3)
+	);
+	const visibleGroupExpenses = $derived(
+		showAllExpenses ? sortedGroupExpenses : sortedGroupExpenses.slice(0, 3)
+	);
 
 	const sortedMemberBalances = $derived([...memberBalances].sort((a, b) => b.balance - a.balance));
 
@@ -282,6 +335,49 @@
 		} finally {
 			loadingWallets = false;
 		}
+	}
+
+	async function loadCoreBalances() {
+		loadingCoreBalances = true;
+		coreBalancesError = '';
+		try {
+			const res = await getGroupBalances(groupId);
+			console.log(res);
+
+			if (!isSuccess(res)) {
+				coreBalancesError = res.message || 'No se pudieron cargar los balances del grupo.';
+				coreBalancesData = null;
+				return;
+			}
+			coreBalancesData = res.body;
+		} finally {
+			loadingCoreBalances = false;
+		}
+	}
+
+	async function loadBalancesMovimientos() {
+		loadingBalancesDetail = true;
+		transactionsDetailError = '';
+		expensesDetailError = '';
+		showAllTransactions = false;
+		showAllExpenses = false;
+		const [txRes, expRes] = await Promise.all([
+			listGroupTransactions(groupId),
+			getGroupExpenses(groupId)
+		]);
+		if (isSuccess(txRes)) {
+			groupTransactions = txRes.body;
+		} else {
+			groupTransactions = [];
+			transactionsDetailError = txRes.message || 'No se pudieron cargar las transacciones.';
+		}
+		if (isSuccess(expRes)) {
+			groupExpenses = expRes.body;
+		} else {
+			groupExpenses = [];
+			expensesDetailError = expRes.message || 'No se pudieron cargar los gastos.';
+		}
+		loadingBalancesDetail = false;
 	}
 
 	function openFundModal(walletId: string, currencyId: string) {
@@ -437,9 +533,18 @@
 		}
 	});
 
+	// Transacciones y gastos al abrir la pestaña Balances
+	$effect(() => {
+		if (activeTab === 'balances') {
+			loadCoreBalances();
+			loadBalancesMovimientos();
+		}
+	});
+
 	loadGroupData();
 	loadMembersData();
 	loadWalletsData();
+	loadCoreBalances();
 </script>
 
 <svelte:head>
@@ -640,8 +745,17 @@
 							{/if}
 						</div>
 
+						{#if coreBalancesError && !loadingCoreBalances}
+							<div
+								class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800"
+							>
+								<Info class="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
+								<span>{coreBalancesError}</span>
+							</div>
+						{/if}
+
 						<!-- BALANCE DASHBOARD -->
-						{#if !loadingMembers && memberBalances.length > 0}
+						{#if !loadingMembers && !loadingCoreBalances && memberBalances.length > 0 && !coreBalancesError}
 							{@const maxAbs = Math.max(1, ...memberBalances.map((m) => Math.abs(m.balance)))}
 							{@const topMovers = sortedMemberBalances.slice(0, 5)}
 
@@ -649,28 +763,10 @@
 								<!-- Header del dashboard -->
 								<div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
 									<div class="space-y-1">
-										<div class="flex items-center gap-2">
-											<h2 class="text-sm font-medium text-black">Balance del grupo</h2>
-											<span
-												class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700"
-											>
-												<Sparkles class="h-3 w-3" />
-												Preview
-											</span>
-										</div>
+										<h2 class="text-sm font-medium text-black">Balance del grupo</h2>
 										<p class="text-xs text-gray-500">
-											Resumen de cuánto debe o tiene a favor cada miembro.
+											Resumen de cuánto debe o tiene a favor cada miembro (motor contable).
 										</p>
-									</div>
-									<div
-										class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600"
-									>
-										<span class="text-gray-400">Moneda</span>
-										<span
-											class="rounded bg-black px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase"
-										>
-											{MOCK_BALANCES_TICKER}
-										</span>
 									</div>
 								</div>
 
@@ -680,19 +776,18 @@
 								>
 									<div class="space-y-1">
 										<p class="text-[11px] font-medium tracking-wider text-gray-400 uppercase">
-											Balance del grupo
+											Billeteras del grupo
 										</p>
 										<p class="flex items-baseline gap-2">
 											<span class="text-3xl font-bold tracking-tight text-black">
 												${formatAmount(groupWalletsBalance)}
 											</span>
-											<span
-												class="rounded bg-black px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase"
-											>
-												{MOCK_BALANCES_TICKER}
-											</span>
 										</p>
-										<p class="text-xs text-gray-500">Suma de balances de billeteras del grupo</p>
+										<p class="text-xs text-gray-500">Suma de balances en las wallets del grupo</p>
+										<p class="text-xs text-gray-500">
+											Balance según movimientos (core):
+											<span class="font-medium text-black">${formatAmount(coreGroupBalance)}</span>
+										</p>
 									</div>
 									<div
 										class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600"
@@ -1258,6 +1353,17 @@
 											{#each pastFundRounds as status (status.fund_round.proposal.id)}
 												{@render fundRoundCard(status)}
 											{/each}
+											{#if sortedGroupTransactions.length > 3}
+												<button
+													type="button"
+													class="text-xs font-medium text-gray-600 underline-offset-2 transition hover:text-black hover:underline"
+													onclick={() => (showAllTransactions = !showAllTransactions)}
+												>
+													{showAllTransactions
+														? 'Ver menos'
+														: `Ver todo (${sortedGroupTransactions.length})`}
+												</button>
+											{/if}
 										</div>
 									{/if}
 								{/if}
@@ -1268,40 +1374,68 @@
 
 				<!-- BALANCES TAB -->
 				{#if activeTab === 'balances'}
-					<div class="animate-in fade-in slide-in-from-bottom-2 space-y-6 duration-300">
-						<div class="flex items-start justify-between gap-4">
-							<div class="space-y-1">
-								<h2 class="text-sm font-medium text-black">Balances del grupo</h2>
-								<p class="text-xs text-gray-500">
-									Quién debe a quién dentro del grupo, consolidado en una sola vista.
-								</p>
-							</div>
-							<span
-								class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700"
-							>
-								<Sparkles class="h-3 w-3" />
-								Datos de ejemplo
-							</span>
+					<div class="animate-in fade-in slide-in-from-bottom-2 space-y-8 duration-300">
+						<div class="space-y-1">
+							<h2 class="text-sm font-medium text-black">Balances del grupo</h2>
+							<p class="text-xs text-gray-500">
+								Balances por integrante, sugerencias para saldar, transacciones y gastos cargados.
+							</p>
 						</div>
 
-						{#if loadingMembers}
+						{#if loadingMembers || loadingCoreBalances}
 							<div
 								class="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-black"
 							></div>
+						{:else if coreBalancesError}
+							<div
+								class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800"
+							>
+								<Info class="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
+								<div class="space-y-2">
+									<p>{coreBalancesError}</p>
+									<button
+										type="button"
+										class="text-xs font-medium text-rose-700 underline-offset-2 transition hover:underline"
+										onclick={loadCoreBalances}
+									>
+										Reintentar balances
+									</button>
+								</div>
+							</div>
 						{:else if memberBalances.length === 0}
 							<div class="rounded-lg border border-dashed border-gray-300 p-8 text-center">
 								<Scale class="mx-auto mb-3 h-8 w-8 text-gray-400" />
-								<p class="text-sm font-medium text-black">Sin balances</p>
+								<p class="text-sm font-medium text-black">Sin balances para mostrar</p>
 								<p class="text-sm text-gray-500">
-									Invitá miembros al grupo para ver balances y deudas.
+									Todavía no hay integrantes o movimientos que generen saldos en el core.
 								</p>
 							</div>
 						{:else}
+							<div
+								class="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3"
+							>
+								<div class="space-y-0.5">
+									<p class="text-[11px] font-medium tracking-wider text-gray-400 uppercase">
+										Balance grupal (core)
+									</p>
+									<p class="text-xl font-bold text-black tabular-nums">
+										${formatAmount(coreGroupBalance)}
+									</p>
+								</div>
+							</div>
+
 							<!-- Lista de miembros con balance -->
 							<div class="space-y-2">
-								<h3 class="text-[11px] font-medium tracking-wider text-gray-500 uppercase">
-									Por miembro
-								</h3>
+								<div class="flex flex-wrap items-center gap-2">
+									<h3 class="text-[11px] font-medium tracking-wider text-gray-500 uppercase">
+										Por integrante
+									</h3>
+									<span
+										class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-700 uppercase"
+									>
+										Balance
+									</span>
+								</div>
 								<div
 									class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white"
 								>
@@ -1339,7 +1473,6 @@
 													>
 														<TrendingUp class="h-3 w-3" />
 														+${formatAmount(mb.balance)}
-														{MOCK_BALANCES_TICKER}
 													</span>
 												{:else if isNegative}
 													<span class="hidden text-[11px] text-gray-500 sm:inline">debe</span>
@@ -1348,7 +1481,6 @@
 													>
 														<TrendingDown class="h-3 w-3" />
 														-${formatAmount(Math.abs(mb.balance))}
-														{MOCK_BALANCES_TICKER}
 													</span>
 												{:else}
 													<span
@@ -1366,9 +1498,16 @@
 
 							<!-- Sugerencias para saldar -->
 							<div class="space-y-2">
-								<h3 class="text-[11px] font-medium tracking-wider text-gray-500 uppercase">
-									Sugerencias para saldar
-								</h3>
+								<div class="flex flex-wrap items-center gap-2">
+									<h3 class="text-[11px] font-medium tracking-wider text-gray-500 uppercase">
+										Sugerencias para saldar
+									</h3>
+									<span
+										class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase"
+									>
+										Sugerencia
+									</span>
+								</div>
 
 								{#if settlements.length === 0}
 									<div
@@ -1416,32 +1555,147 @@
 													</div>
 												</div>
 
-												<span class="flex shrink-0 items-baseline gap-1.5">
-													<span class="text-sm font-semibold text-black">
-														${formatAmount(s.amount)}
-													</span>
-													<span
-														class="rounded bg-black px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase"
-													>
-														{MOCK_BALANCES_TICKER}
-													</span>
+												<span class="shrink-0 text-sm font-semibold text-black tabular-nums">
+													${formatAmount(s.amount)}
 												</span>
 											</div>
 										{/each}
 									</div>
 								{/if}
 							</div>
+						{/if}
 
-							<div
-								class="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50/60 p-3 text-xs text-gray-500"
-							>
-								<Info class="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" />
-								<span>
-									Los balances se muestran con datos de ejemplo. Cuando conectemos los movimientos
-									reales del grupo, esta vista se va a actualizar sola.
+						<div class="space-y-3 border-t border-gray-200 pt-6">
+							<div class="flex flex-wrap items-center gap-2">
+								<h3 class="text-sm font-medium text-black">Actividad y registros</h3>
+								<span
+									class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-gray-700 uppercase"
+								>
+									Listados
 								</span>
 							</div>
-						{/if}
+
+							{#if loadingBalancesDetail}
+								<div
+									class="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-black"
+								></div>
+							{:else}
+								<div class="space-y-6">
+									<div class="space-y-2">
+										<div class="flex items-center gap-2">
+											<h4 class="text-[11px] font-medium tracking-wider text-gray-500 uppercase">
+												Transacciones
+											</h4>
+											<span
+												class="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-900 uppercase"
+											>
+												Transacción
+											</span>
+										</div>
+										{#if transactionsDetailError}
+											<p class="text-xs text-rose-600">{transactionsDetailError}</p>
+										{:else if sortedGroupTransactions.length === 0}
+											<p class="text-xs text-gray-500">No hay transacciones en este grupo.</p>
+										{:else}
+											<div class="space-y-2">
+												{#each visibleGroupTransactions as tx (tx.id)}
+													<div
+														class="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+													>
+														<div class="min-w-0 space-y-1">
+															<div class="flex flex-wrap items-center gap-2">
+																<span
+																	class="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-900 uppercase"
+																>
+																	Transacción
+																</span>
+																<span class="text-xs font-medium text-gray-800">
+																	{formatTxType(tx.tx_type)}
+																</span>
+																<span class="text-[11px] text-gray-400">
+																	{formatDateTimeShort(tx.created_at)}
+																</span>
+															</div>
+															{#if tx.description}
+																<p class="truncate text-xs text-gray-600">{tx.description}</p>
+															{/if}
+															<p class="text-[11px] text-gray-400">
+																Usuario: <span class="font-mono text-gray-600"
+																	>{tx.user_id.slice(0, 8)}…</span
+																>
+															</p>
+														</div>
+														<p class="shrink-0 text-sm font-semibold text-black tabular-nums">
+															${parseBalanceValue(tx.amount).toFixed(2)}
+														</p>
+													</div>
+												{/each}
+											</div>
+										{/if}
+									</div>
+
+									<div class="space-y-2">
+										<div class="flex items-center gap-2">
+											<h4 class="text-[11px] font-medium tracking-wider text-gray-500 uppercase">
+												Gastos
+											</h4>
+											<span
+												class="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-900 uppercase"
+											>
+												Gasto
+											</span>
+										</div>
+										{#if expensesDetailError}
+											<p class="text-xs text-rose-600">{expensesDetailError}</p>
+										{:else if sortedGroupExpenses.length === 0}
+											<p class="text-xs text-gray-500">
+												No hay gastos registrados para este grupo.
+											</p>
+										{:else}
+											<div class="space-y-2">
+												{#each visibleGroupExpenses as ex (ex.expense_id)}
+													<div
+														class="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+													>
+														<div class="min-w-0 space-y-1">
+															<div class="flex flex-wrap items-center gap-2">
+																<span
+																	class="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-900 uppercase"
+																>
+																	Gasto
+																</span>
+																<span class="text-[11px] text-gray-400">
+																	{formatDateTimeShort(ex.created_at)}
+																</span>
+																<span
+																	class="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 uppercase"
+																>
+																	{ex.status}
+																</span>
+															</div>
+															{#if ex.description}
+																<p class="text-xs text-gray-800">{ex.description}</p>
+															{:else}
+																<p class="text-xs text-gray-400">Sin descripción</p>
+															{/if}
+															<p class="text-[11px] text-gray-400">
+																Cargado por:
+																<span class="font-mono text-gray-600"
+																	>{ex.user_id.slice(0, 8)}…</span
+																>
+															</p>
+														</div>
+														<p class="shrink-0 text-sm font-semibold text-black tabular-nums">
+															${parseBalanceValue(ex.amount).toFixed(2)}
+														</p>
+													</div>
+												{/each}
+											</div>
+										{/if}
+									</div>
+								</div>
+							{/if}
+						</div>
 					</div>
 				{/if}
 			</div>
