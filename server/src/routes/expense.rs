@@ -13,46 +13,49 @@ use crate::security::middlewares::is_in_group::{
 };
 
 pub fn expense_routes(state: SharedState) -> Router {
-    let routes = Router::new()
-        // Create: cualquiera del grupo puede cargar una expense
-        .route(
-            "/new/{group_id}",
-            post(create_expense).route_layer(middleware::from_fn_with_state(
-                state.clone(),
-                is_in_group_middleware,
-            )),
-        )
-        // Read: cualquiera del grupo puede ver las expenses del grupo
-        .route(
-            "/{group_id}/list",
-            get(get_expenses).route_layer(middleware::from_fn_with_state(
-                state.clone(),
-                is_in_group_middleware,
-            )),
-        )
-        // Update (admin): modificar cualquier expense del grupo
-        .route(
-            "/admin/{group_id}/{expense_id}",
-            put(admin_update_expense).route_layer(middleware::from_fn_with_state(
-                state.clone(),
-                is_group_admin_for_resource_middleware,
-            )),
-        )
-        // Delete (admin): borrado lógico de cualquier expense del grupo
-        .route(
-            "/admin/{group_id}/{expense_id}",
-            delete(admin_delete_expense).route_layer(middleware::from_fn_with_state(
-                state.clone(),
-                is_group_admin_for_resource_middleware,
-            )),
-        )
-        // Update (owner): el creador modifica los datos cargados
-        // Delete (owner): borrado lógico de la expense por su creador
-        .route("/{expense_id}", put(update_expense).delete(delete_expense));
+    let routes =
+        Router::new()
+            // Create: cualquiera del grupo puede cargar una expense
+            .route(
+                "/new/{group_id}",
+                post(create_expense).route_layer(middleware::from_fn_with_state(
+                    state.clone(),
+                    is_in_group_middleware,
+                )),
+            )
+            // Read: cualquiera del grupo puede ver las expenses del grupo
+            .route(
+                "/{group_id}/list",
+                get(get_expenses).route_layer(middleware::from_fn_with_state(
+                    state.clone(),
+                    is_in_group_middleware,
+                )),
+            )
+            // Update (admin): modificar cualquier expense del grupo
+            .route(
+                "/admin/{group_id}/{expense_id}",
+                put(admin_update_expense).route_layer(middleware::from_fn_with_state(
+                    state.clone(),
+                    is_group_admin_for_resource_middleware,
+                )),
+            )
+            // Delete (admin): borrado lógico de cualquier expense del grupo
+            .route(
+                "/admin/{group_id}/{expense_id}",
+                delete(admin_delete_expense).route_layer(middleware::from_fn_with_state(
+                    state.clone(),
+                    is_group_admin_for_resource_middleware,
+                )),
+            )
+            // Update (owner): el creador modifica los datos cargados
+            // Delete (owner): borrado lógico de la expense por su creador
+            .route(
+                "/{group_id}/{expense_id}",
+                put(update_expense).delete(delete_expense).route_layer(
+                    middleware::from_fn_with_state(state.clone(), is_in_group_middleware),
+                ),
+            );
 
-    // Auth a nivel de router: corre antes que los middlewares de grupo,
-    // así is_in_group_middleware / is_group_admin_middleware pueden
-    // extraer el AuthUser que auth_middleware inserta en las extensions.
     routes
         .route_layer(middleware::from_fn(auth_middleware))
         .with_state(state)

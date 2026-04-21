@@ -14,6 +14,24 @@
 	let status: boolean | null = $state(false);
 	let error = $state('');
 
+	function getSafeRedirectPath(redirectTo: string | null): string {
+		if (!redirectTo) return '/dashboard';
+
+		const trimmed = redirectTo.trim();
+		if (!trimmed.startsWith('/') || trimmed.startsWith('//')) {
+			return '/dashboard';
+		}
+
+		try {
+			const parsed = new URL(trimmed, window.location.origin);
+			if (parsed.origin !== window.location.origin) return '/dashboard';
+			if (!parsed.pathname.startsWith('/')) return '/dashboard';
+			return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+		} catch {
+			return '/dashboard';
+		}
+	}
+
 	async function login_user() {
 		error = '';
 		status = true;
@@ -34,7 +52,7 @@
 			password: ''
 		};
 
-		const redirectTo = page.url.searchParams.get('redirectTo') || '/dashboard';
+		const redirectTo = getSafeRedirectPath(page.url.searchParams.get('redirectTo'));
 
 		setTimeout(() => {
 			window.location.href = redirectTo;
