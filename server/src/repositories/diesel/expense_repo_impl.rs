@@ -36,7 +36,7 @@ impl ExpenseRepository for DieselExpenseRepository {
         let result = expense::table
             .filter(expense::group_id.eq(group_id))
             .filter(expense::status.ne(MyExpenseStatus::Deleted))
-            .order(expense::created_at.desc())
+            .order(expense::updated_at.asc())
             .select(Expense::as_select())
             .get_results::<Expense>(&mut conn)?;
         Ok(result)
