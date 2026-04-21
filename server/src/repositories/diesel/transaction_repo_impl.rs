@@ -60,7 +60,7 @@ impl TransactionRepository for DieselTransactionRepository {
         let mut conn = self.db.get_conn()?;
         let result = transaction::table
             .filter(transaction::group_id.eq(group_id))
-            .order(transaction::created_at.desc())
+            .order(transaction::created_at.asc())
             .get_results::<Transaction>(&mut conn)?;
         Ok(result)
     }
