@@ -19,7 +19,10 @@ pub fn routes(state: AppState) -> Router {
         .route("/login", post(login))
         .route(
             "/me",
-            get(get_me).route_layer(middleware::from_fn(auth_middleware)),
+            get(get_me).route_layer(middleware::from_fn_with_state(
+                state.clone(),
+                auth_middleware,
+            )),
         )
         .with_state(state)
 }
