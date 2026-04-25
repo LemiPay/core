@@ -48,10 +48,12 @@ impl PasswordHasherTrait for Argon2Hasher {
     fn verify(&self, password: &str, hash: &str) -> Result<bool, HashError> {
         let parsed_hash = PasswordHash::new(hash).map_err(|_| HashError::VerifyFailed)?;
 
-        self.argon2
+        let is_valid = self
+            .argon2
             .verify_password(password.as_bytes(), &parsed_hash)
-            .map(|_| true)
-            .map_err(|_| HashError::VerifyFailed)
+            .is_ok();
+
+        Ok(is_valid)
     }
 }
 
