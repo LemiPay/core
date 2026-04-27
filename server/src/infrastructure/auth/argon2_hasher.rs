@@ -7,7 +7,9 @@ use argon2::{
 
 use rand::rngs::OsRng;
 
-use crate::application::auth::password_hasher::{HashError, PasswordHasher as PasswordHasherTrait};
+use crate::application::auth::traits::password_hasher::{
+    HashError, PasswordHasher as PasswordHasherTrait,
+};
 
 pub struct Argon2Hasher {
     argon2: Argon2<'static>,

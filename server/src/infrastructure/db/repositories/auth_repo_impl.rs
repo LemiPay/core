@@ -7,7 +7,7 @@ use crate::infrastructure::db::{
 };
 
 use crate::application::{
-    auth::{repository::AuthRepository, stored_user::StoredUser},
+    auth::{stored_user::StoredUser, traits::repository::AuthRepository},
     common::repo_error::RepoError,
 };
 

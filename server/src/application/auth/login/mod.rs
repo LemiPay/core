@@ -3,9 +3,9 @@ use std::sync::Arc;
 use crate::application::auth::{
     error::AuthError,
     login::dto::{LoginInput, LoginOutput},
-    password_hasher::PasswordHasher,
-    repository::AuthRepository,
-    token_service::TokenService,
+    traits::{
+        password_hasher::PasswordHasher, repository::AuthRepository, token_service::TokenService,
+    },
 };
 
 use crate::domain::user::{Email, UserId};

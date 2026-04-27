@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use crate::application::auth::{
     error::AuthError,
-    password_hasher::PasswordHasher,
     register::dto::{RegisterInput, RegisterOutput},
-    repository::AuthRepository,
     stored_user::StoredUser,
+    traits::{password_hasher::PasswordHasher, repository::AuthRepository},
 };
 
 use crate::domain::user::{Email, User, UserId, UserName};

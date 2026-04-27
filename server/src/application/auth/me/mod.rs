@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::application::auth::{error::AuthError, me::dto::MeOutput, repository::AuthRepository};
+use crate::application::auth::{
+    error::AuthError, me::dto::MeOutput, traits::repository::AuthRepository,
+};
 
 use crate::domain::user::{Email, UserId};
 

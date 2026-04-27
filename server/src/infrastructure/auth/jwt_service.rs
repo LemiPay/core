@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::application::auth::{
     jwt_token::JwtToken,
-    token_service::{TokenError, TokenService},
+    traits::token_service::{TokenError, TokenService},
 };
 
 use crate::domain::user::UserId;
