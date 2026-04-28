@@ -16,7 +16,7 @@ export class ModalState {
 
 	// Agregamos "| ApiResponse<T>" para que acepte ambos casos
 	async submit<T>(
-		apiFn: () => ApiResponse<T>,
+		apiFn: () => Promise<ApiResponse<T>> | ApiResponse<T>,
 		{ successMsg, onSuccess }: SubmitOptions<T>
 	): Promise<void> {
 		this.attempted = true;
