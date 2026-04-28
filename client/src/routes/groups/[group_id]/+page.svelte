@@ -74,7 +74,7 @@
 	import CreateFundRound from '$lib/components/modals_old/modals/CreateFundRound.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
 	import { getProposalStatusDisplay } from '$lib/utils/proposal_status';
-	import ProposeWithdrawModal from '$lib/components/modals_old/modals/ProposeWithdrawModal.svelte';
+	import ProposeWithdrawModal from '$lib/components/modals/ProposeWithdrawModal.svelte';
 	import WithdrawProposalDrawer from '$lib/components/WithdrawProposalDrawer.svelte';
 	import CreateExpenseModal from '$lib/components/modals_old/modals/CreateExpenseModal.svelte';
 
