@@ -1,9 +1,6 @@
 use axum::{Json, extract::State};
 
-use crate::interfaces::http::{
-    auth::{dto::MeResponse, extractor::AuthUser},
-    error::AppError,
-};
+use crate::interfaces::http::{auth::extractor::AuthUser, error::AppError, users::dto::MeResponse};
 
 use crate::setup::state::AppState;
 
@@ -14,7 +11,7 @@ pub async fn get_me(
     let user = state
         .get_me_use_case
         .execute(user.user_id)
-        .map_err(AppError::from)?;
+        .map_err(|_| AppError::Internal)?;
 
     Ok(Json(MeResponse {
         id: user.user_id.to_string(),

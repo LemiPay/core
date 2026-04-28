@@ -2,7 +2,10 @@ use axum::Router;
 use std::sync::Arc;
 
 use crate::{
-    application::auth::{login::LoginUseCase, me::GetMeUseCase, register::RegisterUseCase},
+    application::{
+        auth::{login::LoginUseCase, register::RegisterUseCase},
+        users::{get_user::UserUseCase, me::GetMeUseCase},
+    },
 
     // infrastructure
     infrastructure::{
@@ -20,6 +23,7 @@ use crate::{
     setup::config::AppConfig,
 };
 
+use crate::infrastructure::db::repositories::user_repo_impl::DieselUserRepository;
 // bootstrap
 use super::{router::create_router, state::AppState};
 
@@ -38,7 +42,8 @@ pub fn build_app() -> Router {
     // -------------------------
     // 3. Infrastructure
     // -------------------------
-    let auth_repo: Arc<DieselAuthRepository> = Arc::new(DieselAuthRepository::new(pool.clone()));
+    let auth_repo = Arc::new(DieselAuthRepository::new(pool.clone()));
+    let user_repo = Arc::new(DieselUserRepository::new(pool.clone()));
 
     let hasher = Arc::new(Argon2Hasher::new().expect("argon2 fail"));
 
@@ -48,18 +53,23 @@ pub fn build_app() -> Router {
     // 4. Use cases
     // -------------------------
     let get_me_use_case = Arc::new(GetMeUseCase {
-        repo: auth_repo.clone(),
+        repo: user_repo.clone(),
     });
 
     let register_use_case = Arc::new(RegisterUseCase {
-        repo: auth_repo.clone(),
+        auth_repo: auth_repo.clone(),
+        user_repo: user_repo.clone(),
         hash_service: hasher.clone(),
     });
 
     let login_use_case = Arc::new(LoginUseCase {
-        repo: auth_repo.clone(),
+        user_repo: user_repo.clone(),
         hash_service: hasher.clone(),
         token_service: token_service.clone(),
+    });
+
+    let user_use_case = Arc::new(UserUseCase {
+        repo: user_repo.clone(),
     });
 
     // -------------------------
@@ -67,9 +77,14 @@ pub fn build_app() -> Router {
     // -------------------------
     let state = AppState {
         config: app_config,
+
+        // Auth
         get_me_use_case,
         register_use_case,
         login_use_case,
+
+        // Users
+        user_use_case,
     };
 
     // -------------------------

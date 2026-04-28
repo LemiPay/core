@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use crate::application::auth::{
-    error::AuthError,
-    login::dto::{LoginInput, LoginOutput},
-    traits::{
-        password_hasher::PasswordHasher, repository::AuthRepository, token_service::TokenService,
+use crate::application::{
+    auth::{
+        error::AuthError,
+        login::dto::{LoginInput, LoginOutput},
+        traits::{password_hasher::PasswordHasher, token_service::TokenService},
     },
+    users::traits::repository::UserRepository,
 };
 
 use crate::domain::user::{Email, UserId};
@@ -14,7 +15,7 @@ pub mod dto;
 
 #[derive(Clone)]
 pub struct LoginUseCase {
-    pub repo: Arc<dyn AuthRepository>,
+    pub user_repo: Arc<dyn UserRepository>,
 
     pub hash_service: Arc<dyn PasswordHasher>,
     pub token_service: Arc<dyn TokenService>,
@@ -25,7 +26,7 @@ impl LoginUseCase {
         let email: Email = Email::new(input.email).map_err(|_| AuthError::InvalidCredentials)?;
 
         let user = self
-            .repo
+            .user_repo
             .find_by_email(&email)
             .map_err(|_| AuthError::InternalError)?
             .ok_or(AuthError::InvalidCredentials)?;

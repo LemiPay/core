@@ -7,7 +7,7 @@ use axum::http::{
 };
 use tower_http::cors::CorsLayer;
 
-use crate::interfaces::http::auth;
+use crate::interfaces::http::{auth, users};
 
 pub fn create_router(state: AppState) -> Router {
     let cors = CorsLayer::new()
@@ -21,6 +21,7 @@ pub fn create_router(state: AppState) -> Router {
     Router::new()
         // .merge(user_routes(state.clone()))
         .nest("/auth", auth::routes(state.clone()))
+        .nest("/user", users::routes(state.clone()))
         // .nest("/group", group_routes(state.clone()))
         // .nest("/proposal", proposal_routes(state.clone()))
         // .nest("/transaction", transaction_routes(state.clone()))

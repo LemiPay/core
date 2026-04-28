@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
-use crate::domain::user::UserError;
+use crate::domain::user::UserValidationError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UserId(pub Uuid);
@@ -28,9 +28,9 @@ impl Display for Email {
 }
 
 impl Email {
-    pub fn new(value: String) -> Result<Self, UserError> {
+    pub fn new(value: String) -> Result<Self, UserValidationError> {
         if !value.contains("@") {
-            return Err(UserError::InvalidEmail);
+            return Err(UserValidationError::InvalidEmail);
         }
 
         Ok(Self(value))
@@ -38,7 +38,7 @@ impl Email {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UserName(String);
+pub struct UserName(pub String);
 
 impl Display for UserName {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -47,9 +47,9 @@ impl Display for UserName {
 }
 
 impl UserName {
-    pub fn new(value: String) -> Result<Self, UserError> {
+    pub fn new(value: String) -> Result<Self, UserValidationError> {
         if value.trim().is_empty() {
-            return Err(UserError::InvalidName);
+            return Err(UserValidationError::InvalidName);
         }
 
         Ok(Self(value))

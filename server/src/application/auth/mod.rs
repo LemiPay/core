@@ -5,5 +5,4 @@ pub mod traits;
 
 // Use cases
 pub mod login;
-pub mod me;
 pub mod register;

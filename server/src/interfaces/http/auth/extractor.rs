@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::user::UserId;
 
+#[allow(dead_code)]
 pub struct AuthUser {
     pub user_id: UserId,
 }

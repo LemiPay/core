@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::application::auth::{
-    error::AuthError, me::dto::MeOutput, traits::repository::AuthRepository,
+use crate::application::users::{
+    error::UserError, me::dto::MeOutput, traits::repository::UserRepository,
 };
 
 use crate::domain::user::{Email, UserId};
@@ -10,16 +10,16 @@ mod dto;
 
 #[derive(Clone)]
 pub struct GetMeUseCase {
-    pub repo: Arc<dyn AuthRepository>,
+    pub repo: Arc<dyn UserRepository>,
 }
 
 impl GetMeUseCase {
-    pub fn execute(&self, user_id: UserId) -> Result<MeOutput, AuthError> {
+    pub fn execute(&self, user_id: UserId) -> Result<MeOutput, UserError> {
         let found = self
             .repo
             .find_by_id(&user_id)
-            .map_err(|_| AuthError::InternalError)?
-            .ok_or(AuthError::InvalidCredentials)?;
+            .map_err(|_| UserError::InternalError)?
+            .ok_or(UserError::NotFound)?;
 
         Ok(MeOutput {
             user_id,

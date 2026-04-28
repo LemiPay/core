@@ -1,5 +1,5 @@
 #[derive(Debug)]
-pub enum UserError {
+pub enum UserValidationError {
     InvalidEmail,
     InvalidName,
 }

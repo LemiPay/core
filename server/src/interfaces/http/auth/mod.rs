@@ -1,28 +1,15 @@
 use crate::setup::state::AppState;
-use axum::{
-    Router, middleware,
-    routing::{get, post},
-};
+use axum::{Router, routing::post};
 
-mod auth_middleware;
 mod dto;
 pub(crate) mod extractor;
 mod handlers;
 
-use handlers::{login::login, me::get_me, register::register};
-
-use auth_middleware::auth_middleware;
+use handlers::{login::login, register::register};
 
 pub fn routes(state: AppState) -> Router {
     Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
-        .route(
-            "/me",
-            get(get_me).route_layer(middleware::from_fn_with_state(
-                state.clone(),
-                auth_middleware,
-            )),
-        )
         .with_state(state)
 }

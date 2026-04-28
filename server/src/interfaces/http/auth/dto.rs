@@ -1,5 +1,4 @@
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 // ========= Register =========
 
@@ -27,13 +26,4 @@ pub struct LoginRequest {
 pub struct LoginResponse {
     pub token: String,
     pub user_id: String,
-}
-
-// ========= Me =========
-
-#[derive(Serialize)]
-pub struct MeResponse {
-    pub id: String,
-    pub name: String,
-    pub email: String,
 }

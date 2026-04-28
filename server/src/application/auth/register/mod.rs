@@ -7,13 +7,15 @@ use crate::application::auth::{
     traits::{password_hasher::PasswordHasher, repository::AuthRepository},
 };
 
+use crate::application::users::traits::repository::UserRepository;
 use crate::domain::user::{Email, User, UserId, UserName};
 
 pub mod dto;
 
 #[derive(Clone)]
 pub struct RegisterUseCase {
-    pub repo: Arc<dyn AuthRepository>,
+    pub auth_repo: Arc<dyn AuthRepository>,
+    pub user_repo: Arc<dyn UserRepository>,
     pub hash_service: Arc<dyn PasswordHasher>,
 }
 
@@ -24,7 +26,7 @@ impl RegisterUseCase {
         let name = UserName::new(input.name).map_err(|_| AuthError::InvalidName)?;
 
         if self
-            .repo
+            .user_repo
             .find_by_email(&email)
             .map_err(|_| AuthError::InternalError)?
             .is_some()
@@ -49,7 +51,7 @@ impl RegisterUseCase {
             password_hash,
         };
 
-        self.repo
+        self.auth_repo
             .save(&auth_user)
             .map_err(|_| AuthError::InternalError)?;
 
