@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Modal from '$lib/components/modals_old/modals/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import FormField from '$lib/components/ui/FormField.svelte';
+	import FormField from '$lib/components/input_fields/FormField.svelte';
 	import { X } from 'lucide-svelte';
 
 	import { createFundRoundProposal } from '$lib/api/endpoints/fund_rounds';

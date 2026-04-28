@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Modal from './Modal.svelte';
-	import FormField from '$lib/components/ui/FormField.svelte';
+	import FormField from '$lib/components/input_fields/FormField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 
 	import type { NewGroupData } from '$lib/types/endpoints/groups.types';

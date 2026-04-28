@@ -67,9 +67,9 @@
 	import UserIconBadge from '$lib/components/UserIconBadge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import InviteUserToGroup from '$lib/components/modals_old/modals/InviteUserToGroup.svelte';
-	import Confirm from '$lib/components/modals_old/modals/Confirm.svelte';
+	import Confirm from '$lib/components/modals/Confirm.svelte';
 	import EditGroup from '$lib/components/modals_old/modals/EditGroup.svelte';
-	import CreateGroupWallet from '$lib/components/modals_old/modals/CreateGroupWallet.svelte';
+	import CreateGroupWallet from '$lib/components/modals/CreateGroupWallet.svelte';
 	import FundGroupWallet from '$lib/components/modals_old/modals/FundGroupWallet.svelte';
 	import CreateFundRound from '$lib/components/modals_old/modals/CreateFundRound.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
@@ -112,11 +112,6 @@
 	let selectedWalletIdToFund = $state<string>('');
 	let selectedCurrencyId = $state<string>('');
 
-	let deleteLoading = $state(false);
-	let deleteError = $state('');
-	let leaveLoading = $state(false);
-	let leaveError = $state('');
-
 	// --- FUND ROUNDS STATE ---
 	let fundRounds = $state<FundRoundStatusResponse[]>([]);
 	let loadingFundRounds = $state(true);
@@ -131,8 +126,6 @@
 
 	let showCancelFundRoundModal = $state(false);
 	let fundRoundToCancel = $state<string>('');
-	let cancelFundRoundLoading = $state(false);
-	let cancelFundRoundError = $state('');
 
 	let showPastFundRounds = $state(false);
 	let expenses = $state<Expense[]>([]);
@@ -303,30 +296,6 @@
 		const res = await updateGroup(groupId, data);
 		if (!isSuccess(res)) throw new Error(res.message || 'Failed to update group.');
 		groupData = res.body;
-	}
-
-	async function handleDeleteGroup() {
-		deleteLoading = true;
-		deleteError = '';
-		const res = await deleteGroup(groupId);
-		deleteLoading = false;
-		if (!isSuccess(res)) {
-			deleteError = res.message || 'Failed to delete group.';
-			return;
-		}
-		window.location.href = '/dashboard';
-	}
-
-	async function handleLeaveGroup() {
-		leaveLoading = true;
-		leaveError = '';
-		const res = await leaveGroup(groupId);
-		leaveLoading = false;
-		if (!isSuccess(res)) {
-			leaveError = res.message || 'Error al salir del grupo.';
-			return;
-		}
-		window.location.href = '/dashboard';
 	}
 
 	async function loadGroupData() {
@@ -532,28 +501,7 @@
 
 	function openCancelFundRoundModal(fundRoundId: string) {
 		fundRoundToCancel = fundRoundId;
-		cancelFundRoundError = '';
 		showCancelFundRoundModal = true;
-	}
-
-	async function handleCancelFundRound() {
-		if (!fundRoundToCancel) return;
-
-		cancelFundRoundLoading = true;
-		cancelFundRoundError = '';
-
-		const res = await cancelFundRoundProposal(fundRoundToCancel);
-
-		cancelFundRoundLoading = false;
-
-		if (!isSuccess(res)) {
-			cancelFundRoundError = res.message || 'Error al cancelar la ronda de fondeo.';
-			return;
-		}
-
-		showCancelFundRoundModal = false;
-		fundRoundToCancel = '';
-		await loadFundRoundsData();
 	}
 
 	// Recargamos las wallets del grupo cada vez que se entra a la pestaña "Billeteras"
@@ -1875,40 +1823,35 @@
 			title="Salir del grupo"
 			description="Dejarás de tener acceso a las billeteras y transacciones."
 			message="¿Estás seguro de que querés salir de este grupo?"
-			onclose={() => {
-				showLeaveModal = false;
-				leaveError = '';
-			}}
-			onconfirm={handleLeaveGroup}
-			loading={leaveLoading}
-			error={leaveError}
+			successMsg="Saliste del grupo exitosamente"
+			onclose={() => (showLeaveModal = false)}
+			onconfirm={() => leaveGroup(groupId)}
+			onsuccess={() => (window.location.href = '/dashboard')}
 		/>
+
 		<Confirm
 			open={showDeleteModal}
-			title="Delete group"
-			description="This action cannot be undone."
-			message="Are you sure you want to delete this group?"
-			onclose={() => {
-				showDeleteModal = false;
-				deleteError = '';
-			}}
-			onconfirm={handleDeleteGroup}
-			loading={deleteLoading}
-			error={deleteError}
+			title="Eliminar grupo"
+			description="Esta acción no se puede deshacer."
+			message="¿Estás seguro de que querés eliminar este grupo?"
+			successMsg="Grupo eliminado"
+			onclose={() => (showDeleteModal = false)}
+			onconfirm={() => deleteGroup(groupId)}
+			onsuccess={() => (window.location.href = '/dashboard')}
 		/>
+
 		<Confirm
 			open={showCancelFundRoundModal}
 			title="Cancelar ronda de fondeo"
 			description="Los aportes realizados no se devuelven automáticamente."
 			message="¿Seguro que querés cancelar esta ronda de fondeo?"
+			successMsg="Ronda cancelada"
 			onclose={() => {
 				showCancelFundRoundModal = false;
-				cancelFundRoundError = '';
 				fundRoundToCancel = '';
 			}}
-			onconfirm={handleCancelFundRound}
-			loading={cancelFundRoundLoading}
-			error={cancelFundRoundError}
+			onconfirm={() => cancelFundRoundProposal(fundRoundToCancel)}
+			onsuccess={loadFundRoundsData}
 		/>
 	{/if}
 </div>

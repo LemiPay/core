@@ -16,7 +16,7 @@ export class ModalState {
 
 	// Agregamos "| ApiResponse<T>" para que acepte ambos casos
 	async submit<T>(
-		apiFn: () => Promise<ApiResponse<T>> | ApiResponse<T>,
+		apiFn: () => ApiResponse<T>,
 		{ successMsg, onSuccess }: SubmitOptions<T>
 	): Promise<void> {
 		this.attempted = true;
@@ -24,7 +24,6 @@ export class ModalState {
 		this.success = '';
 		this.loading = true;
 
-		// El await resuelve la promesa si la hay, o devuelve el objeto si no la hay
 		const result = await apiFn();
 		this.loading = false;
 

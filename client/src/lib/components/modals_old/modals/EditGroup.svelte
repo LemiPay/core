@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Modal from './Modal.svelte';
-	import FormField from '$lib/components/ui/FormField.svelte';
+	import FormField from '$lib/components/input_fields/FormField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 
 	import type { Group } from '$lib/types/endpoints/groups.types';
@@ -37,13 +37,13 @@
 		try {
 			await onedit({ name: name.trim(), description: description.trim() });
 
-			success = 'Group updated successfully!';
+			success = 'Actualizacion completada';
 
 			setTimeout(() => {
 				handleClose();
 			}, 2000);
 		} catch (err: unknown) {
-			error = err instanceof Error ? err.message : 'An error occurred while updating the group.';
+			error = err instanceof Error ? err.message : 'Ocurrio un error al actualizar el grupo';
 		} finally {
 			loading = false;
 		}
@@ -62,8 +62,8 @@
 
 <Modal
 	{open}
-	title="Edit group"
-	description="Update the group's name and description."
+	title="Editar grupo"
+	description="Actualiza el nombre y la descripcion del grupo"
 	onclose={handleClose}
 	{error}
 	{success}
@@ -73,7 +73,7 @@
 		<form id="edit-group-form" onsubmit={handleSubmit} class="space-y-4">
 			<FormField
 				id="group-name"
-				label="Name"
+				label="Nombre"
 				type="text"
 				placeholder="e.g. Trip to Rome"
 				minLength={4}
@@ -83,7 +83,7 @@
 			/>
 			<FormField
 				id="group-description"
-				label="Description"
+				label="Descripcion"
 				type="textarea"
 				placeholder="What is this group for?"
 				minLength={8}
@@ -96,10 +96,10 @@
 	{/snippet}
 
 	{#snippet footer()}
-		<Button label="Cancel" variant="secondary" onclick={handleClose} />
+		<Button label="Cancelar" variant="secondary" onclick={handleClose} />
 
 		<Button
-			label="Save changes"
+			label="Guardar Cambios"
 			type="submit"
 			form="edit-group-form"
 			disabled={!formValid}

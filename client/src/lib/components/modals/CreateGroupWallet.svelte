@@ -1,14 +1,11 @@
 <script lang="ts">
 	import Modal from '$lib/components/modals_old/modals/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import FormField from '$lib/components/ui/FormField.svelte';
+	import FormField from '$lib/components/input_fields/FormField.svelte';
+	import NewWalletField from '$lib/components/input_fields/NewWalletField.svelte';
 
 	import { createGroupWallet } from '$lib/api/endpoints/groups';
-	import { generateRandomAddress } from '$lib/utils/address_utils';
-
-	import { ModalState } from '$lib/utils/modal_state.svelte.js';
-	import type { ApiResponse } from '$lib/types/client.types';
-	import type { GroupWallet } from '$lib/types/endpoints/groups.types';
+	import { ModalState } from '$lib/utils/modal_state.svelte';
 
 	interface Props {
 		open: boolean;
@@ -68,23 +65,8 @@
 >
 	{#snippet children()}
 		<form id="create-group-wallet-form" onsubmit={handleSubmit} class="space-y-4">
-			<FormField
-				id="wallet-address"
-				label="Dirección de wallet"
-				type="text"
-				placeholder="0x..."
-				minLength={3}
-				maxLength={100}
-				bind:value={address}
-				attempted={form.attempted}
-			/>
-			<button
-				type="button"
-				onclick={() => (address = generateRandomAddress())}
-				class="mt-1 text-xs font-medium text-gray-500 transition hover:text-black"
-			>
-				Generar dirección aleatoria
-			</button>
+			<NewWalletField bind:value={address} attempted={form.attempted} />
+
 			<FormField
 				id="currency-ticker"
 				label="Moneda (ticker)"
