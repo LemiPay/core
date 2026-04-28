@@ -1821,6 +1821,7 @@
 			open={showCreateWalletModal}
 			group_id={groupData.id}
 			onclose={() => (showCreateWalletModal = false)}
+			onsuccess={loadWalletsData}
 		/>
 		<FundGroupWallet
 			open={showFundWalletModal}

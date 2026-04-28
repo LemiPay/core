@@ -1,11 +1,14 @@
 <script lang="ts">
-	import Modal from './Modal.svelte';
-	import FormField from '$lib/components/ui/FormField.svelte';
+	import Modal from '$lib/components/modals/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import FormField from '$lib/components/ui/FormField.svelte';
 
 	import { createGroupWallet } from '$lib/api/endpoints/groups';
-	import { isSuccess } from '$lib/types/client.types';
 	import { generateRandomAddress } from '$lib/utils/address_utils';
+
+	import { ModalState } from '$lib/utils/modal_state.svelte';
+	import type { ApiResponse } from '$lib/types/client.types';
+	import type { GroupWallet } from '$lib/types/endpoints/groups.types';
 
 	interface Props {
 		open: boolean;
@@ -16,12 +19,10 @@
 
 	const { open, group_id, onclose, onsuccess }: Props = $props();
 
+	const form = new ModalState();
+
 	let address = $state('');
 	let currencyTicker = $state('');
-	let attempted = $state(false);
-	let error = $state('');
-	let success = $state('');
-	let loading = $state(false);
 
 	const addressValid = $derived(address.trim().length >= 3 && address.trim().length <= 100);
 	const tickerValid = $derived(
@@ -31,40 +32,28 @@
 
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
-		attempted = true;
+		form.setAttempted();
 		if (!formValid) return;
-		error = '';
-		success = '';
-		loading = true;
 
-		const response = await createGroupWallet(group_id, {
-			address: address.trim(),
-			currency_ticker: currencyTicker.trim()
-		});
-
-		loading = false;
-
-		if (!isSuccess(response)) {
-			error = response.message || 'Error al crear la wallet del grupo.';
-			return;
-		}
-
-		success = 'Wallet creada exitosamente!';
-
-		setTimeout(() => {
-			handleClose();
-			onsuccess?.();
-		}, 1200);
+		await form.submit(
+			() =>
+				createGroupWallet(group_id, {
+					address: address.trim(),
+					currency_ticker: currencyTicker.trim()
+				}),
+			{
+				successMsg: 'Wallet creada exitosamente!',
+				onSuccess: handleClose
+			}
+		);
 	}
 
 	function handleClose() {
 		address = '';
 		currencyTicker = '';
-		attempted = false;
-		error = '';
-		success = '';
-		loading = false;
+		form.reset();
 		onclose();
+		onsuccess?.();
 	}
 </script>
 
@@ -73,9 +62,9 @@
 	title="Crear wallet del grupo"
 	description="Asociá una dirección de wallet y una moneda al grupo."
 	onclose={handleClose}
-	{error}
-	{success}
-	{loading}
+	error={form.error}
+	success={form.success}
+	loading={form.loading}
 >
 	{#snippet children()}
 		<form id="create-group-wallet-form" onsubmit={handleSubmit} class="space-y-4">
@@ -87,7 +76,7 @@
 				minLength={3}
 				maxLength={100}
 				bind:value={address}
-				{attempted}
+				attempted={form.attempted}
 			/>
 			<button
 				type="button"
@@ -104,20 +93,19 @@
 				minLength={2}
 				maxLength={10}
 				bind:value={currencyTicker}
-				{attempted}
+				attempted={form.attempted}
 			/>
 		</form>
 	{/snippet}
 
 	{#snippet footer()}
 		<Button label="Cancelar" variant="secondary" onclick={handleClose} />
-
 		<Button
 			label="Crear wallet"
 			type="submit"
 			form="create-group-wallet-form"
 			disabled={!formValid}
-			{loading}
+			loading={form.loading}
 		/>
 	{/snippet}
 </Modal>
