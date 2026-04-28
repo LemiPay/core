@@ -1,7 +1,7 @@
 <script lang="ts">
 	import FormField from '$lib/components/ui/FormField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import Modal from '$lib/components/modals/Modal.svelte';
+	import Modal from '$lib/components/modals_old/modals/Modal.svelte';
 
 	import type { NewMemberData } from '$lib/types/endpoints/proposals.types';
 	import { createNewMemberProposal } from '$lib/api/endpoints/proposals';

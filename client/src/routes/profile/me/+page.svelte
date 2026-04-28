@@ -5,9 +5,9 @@
 	import { type FailedResponse, isSuccess, type SuccessResponse } from '$lib/types/client.types';
 	import type { WalletInfo } from '$lib/types/endpoints/user_wallet.types';
 	import { getAllMyWallets } from '$lib/api/endpoints/user_wallet';
-	import FaucetModal from '$lib/components/modals/FaucetModal.svelte';
-	import TransferModal from '$lib/components/modals/TransferModal.svelte';
-	import CreateWalletModal from '$lib/components/modals/CreateWalletModal.svelte';
+	import FaucetModal from '$lib/components/modals_old/modals/FaucetModal.svelte';
+	import TransferModal from '$lib/components/modals_old/modals/TransferModal.svelte';
+	import CreateWalletModal from '$lib/components/modals_old/modals/CreateWalletModal.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
 
 	let loadingUserInfo = $state(true);

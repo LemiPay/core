@@ -1,12 +1,12 @@
 <script lang="ts">
-	import Modal from '$lib/components/modals/Modal.svelte';
+	import Modal from '$lib/components/modals_old/modals/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import FormField from '$lib/components/ui/FormField.svelte';
 
 	import { createGroupWallet } from '$lib/api/endpoints/groups';
 	import { generateRandomAddress } from '$lib/utils/address_utils';
 
-	import { ModalState } from '$lib/utils/modal_state.svelte';
+	import { ModalState } from '$lib/utils/modal_state.svelte.js';
 	import type { ApiResponse } from '$lib/types/client.types';
 	import type { GroupWallet } from '$lib/types/endpoints/groups.types';
 

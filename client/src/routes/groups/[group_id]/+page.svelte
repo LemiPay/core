@@ -66,17 +66,17 @@
 	// Components
 	import UserIconBadge from '$lib/components/UserIconBadge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import InviteUserToGroup from '$lib/components/modals/InviteUserToGroup.svelte';
-	import Confirm from '$lib/components/modals/Confirm.svelte';
-	import EditGroup from '$lib/components/modals/EditGroup.svelte';
-	import CreateGroupWallet from '$lib/components/modals/CreateGroupWallet.svelte';
-	import FundGroupWallet from '$lib/components/modals/FundGroupWallet.svelte';
-	import CreateFundRound from '$lib/components/modals/CreateFundRound.svelte';
+	import InviteUserToGroup from '$lib/components/modals_old/modals/InviteUserToGroup.svelte';
+	import Confirm from '$lib/components/modals_old/modals/Confirm.svelte';
+	import EditGroup from '$lib/components/modals_old/modals/EditGroup.svelte';
+	import CreateGroupWallet from '$lib/components/modals_old/modals/CreateGroupWallet.svelte';
+	import FundGroupWallet from '$lib/components/modals_old/modals/FundGroupWallet.svelte';
+	import CreateFundRound from '$lib/components/modals_old/modals/CreateFundRound.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
 	import { getProposalStatusDisplay } from '$lib/utils/proposal_status';
-	import ProposeWithdrawModal from '$lib/components/modals/ProposeWithdrawModal.svelte';
+	import ProposeWithdrawModal from '$lib/components/modals_old/modals/ProposeWithdrawModal.svelte';
 	import WithdrawProposalDrawer from '$lib/components/WithdrawProposalDrawer.svelte';
-	import CreateExpenseModal from '$lib/components/modals/CreateExpenseModal.svelte';
+	import CreateExpenseModal from '$lib/components/modals_old/modals/CreateExpenseModal.svelte';
 
 	// --- STATES ---
 	let loading = $state(true);
