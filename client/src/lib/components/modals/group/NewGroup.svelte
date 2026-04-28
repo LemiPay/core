@@ -33,16 +33,13 @@
 			description: description.trim()
 		};
 
-		await form.submit(
-				() => createGroup(params),
-				{
-					successMsg: '¡Grupo creado exitosamente!',
-					// onSuccess recibe automáticamente el body de la respuesta gracias a nuestro ModalState
-					onSuccess: (createdGroup: any) => {
-						window.location.href = `/groups/${createdGroup.id}`;
-					}
-				}
-		);
+		await form.submit(() => createGroup(params), {
+			successMsg: '¡Grupo creado exitosamente!',
+			// onSuccess recibe automáticamente el body de la respuesta gracias a nuestro ModalState
+			onSuccess: (createdGroup: any) => {
+				window.location.href = `/groups/${createdGroup.id}`;
+			}
+		});
 	}
 
 	function handleClose() {
@@ -54,36 +51,36 @@
 </script>
 
 <Modal
-		{open}
-		title="Nuevo grupo"
-		description="Creá un grupo para empezar a dividir gastos con otros."
-		onclose={handleClose}
-		error={form.error}
-		success={form.success}
-		loading={form.loading}
+	{open}
+	title="Nuevo grupo"
+	description="Creá un grupo para empezar a dividir gastos con otros."
+	onclose={handleClose}
+	error={form.error}
+	success={form.success}
+	loading={form.loading}
 >
 	{#snippet children()}
 		<form id="new-group-form" onsubmit={handleSubmit} class="space-y-4">
 			<FormField
-					id="group-name"
-					label="Nombre"
-					type="text"
-					placeholder="Ej. Viaje a Roma"
-					minLength={4}
-					maxLength={30}
-					bind:value={name}
-					attempted={form.attempted}
+				id="group-name"
+				label="Nombre"
+				type="text"
+				placeholder="Ej. Viaje a Roma"
+				minLength={4}
+				maxLength={30}
+				bind:value={name}
+				attempted={form.attempted}
 			/>
 			<FormField
-					id="group-description"
-					label="Descripción"
-					type="textarea"
-					placeholder="¿Para qué es este grupo?"
-					minLength={8}
-					maxLength={30}
-					rows={3}
-					bind:value={description}
-					attempted={form.attempted}
+				id="group-description"
+				label="Descripción"
+				type="textarea"
+				placeholder="¿Para qué es este grupo?"
+				minLength={8}
+				maxLength={30}
+				rows={3}
+				bind:value={description}
+				attempted={form.attempted}
 			/>
 		</form>
 	{/snippet}
@@ -92,11 +89,11 @@
 		<Button label="Cancelar" variant="secondary" onclick={handleClose} />
 
 		<Button
-				label="Crear grupo"
-				type="submit"
-				form="new-group-form"
-				disabled={!formValid}
-				loading={form.loading}
+			label="Crear grupo"
+			type="submit"
+			form="new-group-form"
+			disabled={!formValid}
+			loading={form.loading}
 		/>
 	{/snippet}
 </Modal>

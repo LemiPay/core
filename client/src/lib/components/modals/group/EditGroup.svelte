@@ -40,17 +40,18 @@
 		if (!formValid) return;
 
 		await form.submit(
-				() => updateGroup(group.id, {
+			() =>
+				updateGroup(group.id, {
 					name: name.trim(),
 					description: description.trim()
 				}),
-				{
-					successMsg: 'Actualización completada',
-					onSuccess: (updatedGroup) => {
-						onsuccess?.(updatedGroup);
-						handleClose();
-					}
+			{
+				successMsg: 'Actualización completada',
+				onSuccess: (updatedGroup) => {
+					onsuccess?.(updatedGroup);
+					handleClose();
 				}
+			}
 		);
 	}
 
@@ -63,36 +64,36 @@
 </script>
 
 <Modal
-		{open}
-		title="Editar grupo"
-		description="Actualiza el nombre y la descripción del grupo"
-		onclose={handleClose}
-		error={form.error}
-		success={form.success}
-		loading={form.loading}
+	{open}
+	title="Editar grupo"
+	description="Actualiza el nombre y la descripción del grupo"
+	onclose={handleClose}
+	error={form.error}
+	success={form.success}
+	loading={form.loading}
 >
 	{#snippet children()}
 		<form id="edit-group-form" onsubmit={handleSubmit} class="space-y-4">
 			<FormField
-					id="group-name"
-					label="Nombre"
-					type="text"
-					placeholder="e.g. Trip to Rome"
-					minLength={4}
-					maxLength={30}
-					bind:value={name}
-					attempted={form.attempted}
+				id="group-name"
+				label="Nombre"
+				type="text"
+				placeholder="e.g. Trip to Rome"
+				minLength={4}
+				maxLength={30}
+				bind:value={name}
+				attempted={form.attempted}
 			/>
 			<FormField
-					id="group-description"
-					label="Descripción"
-					type="textarea"
-					placeholder="What is this group for?"
-					minLength={8}
-					maxLength={30}
-					rows={3}
-					bind:value={description}
-					attempted={form.attempted}
+				id="group-description"
+				label="Descripción"
+				type="textarea"
+				placeholder="What is this group for?"
+				minLength={8}
+				maxLength={30}
+				rows={3}
+				bind:value={description}
+				attempted={form.attempted}
 			/>
 		</form>
 	{/snippet}
@@ -101,11 +102,11 @@
 		<Button label="Cancelar" variant="secondary" onclick={handleClose} />
 
 		<Button
-				label="Guardar Cambios"
-				type="submit"
-				form="edit-group-form"
-				disabled={!formValid}
-				loading={form.loading}
+			label="Guardar Cambios"
+			type="submit"
+			form="edit-group-form"
+			disabled={!formValid}
+			loading={form.loading}
 		/>
 	{/snippet}
 </Modal>

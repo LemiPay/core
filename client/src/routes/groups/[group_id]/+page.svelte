@@ -1789,10 +1789,10 @@
 			onsuccess={loadWalletsData}
 		/>
 		<EditGroup
-				open={showEditModal}
-				group={groupData}
-				onclose={() => (showEditModal = false)}
-				onsuccess={(nuevoGrupo) => (groupData = nuevoGrupo)}
+			open={showEditModal}
+			group={groupData}
+			onclose={() => (showEditModal = false)}
+			onsuccess={(nuevoGrupo) => (groupData = nuevoGrupo)}
 		/>
 		<WithdrawProposalDrawer
 			open={showProposalsDrawer}

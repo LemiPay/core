@@ -35,42 +35,34 @@
 		form.setAttempted();
 		if (!formValid) return;
 
-		await form.submit(
-				() => createNewAddress(address.trim(), currency_ticker),
-				{
-					successMsg: 'Billetera creada exitosamente',
-					onSuccess: () => {
-						onsuccess();
-						handleClose();
-					}
-				}
-		);
+		await form.submit(() => createNewAddress(address.trim(), currency_ticker), {
+			successMsg: 'Billetera creada exitosamente',
+			onSuccess: () => {
+				onsuccess();
+				handleClose();
+			}
+		});
 	}
 </script>
 
 <Modal
-		{open}
-		title="Nueva Dirección"
-		description="Creá una nueva dirección y asignale un token inicial."
-		onclose={handleClose}
-		error={form.error}
-		success={form.success}
-		loading={form.loading}
+	{open}
+	title="Nueva Dirección"
+	description="Creá una nueva dirección y asignale un token inicial."
+	onclose={handleClose}
+	error={form.error}
+	success={form.success}
+	loading={form.loading}
 >
 	{#snippet children()}
 		<form id="create-wallet-form" onsubmit={handleSubmit} class="space-y-4">
-
-			<NewWalletField
-					bind:value={address}
-					attempted={form.attempted}
-			/>
+			<NewWalletField bind:value={address} attempted={form.attempted} />
 
 			<CurrencySelectField
-					label="Token (Ticker)"
-					bind:value={currency_ticker}
-					attempted={form.attempted}
+				label="Token (Ticker)"
+				bind:value={currency_ticker}
+				attempted={form.attempted}
 			/>
-
 		</form>
 	{/snippet}
 
@@ -78,11 +70,11 @@
 		<Button label="Cancelar" variant="secondary" onclick={handleClose} />
 
 		<Button
-				label="Crear"
-				type="submit"
-				form="create-wallet-form"
-				disabled={!formValid}
-				loading={form.loading}
+			label="Crear"
+			type="submit"
+			form="create-wallet-form"
+			disabled={!formValid}
+			loading={form.loading}
 		/>
 	{/snippet}
 </Modal>

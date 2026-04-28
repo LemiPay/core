@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Modal from "$lib/components/modals/Modal.svelte";
+	import Modal from '$lib/components/modals/Modal.svelte';
 	import FormField from '$lib/components/input_fields/FormField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 
@@ -32,16 +32,13 @@
 			email: email.trim()
 		};
 
-		await form.submit(
-				() => createNewMemberProposal(params),
-				{
-					successMsg: 'Invitación enviada correctamente',
-					onSuccess: () => {
-						onsuccess?.();
-						handleClose();
-					}
-				}
-		);
+		await form.submit(() => createNewMemberProposal(params), {
+			successMsg: 'Invitación enviada correctamente',
+			onSuccess: () => {
+				onsuccess?.();
+				handleClose();
+			}
+		});
 	}
 
 	function handleClose() {
@@ -52,25 +49,25 @@
 </script>
 
 <Modal
-		{open}
-		title="Invitar nuevo miembro"
-		description="Creá una propuesta para invitar a un usuario a este grupo."
-		onclose={handleClose}
-		error={form.error}
-		success={form.success}
-		loading={form.loading}
+	{open}
+	title="Invitar nuevo miembro"
+	description="Creá una propuesta para invitar a un usuario a este grupo."
+	onclose={handleClose}
+	error={form.error}
+	success={form.success}
+	loading={form.loading}
 >
 	{#snippet children()}
 		<form id="add-member-form" onsubmit={handleSubmit} class="space-y-4">
 			<FormField
-					id="member-email"
-					label="Email"
-					type="email"
-					placeholder="e.g. joe@doe.com"
-					minLength={4}
-					maxLength={30}
-					bind:value={email}
-					attempted={form.attempted}
+				id="member-email"
+				label="Email"
+				type="email"
+				placeholder="e.g. joe@doe.com"
+				minLength={4}
+				maxLength={30}
+				bind:value={email}
+				attempted={form.attempted}
 			/>
 		</form>
 	{/snippet}
@@ -79,11 +76,11 @@
 		<Button label="Cancelar" variant="secondary" onclick={handleClose} />
 
 		<Button
-				label="Enviar Invitación"
-				type="submit"
-				form="add-member-form"
-				disabled={!formValid}
-				loading={form.loading}
+			label="Enviar Invitación"
+			type="submit"
+			form="add-member-form"
+			disabled={!formValid}
+			loading={form.loading}
 		/>
 	{/snippet}
 </Modal>
