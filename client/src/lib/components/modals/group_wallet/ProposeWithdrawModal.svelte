@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Modal from '../modals_old/modals/Modal.svelte';
+	import Modal from '../Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import NumberField from '$lib/components/input_fields/NumberField.svelte';
 	import UserWalletSelectField from '$lib/components/input_fields/UserWalletSelectField.svelte';

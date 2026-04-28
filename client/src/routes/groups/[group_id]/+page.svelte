@@ -66,17 +66,17 @@
 	// Components
 	import UserIconBadge from '$lib/components/UserIconBadge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import InviteUserToGroup from '$lib/components/modals_old/modals/InviteUserToGroup.svelte';
+	import InviteUserToGroup from '$lib/components/modals/group/InviteUserToGroup.svelte';
 	import Confirm from '$lib/components/modals/Confirm.svelte';
-	import EditGroup from '$lib/components/modals_old/modals/EditGroup.svelte';
-	import CreateGroupWallet from '$lib/components/modals/CreateGroupWallet.svelte';
-	import FundGroupWallet from '$lib/components/modals_old/modals/FundGroupWallet.svelte';
-	import CreateFundRound from '$lib/components/modals_old/modals/CreateFundRound.svelte';
+	import EditGroup from '$lib/components/modals/group/EditGroup.svelte';
+	import CreateGroupWallet from '$lib/components/modals/group_wallet/CreateGroupWallet.svelte';
+	import FundGroupWallet from '$lib/components/modals/group_wallet/FundGroupWallet.svelte';
+	import CreateFundRound from '$lib/components/modals/group_wallet/CreateFundRound.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
 	import { getProposalStatusDisplay } from '$lib/utils/proposal_status';
-	import ProposeWithdrawModal from '$lib/components/modals/ProposeWithdrawModal.svelte';
+	import ProposeWithdrawModal from '$lib/components/modals/group_wallet/ProposeWithdrawModal.svelte';
 	import WithdrawProposalDrawer from '$lib/components/WithdrawProposalDrawer.svelte';
-	import CreateExpenseModal from '$lib/components/modals_old/modals/CreateExpenseModal.svelte';
+	import CreateExpenseModal from '$lib/components/modals/group_wallet/CreateExpenseModal.svelte';
 
 	// --- STATES ---
 	let loading = $state(true);
@@ -292,11 +292,6 @@
 	});
 
 	// --- LOGIC ---
-	async function handleEditGroup(data: { name: string; description: string }) {
-		const res = await updateGroup(groupId, data);
-		if (!isSuccess(res)) throw new Error(res.message || 'Failed to update group.');
-		groupData = res.body;
-	}
 
 	async function loadGroupData() {
 		const res = await getGroup(groupId);
@@ -1794,10 +1789,10 @@
 			onsuccess={loadWalletsData}
 		/>
 		<EditGroup
-			open={showEditModal}
-			group={groupData}
-			onclose={() => (showEditModal = false)}
-			onedit={handleEditGroup}
+				open={showEditModal}
+				group={groupData}
+				onclose={() => (showEditModal = false)}
+				onsuccess={(nuevoGrupo) => (groupData = nuevoGrupo)}
 		/>
 		<WithdrawProposalDrawer
 			open={showProposalsDrawer}

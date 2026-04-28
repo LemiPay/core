@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Modal from '$lib/components/modals_old/modals/Modal.svelte';
+	import Modal from '$lib/components/modals/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import NewWalletField from '$lib/components/input_fields/NewWalletField.svelte';
 
@@ -7,7 +7,7 @@
 	import CurrencySelectField from '$lib/components/input_fields/CurrencySelectField.svelte';
 
 	import { createGroupWallet } from '$lib/api/endpoints/groups';
-	import { ModalState } from '$lib/utils/modal_state.svelte';
+	import { ModalState } from '$lib/utils/modal_state.svelte.js';
 
 	interface Props {
 		open: boolean;

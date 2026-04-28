@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Modal from '../modals_old/modals/Modal.svelte';
+	import Modal from './Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { ModalState } from '$lib/utils/modal_state.svelte.js';
 	import type { ApiResponse } from '$lib/types/client.types';

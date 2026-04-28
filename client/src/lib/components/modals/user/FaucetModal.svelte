@@ -1,7 +1,7 @@
 <script lang="ts">
 	import NumberField from '$lib/components/input_fields/NumberField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import Modal from '$lib/components/modals_old/modals/Modal.svelte';
+	import Modal from '$lib/components/modals/Modal.svelte';
 
 	import { faucetFundWallet } from '$lib/api/endpoints/user_wallet';
 	import { ModalState } from '$lib/utils/modal_state.svelte.js';

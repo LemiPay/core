@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Modal from '$lib/components/modals_old/modals/Modal.svelte';
+	import Modal from "$lib/components/modals/Modal.svelte";
 	import Button from '$lib/components/ui/Button.svelte';
 	import { X } from 'lucide-svelte';
 
