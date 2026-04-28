@@ -20,7 +20,7 @@
 	let amount = $state('');
 
 	const formValid = $derived(
-			amount != null &&
+		amount != null &&
 			amount !== '' &&
 			!isNaN(Number(String(amount).replace(',', '.'))) &&
 			Number(String(amount).replace(',', '.')) > 0
@@ -37,37 +37,34 @@
 		form.setAttempted();
 		if (!formValid) return;
 
-		await form.submit(
-				() => faucetFundWallet(String(amount).replace(',', '.'), wallet_id),
-				{
-					successMsg: 'Billetera fondeada correctamente',
-					onSuccess: () => {
-						onsuccess(); // Refresca la data en la vista padre
-						handleClose(); // Resetea y cierra el modal
-					}
-				}
-		);
+		await form.submit(() => faucetFundWallet(String(amount).replace(',', '.'), wallet_id), {
+			successMsg: 'Billetera fondeada correctamente',
+			onSuccess: () => {
+				onsuccess(); // Refresca la data en la vista padre
+				handleClose(); // Resetea y cierra el modal
+			}
+		});
 	}
 </script>
 
 <Modal
-		{open}
-		title="Recibir Dinero"
-		description="Dinero mágico de otra dimensión será enviado a tu dirección."
-		onclose={handleClose}
-		error={form.error}
-		success={form.success}
-		loading={form.loading}
+	{open}
+	title="Recibir Dinero"
+	description="Dinero mágico de otra dimensión será enviado a tu dirección."
+	onclose={handleClose}
+	error={form.error}
+	success={form.success}
+	loading={form.loading}
 >
 	{#snippet children()}
 		<form id="receive-money-form" onsubmit={handleSubmit} class="space-y-4">
 			<NumberField
-					id="amount"
-					label="Monto de {ticker} a recibir"
-					min={0.01}
-					placeholder="Ej. 10.50"
-					bind:value={amount}
-					attempted={form.attempted}
+				id="amount"
+				label="Monto de {ticker} a recibir"
+				min={0.01}
+				placeholder="Ej. 10.50"
+				bind:value={amount}
+				attempted={form.attempted}
 			/>
 		</form>
 	{/snippet}
@@ -76,11 +73,11 @@
 		<Button label="Cancelar" variant="secondary" onclick={handleClose} />
 
 		<Button
-				label="Recibir"
-				type="submit"
-				form="receive-money-form"
-				disabled={!formValid}
-				loading={form.loading}
+			label="Recibir"
+			type="submit"
+			form="receive-money-form"
+			disabled={!formValid}
+			loading={form.loading}
 		/>
 	{/snippet}
 </Modal>
