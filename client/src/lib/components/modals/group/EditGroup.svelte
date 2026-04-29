@@ -19,8 +19,8 @@
 
 	const form = new ModalState();
 
-	let name = $state(group.name);
-	let description = $state(group.description);
+	let name = $derived(group.name);
+	let description = $derived(group.description);
 
 	const nameValid = $derived(name.trim().length >= 4 && name.trim().length <= 30);
 	const descValid = $derived(description.trim().length >= 8 && description.trim().length <= 30);
