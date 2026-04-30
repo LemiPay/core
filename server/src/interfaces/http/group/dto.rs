@@ -2,7 +2,9 @@ use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::infrastructure::db::models::group::{GroupMemberStatusModel, GroupRoleModel, GroupStatusModel};
+use crate::infrastructure::db::models::group::{
+    GroupMemberStatusModel, GroupRoleModel, GroupStatusModel,
+};
 
 // ========= Create Group =========
 

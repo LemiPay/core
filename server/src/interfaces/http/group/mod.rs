@@ -13,8 +13,9 @@ use crate::interfaces::http::middlewares::{
 
 use handlers::{
     create_group::create_group, delete_group::delete_group, get_group::get_group,
-    get_group_members::get_group_members, leave_group::leave_group, list_user_groups::list_user_groups,
-    make_group_admin::make_group_admin, update_group::update_group,
+    get_group_members::get_group_members, leave_group::leave_group,
+    list_user_groups::list_user_groups, make_group_admin::make_group_admin,
+    update_group::update_group,
 };
 
 use crate::setup::state::SharedState;

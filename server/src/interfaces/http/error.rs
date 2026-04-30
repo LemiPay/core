@@ -143,7 +143,9 @@ impl From<MakeGroupAdminError> for AppError {
 impl From<UpdateGroupError> for AppError {
     fn from(err: UpdateGroupError) -> Self {
         match err {
-            UpdateGroupError::Forbidden => AppError::Forbidden("Solo el administrador puede actualizar el grupo.".into()),
+            UpdateGroupError::Forbidden => {
+                AppError::Forbidden("Solo el administrador puede actualizar el grupo.".into())
+            }
             UpdateGroupError::NotFound => AppError::NotFound,
             UpdateGroupError::BadRequest(message) => AppError::BadRequest(message),
             UpdateGroupError::Internal => AppError::Internal,

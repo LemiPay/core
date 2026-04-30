@@ -224,7 +224,10 @@ impl GroupRepository for DieselGroupRepository {
             .collect())
     }
 
-    fn get_user_groups_legacy(&self, user_id: UserId) -> Result<Vec<GroupFromUserDetails>, RepoError> {
+    fn get_user_groups_legacy(
+        &self,
+        user_id: UserId,
+    ) -> Result<Vec<GroupFromUserDetails>, RepoError> {
         let mut conn = self.get_conn()?;
         let rows = schema::group::table
             .inner_join(schema::user_in_group::table)

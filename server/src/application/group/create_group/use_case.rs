@@ -14,12 +14,7 @@ pub struct CreateGroupUseCase {
 impl CreateGroupUseCase {
     pub fn execute(&self, input: CreateGroupInput) -> Result<CreateGroupOutput, CreateGroupError> {
         let is_valid = ValidateLength::validate_length(input.name.trim(), Some(4), Some(30), None)
-            && ValidateLength::validate_length(
-                input.description.trim(),
-                Some(8),
-                Some(30),
-                None,
-            );
+            && ValidateLength::validate_length(input.description.trim(), Some(8), Some(30), None);
         if !is_valid {
             return Err(CreateGroupError::InvalidName);
         }

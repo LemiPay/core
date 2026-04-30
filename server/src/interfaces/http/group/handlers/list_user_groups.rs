@@ -3,9 +3,7 @@ use axum::{Json, extract::State};
 use crate::application::group::list_user_groups::dto::ListUserGroupsInput;
 
 use crate::interfaces::http::{
-    auth::extractor::AuthUser,
-    error::AppError,
-    group::dto::ListUserGroupsResponse,
+    auth::extractor::AuthUser, error::AppError, group::dto::ListUserGroupsResponse,
 };
 
 use crate::setup::state::SharedState;

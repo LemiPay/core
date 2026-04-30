@@ -8,9 +8,7 @@ use axum::{
 use uuid::Uuid;
 
 use crate::{
-    domain::group::GroupId,
-    interfaces::http::auth::extractor::AuthUser,
-    setup::state::SharedState,
+    domain::group::GroupId, interfaces::http::auth::extractor::AuthUser, setup::state::SharedState,
 };
 
 pub async fn is_in_group_middleware(

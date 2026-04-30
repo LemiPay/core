@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    application::group::{
-        dto::UserInGroupDetails,
-        traits::repository::GroupRepository,
-    },
+    application::group::{dto::UserInGroupDetails, traits::repository::GroupRepository},
     domain::{group::GroupId, user::UserId},
 };
 

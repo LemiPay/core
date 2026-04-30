@@ -7,9 +7,7 @@ use uuid::Uuid;
 use crate::{
     domain::group::GroupId,
     interfaces::http::{
-        auth::extractor::AuthUser,
-        error::AppError,
-        group::dto::GroupMemberResponse,
+        auth::extractor::AuthUser, error::AppError, group::dto::GroupMemberResponse,
     },
     setup::state::SharedState,
 };

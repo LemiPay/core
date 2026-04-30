@@ -1,4 +1,4 @@
-use axum::{serve, Router };
+use axum::{Router, serve};
 use tokio::net::TcpListener;
 
 use server::setup::app_builder::build_app;
@@ -16,7 +16,10 @@ async fn main() {
     // run our app with hyper, listening globally on port 3000
     let listener = TcpListener::bind(addr).await.unwrap();
 
-    serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
+    serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
     .await
     .unwrap();
 }

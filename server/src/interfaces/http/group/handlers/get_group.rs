@@ -8,10 +8,7 @@ use crate::application::group::get_group::dto::GetGroupInput;
 
 use crate::domain::group::GroupId;
 
-use crate::interfaces::http::{
-    error::AppError,
-    group::dto::GroupResponse,
-};
+use crate::interfaces::http::{error::AppError, group::dto::GroupResponse};
 
 use crate::setup::state::SharedState;
 

@@ -5,12 +5,8 @@ use std::sync::Arc;
 use super::router::create_router;
 
 use crate::setup::{
-    builders::{
-        auth::build_auth_service,
-        group::build_group_service,
-        users::build_user_service
-    },
-    state::AppState
+    builders::{auth::build_auth_service, group::build_group_service, users::build_user_service},
+    state::AppState,
 };
 
 use crate::{
@@ -19,7 +15,7 @@ use crate::{
         auth::{argon2_hasher::Argon2Hasher, jwt_service::JwtService},
         db::{
             config::DbConfig,
-            pool::{create_pool, DbPool},
+            pool::{DbPool, create_pool},
             repositories::{
                 auth_repo_impl::DieselAuthRepository, group_repo_impl::DieselGroupRepository,
                 user_repo_impl::DieselUserRepository,

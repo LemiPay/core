@@ -1,7 +1,9 @@
 use chrono::{NaiveDate, NaiveDateTime};
 use uuid::Uuid;
 
-use crate::infrastructure::db::models::group::{GroupMemberStatusModel, GroupRoleModel, GroupStatusModel};
+use crate::infrastructure::db::models::group::{
+    GroupMemberStatusModel, GroupRoleModel, GroupStatusModel,
+};
 
 pub struct GroupDetails {
     pub id: Uuid,

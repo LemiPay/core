@@ -178,7 +178,12 @@ mod tests {
     #[test]
     fn new_group_rejects_empty_name() {
         let creator = user_id();
-        let result = Group::new("   ".into(), "Description".into(), creator, GroupConfig::default());
+        let result = Group::new(
+            "   ".into(),
+            "Description".into(),
+            creator,
+            GroupConfig::default(),
+        );
         assert!(matches!(result, Err(GroupError::InvalidName)));
     }
 
