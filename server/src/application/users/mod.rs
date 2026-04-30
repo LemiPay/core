@@ -1,5 +1,5 @@
 pub mod error;
-pub mod traits;
-
 pub mod get_user;
-pub mod me;
+pub mod service;
+pub mod traits;
+pub use service::UserService;

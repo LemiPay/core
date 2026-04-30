@@ -1,4 +1,4 @@
-use crate::setup::state::AppState;
+use crate::setup::state::SharedState;
 
 use axum::{
     body::Body,
@@ -9,7 +9,7 @@ use axum::{
 };
 
 pub async fn auth_middleware(
-    State(state): State<AppState>,
+    State(state): State<SharedState>,
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, StatusCode> {
@@ -27,7 +27,8 @@ pub async fn auth_middleware(
 
     // verificar token
     let user_id = state
-        .login_use_case
+        .auth_service
+        .login
         .token_service
         .verify(token)
         .map_err(|_| StatusCode::UNAUTHORIZED)?;

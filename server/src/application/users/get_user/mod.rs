@@ -5,6 +5,7 @@ use crate::application::users::{error::UserError, traits::repository::UserReposi
 
 use crate::domain::user::User;
 use dto::{GetUserInput, GetUserOutput};
+
 #[derive(Clone)]
 pub struct UserUseCase {
     pub repo: Arc<dyn UserRepository>,

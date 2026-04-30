@@ -1,15 +1,16 @@
 use axum::{Json, extract::State};
 
 use crate::application::auth::login::dto::LoginInput;
+
 use crate::interfaces::http::{
     auth::dto::{LoginRequest, LoginResponse},
     error::AppError,
 };
 
-use crate::setup::state::AppState;
+use crate::setup::state::SharedState;
 
 pub async fn login(
-    State(state): State<AppState>,
+    State(state): State<SharedState>,
     Json(req): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, AppError> {
     let input = LoginInput {
@@ -18,7 +19,8 @@ pub async fn login(
     };
 
     let result = state
-        .login_use_case
+        .auth_service
+        .login
         .execute(input)
         .map_err(AppError::from)?;
 

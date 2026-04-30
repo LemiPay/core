@@ -1,9 +1,5 @@
+use crate::application::{auth::AuthService, group::GroupService, users::UserService};
 use std::sync::Arc;
-
-use crate::application::{
-    auth::{login::LoginUseCase, register::RegisterUseCase},
-    users::{get_user::UserUseCase, me::GetMeUseCase},
-};
 
 use super::config::AppConfig;
 
@@ -11,15 +7,12 @@ use super::config::AppConfig;
 // APP STATE
 // ----------------------
 
-#[derive(Clone)]
 pub struct AppState {
     pub config: AppConfig,
 
-    // Auth
-    pub get_me_use_case: Arc<GetMeUseCase>,
-    pub login_use_case: Arc<LoginUseCase>,
-    pub register_use_case: Arc<RegisterUseCase>,
-
-    // Users
-    pub user_use_case: Arc<UserUseCase>,
+    pub auth_service: AuthService,
+    pub user_service: UserService,
+    pub group_service: GroupService,
 }
+
+pub type SharedState = Arc<AppState>;

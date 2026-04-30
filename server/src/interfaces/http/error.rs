@@ -8,6 +8,14 @@ use serde::Serialize;
 use thiserror::Error;
 
 use crate::application::auth::error::AuthError;
+use crate::application::group::create_group::CreateGroupError;
+use crate::application::group::delete_group::DeleteGroupError;
+use crate::application::group::get_group::GetGroupError;
+use crate::application::group::get_group_members::GetGroupMembersError;
+use crate::application::group::leave_group::LeaveGroupError;
+use crate::application::group::list_user_groups::ListUserGroupsError;
+use crate::application::group::make_group_admin::MakeGroupAdminError;
+use crate::application::group::update_group::UpdateGroupError;
 use crate::infrastructure::db::error::DbError;
 
 #[derive(Error, Debug)]
@@ -74,6 +82,92 @@ impl From<AuthError> for AppError {
             AuthError::EmailAlreadyExists => AppError::BadRequest("Email already exists".into()),
             AuthError::InvalidCredentials => AppError::Unauthorized,
             AuthError::InternalError => AppError::Internal,
+        }
+    }
+}
+
+impl From<CreateGroupError> for AppError {
+    fn from(err: CreateGroupError) -> Self {
+        match err {
+            CreateGroupError::InvalidName => AppError::BadRequest("Invalid group name".into()),
+            CreateGroupError::InvalidDescription => {
+                AppError::BadRequest("Invalid group description".into())
+            }
+            CreateGroupError::InternalError => AppError::Internal,
+        }
+    }
+}
+
+impl From<GetGroupError> for AppError {
+    fn from(err: GetGroupError) -> Self {
+        match err {
+            GetGroupError::InternalError => AppError::Internal,
+        }
+    }
+}
+
+impl From<LeaveGroupError> for AppError {
+    fn from(err: LeaveGroupError) -> Self {
+        match err {
+            LeaveGroupError::NotFound => AppError::NotFound,
+            LeaveGroupError::NotMember => {
+                AppError::Forbidden("User is not a member of this group".into())
+            }
+            LeaveGroupError::LastAdminCannotLeave => {
+                AppError::BadRequest("El grupo tiene que tener al menos un administrador".into())
+            }
+            LeaveGroupError::InternalError => AppError::Internal,
+        }
+    }
+}
+
+impl From<ListUserGroupsError> for AppError {
+    fn from(err: ListUserGroupsError) -> Self {
+        match err {
+            ListUserGroupsError::InternalError => AppError::Internal,
+        }
+    }
+}
+
+impl From<MakeGroupAdminError> for AppError {
+    fn from(err: MakeGroupAdminError) -> Self {
+        match err {
+            MakeGroupAdminError::Forbidden => AppError::Forbidden("Forbidden".into()),
+            MakeGroupAdminError::NotFound => AppError::NotFound,
+            MakeGroupAdminError::BadRequest(message) => AppError::BadRequest(message),
+            MakeGroupAdminError::Internal => AppError::Internal,
+        }
+    }
+}
+
+impl From<UpdateGroupError> for AppError {
+    fn from(err: UpdateGroupError) -> Self {
+        match err {
+            UpdateGroupError::Forbidden => AppError::Forbidden("Solo el administrador puede actualizar el grupo.".into()),
+            UpdateGroupError::NotFound => AppError::NotFound,
+            UpdateGroupError::BadRequest(message) => AppError::BadRequest(message),
+            UpdateGroupError::Internal => AppError::Internal,
+        }
+    }
+}
+
+impl From<DeleteGroupError> for AppError {
+    fn from(err: DeleteGroupError) -> Self {
+        match err {
+            DeleteGroupError::Forbidden => {
+                AppError::Forbidden("Solo el administrador puede borrar el grupo".into())
+            }
+            DeleteGroupError::NotFound => AppError::NotFound,
+            DeleteGroupError::Internal => AppError::Internal,
+        }
+    }
+}
+
+impl From<GetGroupMembersError> for AppError {
+    fn from(err: GetGroupMembersError) -> Self {
+        match err {
+            GetGroupMembersError::Forbidden => AppError::Forbidden("Forbidden".into()),
+            GetGroupMembersError::Internal => AppError::Internal,
         }
     }
 }
