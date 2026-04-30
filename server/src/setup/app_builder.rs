@@ -5,7 +5,10 @@ use std::sync::Arc;
 use super::router::create_router;
 
 use crate::setup::{
-    builders::{auth::build_auth_service, group::build_group_service, users::build_user_service},
+    builders::{
+        auth::build_auth_service, group::build_group_service, treasury::build_treasury_service,
+        users::build_user_service,
+    },
     state::AppState,
 };
 
@@ -17,8 +20,12 @@ use crate::{
             config::DbConfig,
             pool::{DbPool, create_pool},
             repositories::{
-                auth_repo_impl::DieselAuthRepository, group_repo_impl::DieselGroupRepository,
+                auth_repo_impl::DieselAuthRepository, currency_repo_impl::DieselCurrencyRepository,
+                group_repo_impl::DieselGroupRepository,
+                group_wallet_repo_impl::DieselGroupWalletRepository,
+                transaction_repo_impl::DieselTransactionRepository,
                 user_repo_impl::DieselUserRepository,
+                user_wallet_repo_impl::DieselUserWalletRepository,
             },
         },
     },
@@ -43,6 +50,10 @@ pub fn build_app() -> Router {
     let auth_repo = Arc::new(DieselAuthRepository::new(pool.clone()));
     let user_repo = Arc::new(DieselUserRepository::new(pool.clone()));
     let group_repo = Arc::new(DieselGroupRepository::new(pool.clone()));
+    let user_wallet_repo = Arc::new(DieselUserWalletRepository::new(pool.clone()));
+    let group_wallet_repo = Arc::new(DieselGroupWalletRepository::new(pool.clone()));
+    let transaction_repo = Arc::new(DieselTransactionRepository::new(pool.clone()));
+    let currency_repo = Arc::new(DieselCurrencyRepository::new(pool.clone()));
 
     let hash_service = Arc::new(Argon2Hasher::new().expect("argon2 fail"));
     let token_service = Arc::new(JwtService::new(db_config.jwt_secret));
@@ -61,6 +72,13 @@ pub fn build_app() -> Router {
 
     let group_service = build_group_service(group_repo.clone());
 
+    let treasury_service = build_treasury_service(
+        user_wallet_repo,
+        group_wallet_repo,
+        transaction_repo,
+        currency_repo,
+    );
+
     // -------------------------
     // 5. State
     // -------------------------
@@ -71,6 +89,7 @@ pub fn build_app() -> Router {
         auth_service,
         user_service,
         group_service,
+        treasury_service,
     });
 
     // -------------------------

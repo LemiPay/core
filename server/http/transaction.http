@@ -1,0 +1,27 @@
+### Transaction - Fund group (deposit from a user wallet to a group wallet)
+POST {{host}}/transaction/{{group_id}}/fund
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "amount": "10.00",
+  "address": "{{wallet_address}}",
+  "currency_id": "{{group_wallet_currency_id}}",
+  "description": "Aporte mensual"
+}
+
+> {%
+  client.global.set("transaction_id", response.body.id);
+%}
+
+###
+
+### Transaction - List transactions for a group
+GET {{host}}/transaction/{{group_id}}/list
+Authorization: Bearer {{token}}
+
+###
+
+### Transaction - Get one
+GET {{host}}/transaction/{{group_id}}/one?transaction_id={{transaction_id}}
+Authorization: Bearer {{token}}
