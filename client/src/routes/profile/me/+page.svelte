@@ -6,7 +6,6 @@
 	import type { WalletInfo } from '$lib/types/endpoints/user_wallet.types';
 	import { getAllMyWallets } from '$lib/api/endpoints/user_wallet';
 	import FaucetModal from '$lib/components/modals/user/FaucetModal.svelte';
-	import TransferModal from '$lib/components/modals/user/TransferModal.svelte';
 	import CreateWalletModal from '$lib/components/modals/user/CreateWalletModal.svelte';
 	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
 	import { formatDate } from '$lib/utils/format_utils';
@@ -203,17 +202,6 @@
 												<ArrowDownToLine size={14} />
 												Recibir
 											</button>
-											<button
-												class="flex items-center gap-1.5 rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gray-800"
-												onclick={() =>
-													(transferTarget = {
-														sender_wallet_id: currency.wallet_id,
-														ticker: currency.ticker
-													})}
-											>
-												<Send size={14} />
-												Enviar
-											</button>
 										</div>
 									</div>
 								{/each}
@@ -279,14 +267,6 @@
 		wallet_id={faucetTarget?.wallet_id ?? ''}
 		ticker={faucetTarget?.ticker ?? ''}
 		onclose={() => (faucetTarget = null)}
-		onsuccess={() => loadWallets()}
-	/>
-
-	<TransferModal
-		open={transferTarget !== null}
-		sender_wallet_id={transferTarget?.sender_wallet_id ?? ''}
-		ticker={transferTarget?.ticker ?? ''}
-		onclose={() => (transferTarget = null)}
 		onsuccess={() => loadWallets()}
 	/>
 </div>
