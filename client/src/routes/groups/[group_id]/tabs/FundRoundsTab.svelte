@@ -2,7 +2,7 @@
 	import { slide } from 'svelte/transition';
 	import { Plus, HandCoins, Ban, ChevronDown } from 'lucide-svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import { formatAmount } from '../group.svelte';
+	import { formatAmount } from '$lib/utils/format_utils';
 	import { getProposalStatusDisplay } from '$lib/utils/proposal_status';
 	import { shortenAddress } from '$lib/utils/address_utils';
 	import type { GroupState } from '../group.svelte';

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Plus, Users, Scale, ArrowRight, Info } from 'lucide-svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import { formatAmount, getInitials } from '../group.svelte';
+	import { formatAmount, getInitials } from '$lib/utils/format_utils';
 	import type { GroupState } from '../group.svelte';
 
 	let { groupState, onInviteClick, onGoToBalances } = $props<{

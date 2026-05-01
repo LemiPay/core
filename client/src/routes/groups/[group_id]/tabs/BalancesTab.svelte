@@ -13,7 +13,7 @@
 		parseBalanceValue,
 		formatTxType,
 		formatDateTimeShort
-	} from '../group.svelte';
+	} from '$lib/utils/format_utils';
 	import type { GroupState } from '../group.svelte';
 
 	let { groupState } = $props<{ groupState: GroupState }>();
