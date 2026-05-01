@@ -1791,7 +1791,7 @@
 												</p>
 											</div>
 											<div class="text-right">
-												<p class="text-sm font-semibold text-black">{expense.amount}</p>
+												<p class="text-sm font-semibold text-black">${expense.amount}</p>
 												<p class="text-xs text-gray-500">
 													{formatExpenseDate(expense.created_at)}
 												</p>

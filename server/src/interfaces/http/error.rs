@@ -10,6 +10,8 @@ use thiserror::Error;
 use crate::{
     application::{
         auth::error::AuthError,
+        balances::BalancesError,
+        expense::ExpenseError,
         governance::GovernanceError,
         group::{
             create_group::CreateGroupError, delete_group::DeleteGroupError,
@@ -392,6 +394,47 @@ impl From<GovernanceError> for AppError {
             GovernanceError::SenderWalletNotFound => {
                 AppError::BadRequest("La wallet del usuario no existe para esa moneda".into())
             }
+        }
+    }
+}
+
+impl From<ExpenseError> for AppError {
+    fn from(err: ExpenseError) -> Self {
+        match err {
+            ExpenseError::NotFound => AppError::NotFound,
+            ExpenseError::Internal => AppError::Internal,
+            ExpenseError::InvalidAmount => {
+                AppError::BadRequest("El monto debe ser mayor a 0".into())
+            }
+            ExpenseError::EmptyParticipants => {
+                AppError::BadRequest("El gasto debe tener al menos un participante".into())
+            }
+            ExpenseError::DuplicatedParticipant => {
+                AppError::BadRequest("Hay un participante duplicado en el gasto".into())
+            }
+            ExpenseError::TooManyParticipants => {
+                AppError::BadRequest("Hay demasiados participantes".into())
+            }
+            ExpenseError::NoFieldsToUpdate => {
+                AppError::BadRequest("No hay campos para actualizar".into())
+            }
+            ExpenseError::AlreadyDeleted => {
+                AppError::BadRequest("El gasto ya fue eliminado".into())
+            }
+            ExpenseError::NotOwner => {
+                AppError::Forbidden("Solo el creador o el admin pueden editar".into())
+            }
+            ExpenseError::GroupMismatch => AppError::NotFound,
+        }
+    }
+}
+
+impl From<BalancesError> for AppError {
+    fn from(err: BalancesError) -> Self {
+        match err {
+            BalancesError::Internal => AppError::Internal,
+            BalancesError::UserNotFound => AppError::Core,
+            BalancesError::InsufficientFunds => AppError::Core,
         }
     }
 }

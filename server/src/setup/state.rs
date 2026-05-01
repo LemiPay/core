@@ -1,6 +1,7 @@
 use crate::application::{
-    auth::AuthService, governance::GovernanceService, group::GroupService,
-    treasury::TreasuryService, users::UserService,
+    auth::AuthService, balances::BalancesService, expense::ExpenseService,
+    governance::GovernanceService, group::GroupService, treasury::TreasuryService,
+    users::UserService,
 };
 use std::sync::Arc;
 
@@ -18,6 +19,8 @@ pub struct AppState {
     pub group_service: GroupService,
     pub treasury_service: TreasuryService,
     pub governance_service: GovernanceService,
+    pub expense_service: ExpenseService,
+    pub balances_service: BalancesService,
 }
 
 pub type SharedState = Arc<AppState>;

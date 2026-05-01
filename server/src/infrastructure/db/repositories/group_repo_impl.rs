@@ -4,7 +4,10 @@ use uuid::Uuid;
 use crate::application::{
     common::repo_error::RepoError,
     group::{
-        dto::{GroupDetails, GroupFromUserDetails, GroupMemberDetails, UserInGroupDetails},
+        dto::{
+            GroupDetails, GroupFromUserDetails, GroupMemberDetails, HistoricGroupMemberDetails,
+            UserInGroupDetails,
+        },
         traits::repository::GroupRepository,
     },
 };
@@ -214,6 +217,31 @@ impl GroupRepository for DieselGroupRepository {
         Ok(rows
             .into_iter()
             .map(|(rel, user)| GroupMemberDetails {
+                user_id: user.id,
+                group_id: rel.group_id,
+                name: user.name,
+                email: user.email,
+                status: rel.status,
+                role: rel.role,
+            })
+            .collect())
+    }
+
+    fn get_historic_group_members(
+        &self,
+        group_id: GroupId,
+    ) -> Result<Vec<HistoricGroupMemberDetails>, RepoError> {
+        let mut conn = self.get_conn()?;
+        let rows = schema::user_in_group::table
+            .inner_join(schema::user::table)
+            .filter(schema::user_in_group::group_id.eq(group_id.0))
+            .select((UserInGroupModel::as_select(), UserModel::as_select()))
+            .get_results::<(UserInGroupModel, UserModel)>(&mut conn)
+            .map_err(|_| RepoError::Query)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|(rel, user)| HistoricGroupMemberDetails {
                 user_id: user.id,
                 group_id: rel.group_id,
                 name: user.name,

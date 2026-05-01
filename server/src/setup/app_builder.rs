@@ -6,7 +6,8 @@ use super::router::create_router;
 
 use crate::setup::{
     builders::{
-        auth::build_auth_service, governance::build_governance_service, group::build_group_service,
+        auth::build_auth_service, balances::build_balances_service, expense::build_expense_service,
+        governance::build_governance_service, group::build_group_service,
         treasury::build_treasury_service, users::build_user_service,
     },
     state::AppState,
@@ -21,6 +22,7 @@ use crate::{
             pool::{DbPool, create_pool},
             repositories::{
                 auth_repo_impl::DieselAuthRepository, currency_repo_impl::DieselCurrencyRepository,
+                expense_repo_impl::DieselExpenseRepository,
                 governance_repo_impl::DieselGovernanceRepository,
                 group_repo_impl::DieselGroupRepository,
                 group_wallet_repo_impl::DieselGroupWalletRepository,
@@ -56,6 +58,7 @@ pub fn build_app() -> Router {
     let transaction_repo = Arc::new(DieselTransactionRepository::new(pool.clone()));
     let currency_repo = Arc::new(DieselCurrencyRepository::new(pool.clone()));
     let governance_repo = Arc::new(DieselGovernanceRepository::new(pool.clone()));
+    let expense_repo = Arc::new(DieselExpenseRepository::new(pool.clone()));
 
     let hash_service = Arc::new(Argon2Hasher::new().expect("argon2 fail"));
     let token_service = Arc::new(JwtService::new(db_config.jwt_secret));
@@ -81,8 +84,14 @@ pub fn build_app() -> Router {
         currency_repo.clone(),
     );
 
-    let governance_service =
-        build_governance_service(governance_repo, group_repo, user_repo, user_wallet_repo);
+    let governance_service = build_governance_service(
+        governance_repo,
+        group_repo.clone(),
+        user_repo,
+        user_wallet_repo,
+    );
+    let expense_service = build_expense_service(expense_repo.clone());
+    let balances_service = build_balances_service(transaction_repo, group_repo, expense_repo);
 
     // -------------------------
     // 5. State
@@ -96,6 +105,8 @@ pub fn build_app() -> Router {
         group_service,
         treasury_service,
         governance_service,
+        expense_service,
+        balances_service,
     });
 
     // -------------------------

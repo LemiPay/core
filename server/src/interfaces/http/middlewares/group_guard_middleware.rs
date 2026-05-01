@@ -48,3 +48,22 @@ pub async fn is_group_admin_middleware(
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
+
+pub async fn is_group_admin_for_resource_middleware(
+    State(state): State<SharedState>,
+    Path((group_id, _resource_id)): Path<(Uuid, Uuid)>,
+    user: AuthUser,
+    req: Request<Body>,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    match state
+        .group_service
+        .get_group_members
+        .group_repo
+        .is_admin(user.user_id, GroupId(group_id))
+    {
+        Ok(true) => Ok(next.run(req).await),
+        Ok(false) => Err(StatusCode::FORBIDDEN),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}

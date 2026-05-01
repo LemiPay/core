@@ -10,7 +10,9 @@ use axum::{
 
 use tower_http::cors::CorsLayer;
 
-use crate::interfaces::http::{auth, governance, group, group_wallet, transaction, users, wallet};
+use crate::interfaces::http::{
+    auth, core, expense, governance, group, group_wallet, transaction, users, wallet,
+};
 
 pub fn create_router(state: SharedState) -> Router {
     let cors = CorsLayer::new()
@@ -27,6 +29,8 @@ pub fn create_router(state: SharedState) -> Router {
         .nest("/group", group::routes(state.clone()))
         .nest("/wallet", wallet::routes(state.clone()))
         .nest("/governance", governance::routes(state.clone()))
+        .nest("/expense", expense::routes(state.clone()))
+        .nest("/core", core::routes(state.clone()))
         .nest("/group-wallet", group_wallet::routes(state.clone()))
         .nest("/transaction", transaction::routes(state.clone()))
         .layer(cors)

@@ -23,6 +23,15 @@ pub struct GroupMemberDetails {
     pub role: GroupRoleModel,
 }
 
+pub struct HistoricGroupMemberDetails {
+    pub user_id: Uuid,
+    pub group_id: Uuid,
+    pub name: String,
+    pub email: String,
+    pub status: GroupMemberStatusModel,
+    pub role: GroupRoleModel,
+}
+
 pub struct UserInGroupDetails {
     pub user_id: Uuid,
     pub group_id: Uuid,
