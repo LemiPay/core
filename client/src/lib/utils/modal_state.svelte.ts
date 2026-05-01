@@ -1,5 +1,5 @@
 import { isSuccess } from '$lib/types/client.types';
-import type { ApiResponse } from '$lib/types/client.types';
+import type { ApiResponse, SuccessResponse, FailedResponse } from '$lib/types/client.types';
 
 const SUCCESS_DELAY_MS = 1200;
 
@@ -14,9 +14,12 @@ export class ModalState {
 	success = $state('');
 	attempted = $state(false);
 
-	// Agregamos "| ApiResponse<T>" para que acepte ambos casos
+	// Guardamos la referencia del timeout
+	private timeoutId?: ReturnType<typeof setTimeout>;
+
+	// Corregimos la firma: acepta la Promesa (ApiResponse) o los objetos directos resueltos
 	async submit<T>(
-		apiFn: () => Promise<ApiResponse<T>> | ApiResponse<T>,
+		apiFn: () => ApiResponse<T>,
 		{ successMsg, onSuccess }: SubmitOptions<T>
 	): Promise<void> {
 		this.attempted = true;
@@ -24,6 +27,12 @@ export class ModalState {
 		this.success = '';
 		this.loading = true;
 
+		// Limpiamos timeouts previos si el usuario hace clics rápidos
+		if (this.timeoutId) {
+			clearTimeout(this.timeoutId);
+		}
+
+		// await maneja perfectamente tanto la Promesa como el objeto directo
 		const result = await apiFn();
 		this.loading = false;
 
@@ -33,7 +42,9 @@ export class ModalState {
 		}
 
 		this.success = successMsg;
-		setTimeout(() => onSuccess?.(result.body), SUCCESS_DELAY_MS);
+
+		// Guardamos el ID del timeout
+		this.timeoutId = setTimeout(() => onSuccess?.(result.body), SUCCESS_DELAY_MS);
 	}
 
 	setAttempted() {
@@ -45,5 +56,11 @@ export class ModalState {
 		this.error = '';
 		this.success = '';
 		this.attempted = false;
+
+		// Cancelamos la ejecución de onSuccess si el modal se resetea/cierra antes de tiempo
+		if (this.timeoutId) {
+			clearTimeout(this.timeoutId);
+			this.timeoutId = undefined;
+		}
 	}
 }

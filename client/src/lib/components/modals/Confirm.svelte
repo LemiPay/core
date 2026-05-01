@@ -12,7 +12,7 @@
 		successMsg?: string;
 		onclose: () => void;
 		onsuccess?: () => void;
-		onconfirm: () => Promise<ApiResponse<unknown>> | ApiResponse<unknown>;
+		onconfirm: () => ApiResponse<unknown>;
 	}
 
 	const {
