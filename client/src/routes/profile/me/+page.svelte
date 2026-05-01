@@ -5,10 +5,10 @@
 	import { type FailedResponse, isSuccess, type SuccessResponse } from '$lib/types/client.types';
 	import type { WalletInfo } from '$lib/types/endpoints/user_wallet.types';
 	import { getAllMyWallets } from '$lib/api/endpoints/user_wallet';
-	import FaucetModal from '$lib/components/modals/FaucetModal.svelte';
-	import TransferModal from '$lib/components/modals/TransferModal.svelte';
-	import CreateWalletModal from '$lib/components/modals/CreateWalletModal.svelte';
-	import { shortenAddress } from '$lib/utils/address_utils';
+	import FaucetModal from '$lib/components/modals/user/FaucetModal.svelte';
+	import TransferModal from '$lib/components/modals/user/TransferModal.svelte';
+	import CreateWalletModal from '$lib/components/modals/user/CreateWalletModal.svelte';
+	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
 
 	let loadingUserInfo = $state(true);
 	let errorInLoadingProfile = $state('');
@@ -43,11 +43,6 @@
 		}
 		loadingWalletsInfo = false;
 		walletsArray = result.body;
-	}
-
-	function copyToClipboard(text: string) {
-		navigator.clipboard.writeText(text);
-		// Acá podrías disparar un toast de "Copiado!"
 	}
 
 	function goBack() {
