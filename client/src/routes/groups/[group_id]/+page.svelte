@@ -321,8 +321,8 @@
 		<Confirm
 			open={showLeaveModal}
 			title="Salir del grupo"
-			description="..."
-			message="..."
+			description="Los integrantes podrán usar la plata que hayas aportado"
+			message="¿Estas seguro?"
 			successMsg="Saliste del grupo exitosamente"
 			onclose={() => (showLeaveModal = false)}
 			onconfirm={() => leaveGroup(groupId)}
@@ -331,8 +331,8 @@
 		<Confirm
 			open={showDeleteModal}
 			title="Eliminar grupo"
-			description="..."
-			message="..."
+			description="Vas a poder revisar la historia del grupo pero no hacer nada"
+			message="Esta acción no se puede deshacer"
 			successMsg="Grupo eliminado"
 			onclose={() => (showDeleteModal = false)}
 			onconfirm={() => deleteGroup(groupId)}
@@ -341,8 +341,8 @@
 		<Confirm
 			open={showCancelFundRoundModal}
 			title="Cancelar ronda"
-			description="..."
-			message="..."
+			description="La plata que ya fue aportada quedará en la billetera de grupo"
+			message="¿Estas seguro que quieres cancelarla?"
 			successMsg="Ronda cancelada"
 			onclose={() => {
 				showCancelFundRoundModal = false;
