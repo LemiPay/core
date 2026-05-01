@@ -20,8 +20,14 @@ export type ExecuteWithdrawProposal = {
 
 export type WithdrawProposalExpanded = {
 	proposal: Proposal;
-	withdraw_proposal: WithdrawProposal;
-	proposal_type: 'Withdraw';
+	amount: string;
+	currency_id: string;
+	kind: string;
+	/**
+	 * Backward compatibility for older API payloads.
+	 * New governance DTOs return flattened fields.
+	 */
+	withdraw_proposal?: WithdrawProposal;
 };
 
 export type Transaction = {

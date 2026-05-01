@@ -7,27 +7,29 @@ use axum::{
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::application::auth::error::AuthError;
-use crate::application::group::create_group::CreateGroupError;
-use crate::application::group::delete_group::DeleteGroupError;
-use crate::application::group::get_group::GetGroupError;
-use crate::application::group::get_group_members::GetGroupMembersError;
-use crate::application::group::leave_group::LeaveGroupError;
-use crate::application::group::list_user_groups::ListUserGroupsError;
-use crate::application::group::make_group_admin::MakeGroupAdminError;
-use crate::application::group::update_group::UpdateGroupError;
-use crate::application::treasury::create_group_wallet::CreateGroupWalletError;
-use crate::application::treasury::create_user_wallet::CreateUserWalletError;
-use crate::application::treasury::faucet_fund_wallet::FaucetFundWalletError;
-use crate::application::treasury::faucet_withdraw_wallet::FaucetWithdrawWalletError;
-use crate::application::treasury::fund_group::FundGroupError;
-use crate::application::treasury::get_group_transaction::GetGroupTransactionError;
-use crate::application::treasury::get_user_wallet_by_address_and_ticker::GetUserWalletError;
-use crate::application::treasury::list_group_transactions::ListGroupTransactionsError;
-use crate::application::treasury::list_group_wallets::ListGroupWalletsError;
-use crate::application::treasury::list_user_wallets::ListUserWalletsError;
-use crate::application::treasury::transfer_funds::TransferFundsError;
-use crate::infrastructure::db::error::DbError;
+use crate::{
+    application::{
+        auth::error::AuthError,
+        governance::GovernanceError,
+        group::{
+            create_group::CreateGroupError, delete_group::DeleteGroupError,
+            get_group::GetGroupError, get_group_members::GetGroupMembersError,
+            leave_group::LeaveGroupError, list_user_groups::ListUserGroupsError,
+            make_group_admin::MakeGroupAdminError, update_group::UpdateGroupError,
+        },
+        treasury::{
+            create_group_wallet::CreateGroupWalletError, create_user_wallet::CreateUserWalletError,
+            faucet_fund_wallet::FaucetFundWalletError,
+            faucet_withdraw_wallet::FaucetWithdrawWalletError, fund_group::FundGroupError,
+            get_group_transaction::GetGroupTransactionError,
+            get_user_wallet_by_address_and_ticker::GetUserWalletError,
+            list_group_transactions::ListGroupTransactionsError,
+            list_group_wallets::ListGroupWalletsError, list_user_wallets::ListUserWalletsError,
+            transfer_funds::TransferFundsError,
+        },
+    },
+    infrastructure::db::error::DbError,
+};
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -346,6 +348,50 @@ impl From<GetGroupTransactionError> for AppError {
         match err {
             GetGroupTransactionError::NotFound => AppError::NotFound,
             GetGroupTransactionError::Internal => AppError::Internal,
+        }
+    }
+}
+
+impl From<GovernanceError> for AppError {
+    fn from(err: GovernanceError) -> Self {
+        match err {
+            GovernanceError::NotFound => AppError::NotFound,
+            GovernanceError::Internal => AppError::Internal,
+            GovernanceError::InvalidAmount => {
+                AppError::BadRequest("El monto debe ser mayor a 0".into())
+            }
+            GovernanceError::InvalidEmail => AppError::BadRequest("Email inválido".into()),
+            GovernanceError::MissingProposalTarget => {
+                AppError::BadRequest("Se debe enviar user_id o user_email".into())
+            }
+            GovernanceError::UserNotFound => AppError::BadRequest("Usuario no encontrado".into()),
+            GovernanceError::UserAlreadyMember => {
+                AppError::BadRequest("El usuario ya pertenece al grupo".into())
+            }
+            GovernanceError::NotProposalDestination => {
+                AppError::Forbidden("No podés responder una propuesta que no es tuya".into())
+            }
+            GovernanceError::NotProposalCreator => {
+                AppError::Forbidden("Solo el creador puede ejecutar/cancelar la propuesta".into())
+            }
+            GovernanceError::ProposalAlreadyResolved => {
+                AppError::BadRequest("La propuesta ya fue resuelta".into())
+            }
+            GovernanceError::GroupMismatch => {
+                AppError::BadRequest("La propuesta no pertenece al grupo".into())
+            }
+            GovernanceError::FundRoundNotActive => {
+                AppError::BadRequest("La ronda de fondeo no está activa".into())
+            }
+            GovernanceError::ContributionExceedsTarget => AppError::BadRequest(
+                "El aporte excede el objetivo restante de la ronda de fondeo".into(),
+            ),
+            GovernanceError::InvalidStatusTransition => {
+                AppError::BadRequest("Transición de estado inválida".into())
+            }
+            GovernanceError::SenderWalletNotFound => {
+                AppError::BadRequest("La wallet del usuario no existe para esa moneda".into())
+            }
         }
     }
 }

@@ -1,0 +1,152 @@
+### Governance - List my created new-member proposals
+GET {{host}}/governance/my
+Authorization: Bearer {{token}}
+
+###
+
+### Governance - List new-member proposals received by me (invitations)
+GET {{host}}/governance/received
+Authorization: Bearer {{token}}
+
+###
+
+### Governance - List new-member proposals of a group (member only)
+GET {{host}}/governance/group/{{group_id}}
+Authorization: Bearer {{token}}
+
+###
+
+### Governance - Create new-member proposal (admin only). Auto-approved until voting is implemented.
+POST {{host}}/governance/new-member/{{group_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "user_email": "invitee@example.com"
+}
+
+> {%
+  client.global.set("new_member_proposal_id", response.body.proposal.id);
+%}
+
+###
+
+### Governance - Create new-member proposal by user_id
+POST {{host}}/governance/new-member/{{group_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "user_id": "{{other_user_id}}"
+}
+
+###
+
+### Governance - Respond to a new-member proposal (accept/reject as the destination user)
+PUT {{host}}/governance/respond/{{new_member_proposal_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "response": true
+}
+
+###
+
+### Governance - Cancel a proposal (admin only)
+DELETE {{host}}/governance/{{group_id}}?proposal_id={{new_member_proposal_id}}
+Authorization: Bearer {{token}}
+
+###
+
+### Governance - List withdraw proposals of a group (member only)
+GET {{host}}/governance/withdraw/{{group_id}}
+Authorization: Bearer {{token}}
+
+###
+
+### Governance - Create withdraw proposal (member). Auto-approved until voting is implemented.
+POST {{host}}/governance/{{group_id}}/withdraw/proposal
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "address": "{{wallet_address}}",
+  "amount": "5.00",
+  "currency_id": "{{group_wallet_currency_id}}"
+}
+
+> {%
+  client.global.set("withdraw_proposal_id", response.body.proposal.id);
+%}
+
+###
+
+### Governance - Execute approved withdraw proposal (creator only)
+POST {{host}}/governance/{{group_id}}/withdraw/execute
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "address": "{{wallet_address}}",
+  "proposal_id": "{{withdraw_proposal_id}}",
+  "currency_id": "{{group_wallet_currency_id}}"
+}
+
+###
+
+### Governance - Create fund round proposal (admin only). Auto-approved until voting is implemented.
+POST {{host}}/governance/fund-round/create/{{group_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "target_amount": "100.00",
+  "currency_id": "{{group_wallet_currency_id}}"
+}
+
+> {%
+  client.global.set("fund_round_id", response.body.proposal.id);
+%}
+
+###
+
+### Governance - List fund rounds of a group (member only)
+GET {{host}}/governance/fund-round/{{group_id}}/get-all
+Authorization: Bearer {{token}}
+
+###
+
+### Governance - Get fund round status
+GET {{host}}/governance/fund-round/{{fund_round_id}}
+Authorization: Bearer {{token}}
+
+###
+
+### Governance - Get exact remaining amount for current user (and whether they are last contributor)
+GET {{host}}/governance/fund-round/{{fund_round_id}}/remaining
+Authorization: Bearer {{token}}
+
+###
+
+### Governance - Contribute to a fund round
+POST {{host}}/governance/fund-round/{{fund_round_id}}/contribute
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "amount": "10.00",
+  "sender_wallet_id": "{{wallet_id}}"
+}
+
+###
+
+### Governance - Get my contribution to a fund round
+GET {{host}}/governance/fund-round/{{fund_round_id}}/contribute
+Authorization: Bearer {{token}}
+
+###
+
+### Governance - Cancel a fund round (creator only)
+DELETE {{host}}/governance/fund-round/{{fund_round_id}}/cancel
+Authorization: Bearer {{token}}

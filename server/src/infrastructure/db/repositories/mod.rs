@@ -1,5 +1,6 @@
 pub mod auth_repo_impl;
 pub mod currency_repo_impl;
+pub mod governance_repo_impl;
 pub mod group_repo_impl;
 pub mod group_wallet_repo_impl;
 pub mod transaction_repo_impl;

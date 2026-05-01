@@ -3,5 +3,5 @@
 GET http://localhost:3000/user/me
 Authorization: Bearer {{token}}
 
-### Get me
+### Get User
 GET http://localhost:3000/user/id/ab35ef0a-741c-4903-9fd7-353424bf81c9

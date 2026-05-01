@@ -1100,13 +1100,19 @@
 								{@const progress =
 									target > 0 ? Math.min(100, Math.round((raised / target) * 100)) : 0}
 								{@const remaining = Math.max(0, target - raised)}
-								{@const ticker =
-									wallets.find(
-										(w) => w.currency_id === status.fund_round.fund_round_proposal.currency_id
-									)?.currency_ticker ?? 'USDC'}
-								{@const compatibleWallets = userWallets.filter(
-									(w) => w.currency_id === status.fund_round.fund_round_proposal.currency_id
-								)}
+								{@const fundRoundCurrencyId =
+									(
+										status.fund_round as
+											| { currency_id?: string; fund_round_proposal?: { currency_id?: string } }
+											| undefined
+									)?.currency_id ?? status.fund_round.fund_round_proposal?.currency_id}
+								{@const ticker = fundRoundCurrencyId
+									? (wallets.find((w) => w.currency_id === fundRoundCurrencyId)?.currency_ticker ??
+										'USDC')
+									: 'USDC'}
+								{@const compatibleWallets = fundRoundCurrencyId
+									? userWallets.filter((w) => w.currency_id === fundRoundCurrencyId)
+									: []}
 								{@const recommended = recommendedAmount(status.target_amount)}
 								{@const myContribution = Number(myContributions[proposalId] ?? '0')}
 								{@const hasContributed = myContribution > 0}

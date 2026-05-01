@@ -6,7 +6,7 @@
 		placeholder?: string;
 		minLength: number;
 		maxLength: number;
-		value: string;
+		value: string | number | null | undefined;
 		rows?: number;
 		attempted?: boolean;
 	}
@@ -25,8 +25,14 @@
 
 	let touched = $state(false);
 
+	function normalizedValue(input: string | number | null | undefined): string {
+		if (typeof input === 'string') return input;
+		if (typeof input === 'number') return Number.isFinite(input) ? String(input) : '';
+		return '';
+	}
+
 	const showFeedback = $derived(touched || attempted);
-	const len = $derived(value.trim().length);
+	const len = $derived(normalizedValue(value).trim().length);
 	const isValid = $derived(len >= minLength && len <= maxLength);
 
 	const message = $derived(

@@ -10,7 +10,7 @@ export async function register(data: RegisterData): ApiResponse<PostUser> {
 	});
 }
 
-export function login(data: LoginData): ApiResponse<{ token: string }> {
+export function login(data: LoginData): ApiResponse<{ token: string; user_id: string }> {
 	return apiFetch('/auth/login', {
 		method: 'POST',
 		body: JSON.stringify(data)
@@ -18,12 +18,12 @@ export function login(data: LoginData): ApiResponse<{ token: string }> {
 }
 
 export async function me(): ApiResponse<User> {
-	return authedApiFetch('/auth/me', {
+	return authedApiFetch('/user/me', {
 		method: 'GET'
 	});
 }
 export async function userInfo(id: string): ApiResponse<User> {
-	return authedApiFetch(`/users/${id}`, {
+	return authedApiFetch(`/user/id/${id}`, {
 		method: 'GET'
 	});
 }

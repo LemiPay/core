@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod governance;
 pub mod group;
 pub mod group_wallet;
 pub mod transaction;

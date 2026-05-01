@@ -7,7 +7,9 @@ export type ProposalStatusDisplay = {
 };
 
 // Mapeo del enum de ProposalStatus a su representación visual en el front.
-export function getProposalStatusDisplay(status: ProposalStatus): ProposalStatusDisplay {
+export function getProposalStatusDisplay(
+	status: ProposalStatus | string | null | undefined
+): ProposalStatusDisplay {
 	switch (status) {
 		case 'Approved':
 			return {
@@ -43,6 +45,11 @@ export function getProposalStatusDisplay(status: ProposalStatus): ProposalStatus
 			return {
 				label: 'Fallida',
 				classes: 'border-red-200 bg-red-50 text-red-600'
+			};
+		default:
+			return {
+				label: 'Desconocido',
+				classes: 'border-gray-200 bg-gray-50 text-gray-600'
 			};
 	}
 }

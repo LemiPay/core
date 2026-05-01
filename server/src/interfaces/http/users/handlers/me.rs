@@ -4,11 +4,11 @@ use crate::interfaces::http::{
     auth::extractor::AuthUser, error::AppError, users::dto::GetUserResponse,
 };
 
-use crate::setup::state::AppState;
+use crate::setup::state::SharedState;
 use axum::{Json, extract::State};
 
 pub async fn get_me(
-    State(state): State<AppState>,
+    State(state): State<SharedState>,
     user: AuthUser,
 ) -> Result<Json<GetUserResponse>, AppError> {
     let output = state
