@@ -1,40 +1,41 @@
 <script lang="ts">
-	import { ArrowLeft, ArrowDownToLine, Copy, Plus, Send, Wallet, Activity } from 'lucide-svelte';
+	import { ArrowLeft, Wallet, Activity } from 'lucide-svelte';
 	import type { User } from '$lib/types/endpoints/auth.types';
 	import { me } from '$lib/api/auth';
 	import { type FailedResponse, isSuccess, type SuccessResponse } from '$lib/types/client.types';
 	import type { WalletInfo } from '$lib/types/endpoints/user_wallet.types';
 	import { getAllMyWallets } from '$lib/api/endpoints/user_wallet';
-	import FaucetModal from '$lib/components/modals/user/FaucetModal.svelte';
-	import CreateWalletModal from '$lib/components/modals/user/CreateWalletModal.svelte';
-	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
-	import { formatDate } from '$lib/utils/format_utils';
 	import { listUserTransactions } from '$lib/api/endpoints/transactions';
 	import type { Transaction } from '$lib/types/endpoints/transactions.types';
+
+	// Importar los nuevos Tabs
+	import WalletsTab from './tabs/WalletsTab.svelte';
+	import ActivityTab from './tabs/ActivityTab.svelte';
+
+	// Importar Modales
+	import FaucetModal from '$lib/components/modals/user/FaucetModal.svelte';
+	import TransferModal from '$lib/components/modals/user/TransferModal.svelte'; // Asumo que lo tenés
+	import CreateWalletModal from '$lib/components/modals/user/CreateWalletModal.svelte';
 
 	// --- ESTADOS DE UI ---
 	let activeTab = $state<'wallets' | 'activity'>('wallets');
 
-	// --- ESTADOS ---
+	// --- ESTADOS DE DATOS ---
 	let loadingUserInfo = $state(true);
-	let errorInLoadingProfile = $state('');
 	let user = $state({} as User);
 
 	let loadingWalletsInfo = $state(true);
-	let errorInLoadingWallets = $state('');
 	let walletsArray = $state([] as WalletInfo[]);
 
 	let loadingTransactions = $state(true);
-	let errorInTransactions = $state('');
 	let transactionsArray = $state([] as Transaction[]);
 
+	// --- ESTADOS DE MODALES ---
 	let faucetTarget = $state<{ wallet_id: string; ticker: string } | null>(null);
 	let transferTarget = $state<{ sender_wallet_id: string; ticker: string } | null>(null);
-	let openFaucetModal = $state(false);
-	let openTransferModal = $state(false);
 	let openCreateWalletModal = $state(false);
 
-	// --- ESTADO DERIVADO: SUMA DE BALANCES ---
+	// --- ESTADO DERIVADO ---
 	let totalBalance = $derived(
 		walletsArray.reduce((acc, group) => {
 			const groupSum = group.currencies.reduce((sum, curr) => sum + Number(curr.balance || 0), 0);
@@ -45,37 +46,28 @@
 	// --- CARGA DE DATOS ---
 	async function loadUserProfile() {
 		let result: SuccessResponse<User> | FailedResponse = await me();
-		if (!isSuccess(result)) {
-			errorInLoadingProfile = "couldn't get user_id";
-			loadingUserInfo = false;
-			return;
-		}
+		if (isSuccess(result)) user = result.body;
 		loadingUserInfo = false;
-		user = result.body;
 	}
 
 	async function loadWallets() {
 		let result = await getAllMyWallets();
-		if (!isSuccess(result)) {
-			errorInLoadingWallets = 'failed to load wallets';
-			loadingWalletsInfo = false;
-			return;
-		}
+		if (isSuccess(result)) walletsArray = result.body;
 		loadingWalletsInfo = false;
-		walletsArray = result.body;
 	}
 
 	async function loadTransactions() {
 		loadingTransactions = true;
 		let result = await listUserTransactions();
-		if (!isSuccess(result)) {
-			errorInTransactions = 'error al cargar historial de transacciones';
-			loadingTransactions = false;
-			return;
-		}
-		transactionsArray = result.body;
+		if (isSuccess(result)) transactionsArray = result.body;
 		loadingTransactions = false;
 	}
+
+	// --- REFCH LOGIC (Como en group.page) ---
+	$effect(() => {
+		if (activeTab === 'wallets') loadWallets();
+		if (activeTab === 'activity') loadTransactions();
+	});
 
 	// --- UTILIDADES ---
 	function goBack() {
@@ -84,15 +76,6 @@
 		} else {
 			window.location.href = '/dashboard';
 		}
-	}
-
-	function translateTxType(type: string) {
-		const types: Record<string, string> = {
-			deposit: 'Depósito',
-			withdraw: 'Retiro',
-			Fund: 'Fondeo'
-		};
-		return types[type] || type;
 	}
 
 	// --- INIT ---
@@ -115,9 +98,8 @@
 		Volver
 	</button>
 
-	<!-- HEADER ESTILO GRUPOS (Usuario Izquierda / Saldo Derecha) -->
+	<!-- HEADER: Usuario / Saldo -->
 	<div class="mb-4 flex items-start justify-between">
-		<!-- Info del usuario (Izquierda) -->
 		<div class="flex flex-col gap-1">
 			{#if loadingUserInfo}
 				<div class="h-8 w-48 animate-pulse rounded bg-gray-200"></div>
@@ -128,18 +110,15 @@
 			{/if}
 		</div>
 
-		<!-- Saldo Total (Derecha) -->
 		<div class="flex flex-col items-end gap-1">
 			<span class="text-xs font-semibold tracking-wider text-gray-500 uppercase">Saldo Total</span>
 			<div class="flex items-center gap-3">
 				{#if loadingWalletsInfo}
-					<!-- Estado de Carga Minimalista -->
 					<div class="h-8 w-28 animate-pulse rounded bg-gray-200"></div>
 					<div
 						class="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-black"
 					></div>
 				{:else}
-					<!-- Saldo Cargado -->
 					<span class="text-4xl font-extrabold tracking-tight text-black">
 						${totalBalance.toLocaleString('en-US', {
 							minimumFractionDigits: 2,
@@ -151,7 +130,7 @@
 		</div>
 	</div>
 
-	<!-- PESTAÑAS DE NAVEGACIÓN -->
+	<!-- PESTAÑAS -->
 	<div class="mt-4 mb-6 flex w-full gap-8 border-y border-gray-200">
 		<button
 			class="-mb-px flex items-center gap-2 border-b-2 py-3 text-sm font-semibold transition-colors {activeTab ===
@@ -175,114 +154,18 @@
 		</button>
 	</div>
 
-	<!-- CONTENIDO DINÁMICO -->
+	<!-- CONTENIDO DINÁMICO (TABS) -->
 	<div class="w-full">
 		{#if activeTab === 'wallets'}
-			<!-- SECCIÓN BILLETERAS -->
-			<section class="animate-in fade-in flex flex-col gap-6 duration-300">
-				<div class="flex items-center justify-between">
-					<h2 class="text-lg font-bold text-black">Tus Direcciones</h2>
-					<button
-						class="flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-black transition hover:border-black hover:bg-gray-50"
-						onclick={() => (openCreateWalletModal = true)}
-					>
-						<Plus size={16} />
-						Nueva Dirección
-					</button>
-				</div>
-
-				<div class="flex w-full flex-col gap-6">
-					{#each walletsArray as group}
-						<div class="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white">
-							<div
-								class="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-4 py-3"
-							>
-								<div class="flex items-center gap-2 text-gray-500">
-									<Wallet size={16} />
-									<span class="font-mono text-sm">{shortenAddress(group.address)}</span>
-								</div>
-								<button
-									onclick={() => copyToClipboard(group.address)}
-									class="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-500 transition hover:bg-gray-200 hover:text-black"
-								>
-									<Copy size={14} />
-									Copiar
-								</button>
-							</div>
-
-							<div class="flex flex-col px-4 py-2">
-								{#each group.currencies as currency}
-									<div
-										class="flex items-center justify-between border-b border-gray-50 py-3 last:border-0"
-									>
-										<div class="flex flex-col">
-											<span class="text-2xl font-bold text-black">
-												{currency.balance}
-												<span class="text-base font-medium text-gray-500">{currency.ticker}</span>
-											</span>
-										</div>
-										<div class="flex gap-2">
-											<button
-												class="flex items-center gap-1.5 rounded-full border border-gray-200 px-4 py-1.5 text-sm font-medium text-black transition hover:border-gray-400 hover:bg-gray-50"
-												onclick={() =>
-													(faucetTarget = {
-														wallet_id: currency.wallet_id,
-														ticker: currency.ticker
-													})}
-											>
-												<ArrowDownToLine size={14} />
-												Recibir
-											</button>
-										</div>
-									</div>
-								{/each}
-							</div>
-						</div>
-					{/each}
-
-					{#if walletsArray.length === 0 && !loadingWalletsInfo}
-						<p class="py-8 text-center text-sm text-gray-500">Aún no tienes billeteras creadas.</p>
-					{/if}
-				</div>
-			</section>
+			<WalletsTab
+				{walletsArray}
+				{loadingWalletsInfo}
+				onCreateWallet={() => (openCreateWalletModal = true)}
+				onReceive={(wallet_id, ticker) => (faucetTarget = { wallet_id, ticker })}
+				onSend={(sender_wallet_id, ticker) => (transferTarget = { sender_wallet_id, ticker })}
+			/>
 		{:else}
-			<!-- SECCIÓN HISTORIAL DE TRANSACCIONES -->
-			<section class="animate-in fade-in flex flex-col gap-6 duration-300">
-				<div class="flex items-center justify-between">
-					<h2 class="text-lg font-bold text-black">Actividad Reciente</h2>
-				</div>
-
-				<div class="flex flex-col gap-3">
-					{#if loadingTransactions}
-						<div class="flex justify-center py-8">
-							<p class="text-sm text-gray-500">Cargando transacciones...</p>
-						</div>
-					{:else if transactionsArray.length === 0}
-						<div class="flex justify-center py-8">
-							<p class="text-sm text-gray-500">No hay transacciones recientes.</p>
-						</div>
-					{:else}
-						{#each transactionsArray as tx}
-							<div
-								class="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 transition hover:border-gray-300"
-							>
-								<div class="flex flex-col gap-0.5">
-									<span class="font-bold text-black capitalize">{translateTxType(tx.tx_type)}</span>
-									<span class="text-sm text-gray-500">
-										{tx.description ? tx.description : ''}
-									</span>
-								</div>
-								<div class="flex flex-col items-end gap-0.5">
-									<span class="font-bold text-black">
-										{tx.tx_type === 'withdraw' ? '+' : '-'} ${tx.amount}
-									</span>
-									<span class="text-sm text-gray-500">{formatDate(tx.created_at)}</span>
-								</div>
-							</div>
-						{/each}
-					{/if}
-				</div>
-			</section>
+			<ActivityTab {transactionsArray} {loadingTransactions} />
 		{/if}
 	</div>
 
@@ -300,4 +183,14 @@
 		onclose={() => (faucetTarget = null)}
 		onsuccess={() => loadWallets()}
 	/>
+
+	{#if typeof TransferModal !== 'undefined'}
+		<TransferModal
+			open={transferTarget !== null}
+			sender_wallet_id={transferTarget?.sender_wallet_id ?? ''}
+			ticker={transferTarget?.ticker ?? ''}
+			onclose={() => (transferTarget = null)}
+			onsuccess={() => loadWallets()}
+		/>
+	{/if}
 </div>
