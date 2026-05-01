@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
-	import { formatExpenseDate } from '$lib/utils/format_utils';
+	import { formatDate } from '$lib/utils/format_utils';
 	import type { GroupState } from '../group.svelte';
 
 	let { groupState, onCreateExpense } = $props<{
@@ -47,7 +47,7 @@
 						</div>
 						<div class="text-right">
 							<p class="text-sm font-semibold text-black">${expense.amount}</p>
-							<p class="text-xs text-gray-500">{formatExpenseDate(expense.created_at)}</p>
+							<p class="text-xs text-gray-500">{formatDate(expense.created_at)}</p>
 						</div>
 					</div>
 				</div>
