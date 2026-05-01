@@ -34,6 +34,14 @@
 	let openTransferModal = $state(false);
 	let openCreateWalletModal = $state(false);
 
+	// --- ESTADO DERIVADO: SUMA DE BALANCES ---
+	let totalBalance = $derived(
+		walletsArray.reduce((acc, group) => {
+			const groupSum = group.currencies.reduce((sum, curr) => sum + Number(curr.balance || 0), 0);
+			return acc + groupSum;
+		}, 0)
+	);
+
 	// --- CARGA DE DATOS ---
 	async function loadUserProfile() {
 		let result: SuccessResponse<User> | FailedResponse = await me();
@@ -107,21 +115,44 @@
 		Volver
 	</button>
 
-	<!-- HEADER ESTILO GRUPOS (Sin caja, texto grande) -->
-	<div class="mb-4 flex flex-col gap-1">
-		{#if loadingUserInfo}
-			<div class="h-8 w-48 animate-pulse rounded bg-gray-200"></div>
-			<div class="h-5 w-32 animate-pulse rounded bg-gray-100"></div>
-		{:else}
-			<h1 class="text-3xl font-extrabold text-black">{user.name}</h1>
-			<p class="text-base text-gray-500">{user.email}</p>
-		{/if}
+	<!-- HEADER ESTILO GRUPOS (Usuario Izquierda / Saldo Derecha) -->
+	<div class="mb-4 flex items-start justify-between">
+		<!-- Info del usuario (Izquierda) -->
+		<div class="flex flex-col gap-1">
+			{#if loadingUserInfo}
+				<div class="h-8 w-48 animate-pulse rounded bg-gray-200"></div>
+				<div class="h-5 w-32 animate-pulse rounded bg-gray-100"></div>
+			{:else}
+				<h1 class="text-3xl font-extrabold text-black">{user.name}</h1>
+				<p class="text-base text-gray-500">{user.email}</p>
+			{/if}
+		</div>
+
+		<!-- Saldo Total (Derecha) -->
+		<div class="flex flex-col items-end gap-1">
+			<span class="text-xs font-semibold tracking-wider text-gray-500 uppercase">Saldo Total</span>
+			<div class="flex items-center gap-3">
+				{#if loadingWalletsInfo}
+					<!-- Estado de Carga Minimalista -->
+					<div class="h-8 w-28 animate-pulse rounded bg-gray-200"></div>
+					<div
+						class="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-black"
+					></div>
+				{:else}
+					<!-- Saldo Cargado -->
+					<span class="text-4xl font-extrabold tracking-tight text-black">
+						${totalBalance.toLocaleString('en-US', {
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2
+						})}
+					</span>
+				{/if}
+			</div>
+		</div>
 	</div>
 
-	<!-- PESTAÑAS DE NAVEGACIÓN (Estilo Grupos) -->
-	<!-- border-y crea la línea arriba y abajo, gap-8 las separa como en la foto -->
-	<div class="mt-2 mb-6 flex w-full gap-8 border-y border-gray-200">
-		<!-- El -mb-px hace que el borde negro se superponga perfectamente al borde gris del contenedor -->
+	<!-- PESTAÑAS DE NAVEGACIÓN -->
+	<div class="mt-4 mb-6 flex w-full gap-8 border-y border-gray-200">
 		<button
 			class="-mb-px flex items-center gap-2 border-b-2 py-3 text-sm font-semibold transition-colors {activeTab ===
 			'wallets'
