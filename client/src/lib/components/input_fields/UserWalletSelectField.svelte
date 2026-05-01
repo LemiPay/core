@@ -3,13 +3,14 @@
 	import { isSuccess } from '$lib/types/client.types';
 	import type { WalletCurrency } from '$lib/types/endpoints/wallets.types';
 	import { X, ChevronDown } from 'lucide-svelte';
+	import { shortenAddress } from '$lib/utils/address_utils';
 
 	interface Props {
 		id?: string;
 		label?: string;
-		currency_id?: string; // Opcional: si lo pasás, filtra solo wallets compatibles
+		currency_id?: string;
 		value: string;
-		returnType?: 'wallet_id' | 'address'; // Elegí qué dato querés bindear
+		returnType?: 'wallet_id' | 'address';
 		attempted?: boolean;
 	}
 
@@ -22,14 +23,21 @@
 		attempted = false
 	}: Props = $props();
 
-	let wallets = $state<WalletCurrency[]>([]);
+	let allCurrencies = $state<WalletCurrency[]>([]);
 	let loading = $state(false);
 	let error = $state('');
 	let touched = $state(false);
 
+	// 2. `$derived` se encarga de observar `currency_id` y `allCurrencies` automáticamente.
+	// Si cualquiera de los dos cambia, recalcula `wallets` de forma síncrona y sin ir a la API.
+	let wallets = $derived(
+		currency_id ? allCurrencies.filter((w) => w.currency_id === currency_id) : allCurrencies
+	);
+
 	const showFeedback = $derived(touched || attempted);
 	const isValid = $derived(value !== '');
 
+	// 3. Esta función ahora solo tiene una responsabilidad: traer la data cruda una vez.
 	async function loadWallets() {
 		loading = true;
 		error = '';
@@ -41,26 +49,14 @@
 			return;
 		}
 
-		// Aplanamos las monedas de todos los grupos del usuario
-		let allCurrencies = res.body.flatMap((group) => group.currencies);
-
-		// Filtramos si nos pasaron un currency_id específico
-		if (currency_id) {
-			wallets = allCurrencies.filter((w) => w.currency_id === currency_id);
-		} else {
-			wallets = allCurrencies;
-		}
+		// Aplanamos y guardamos todo en el estado base
+		allCurrencies = res.body.flatMap((group) => group.currencies);
 	}
 
-	// Volver a cargar/filtrar si cambia el currency_id
+	// 4. Se ejecuta una sola vez al montar el componente
 	$effect(() => {
 		loadWallets();
 	});
-
-	function shortenAddress(address: string) {
-		if (!address || address.length <= 14) return address;
-		return address.slice(0, 8) + '...' + address.slice(-6);
-	}
 </script>
 
 <div class="w-full">
