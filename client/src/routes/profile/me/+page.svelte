@@ -8,7 +8,7 @@
 	import FaucetModal from '$lib/components/modals/user/FaucetModal.svelte';
 	import TransferModal from '$lib/components/modals/user/TransferModal.svelte';
 	import CreateWalletModal from '$lib/components/modals/user/CreateWalletModal.svelte';
-	import { shortenAddress } from '$lib/utils/address_utils';
+	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
 
 	let loadingUserInfo = $state(true);
 	let errorInLoadingProfile = $state('');
@@ -43,11 +43,6 @@
 		}
 		loadingWalletsInfo = false;
 		walletsArray = result.body;
-	}
-
-	function copyToClipboard(text: string) {
-		navigator.clipboard.writeText(text);
-		// Acá podrías disparar un toast de "Copiado!"
 	}
 
 	function goBack() {

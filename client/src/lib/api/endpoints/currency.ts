@@ -1,4 +1,4 @@
-import type { ApiResponse, SuccessResponse } from '$lib/types/client.types';
+import type { ApiResponse } from '$lib/types/client.types';
 import type { Currency } from '$lib/types/endpoints/currency.types';
 
 export async function getAllCurrencies(): ApiResponse<Currency[]> {

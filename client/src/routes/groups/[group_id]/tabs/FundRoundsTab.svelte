@@ -1,16 +1,6 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
-	import {
-		Plus,
-		HandCoins,
-		Calendar,
-		Ban,
-		Target,
-		Users,
-		CircleCheckBig,
-		ChevronDown,
-		Wallet
-	} from 'lucide-svelte';
+	import { Plus, HandCoins, Ban, ChevronDown } from 'lucide-svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { formatAmount } from '../group.svelte';
 	import { getProposalStatusDisplay } from '$lib/utils/proposal_status';

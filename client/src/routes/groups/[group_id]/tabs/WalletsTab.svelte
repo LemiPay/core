@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Wallet, Copy, HandCoins, Coins } from 'lucide-svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import { shortenAddress } from '$lib/utils/address_utils';
+	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
 	import type { GroupState } from '../group.svelte';
 
 	let { groupState, onCreateWallet, onFundWallet, onWithdraw } = $props<{
@@ -39,7 +39,11 @@
 						</div>
 						<div class="flex items-center gap-2 text-xs text-gray-500">
 							<span>{shortenAddress(wallet.address)}</span>
-							<button class="transition hover:text-black" aria-label="Copy address">
+							<button
+								class="transition hover:text-black"
+								aria-label="Copy address"
+								onclick={() => copyToClipboard(wallet.address)}
+							>
 								<Copy class="h-3 w-3" />
 							</button>
 						</div>
