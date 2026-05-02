@@ -8,7 +8,7 @@
 	import { getMyGroups } from '$lib/api/endpoints/groups';
 	import { isSuccess } from '$lib/types/client.types';
 	import FAB from '$lib/components/ui/FAB.svelte';
-	import NewGroup from '$lib/components/modals/NewGroup.svelte';
+	import NewGroup from '$lib/components/modals/group/NewGroup.svelte';
 
 	let isLoading = $state(true);
 	let error = $state('');

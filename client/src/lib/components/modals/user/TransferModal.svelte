@@ -1,9 +1,11 @@
 <script lang="ts">
-	import FormField from '$lib/components/ui/FormField.svelte';
+	import FormField from '$lib/components/input_fields/FormField.svelte';
+	import NumberField from '$lib/components/input_fields/NumberField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Modal from '$lib/components/modals/Modal.svelte';
+
 	import { transferToWallet } from '$lib/api/endpoints/user_wallet';
-	import { isSuccess } from '$lib/types/client.types';
+	import { ModalState } from '$lib/utils/modal_state.svelte.js';
 
 	interface Props {
 		open: boolean;
@@ -15,55 +17,42 @@
 
 	const { open, sender_wallet_id, ticker, onclose, onsuccess }: Props = $props();
 
+	const form = new ModalState();
+
 	let amount = $state('');
 	let receiver_address = $state('');
-	let attempted = $state(false);
-	let loading = $state(false);
-	let error = $state('');
-	let success = $state('');
 
-	const formValid = $derived(
-		amount != null &&
-			amount !== '' &&
-			!isNaN(Number(String(amount).replace(',', '.'))) &&
-			Number(String(amount).replace(',', '.')) > 0 &&
-			receiver_address.trim().length > 0
-	);
+	const parsedAmount = $derived(Number(String(amount).replace(',', '.')));
+	const amountValid = $derived(Number.isFinite(parsedAmount) && parsedAmount > 0);
+	const addressValid = $derived(receiver_address.trim().length >= 3);
+
+	const formValid = $derived(amountValid && addressValid);
 
 	function handleClose() {
 		amount = '';
 		receiver_address = '';
-		attempted = false;
-		error = '';
-		if (success != '') {
-			onsuccess();
-		}
-		success = '';
-		loading = false;
+		form.reset();
 		onclose();
 	}
 
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
-		attempted = true;
+		form.setAttempted();
 		if (!formValid) return;
-		const trimmedReceiverAddress = receiver_address.trim();
-		receiver_address = trimmedReceiverAddress;
-		error = '';
-		success = '';
-		loading = true;
-		let result = await transferToWallet(String(amount), sender_wallet_id, trimmedReceiverAddress);
-		if (!isSuccess(result)) {
-			error = result.message;
-			loading = false;
-			return;
-		}
 
-		loading = false;
-		success = 'Transferencia enviada';
-		setTimeout(() => {
-			handleClose();
-		}, 2000);
+		const trimmedReceiverAddress = receiver_address.trim();
+		receiver_address = trimmedReceiverAddress; // Limpiamos los espacios en el input
+
+		await form.submit(
+			() => transferToWallet(String(parsedAmount), sender_wallet_id, trimmedReceiverAddress),
+			{
+				successMsg: 'Transferencia enviada',
+				onSuccess: () => {
+					onsuccess();
+					handleClose();
+				}
+			}
+		);
 	}
 </script>
 
@@ -72,31 +61,30 @@
 	title="Enviar {ticker}"
 	description="Transfiere fondos a otra billetera ingresando su dirección."
 	onclose={handleClose}
-	{error}
-	{success}
-	{loading}
+	error={form.error}
+	success={form.success}
+	loading={form.loading}
 >
 	{#snippet children()}
 		<form id="transfer-money-form" onsubmit={handleSubmit} class="space-y-4">
 			<FormField
 				id="receiver_address"
 				label="Dirección de destino"
-				minLength={1}
-				maxLength={255}
 				type="text"
+				minLength={3}
+				maxLength={100}
 				placeholder="Ej. 0x123...abc"
 				bind:value={receiver_address}
-				{attempted}
+				attempted={form.attempted}
 			/>
-			<FormField
+
+			<NumberField
 				id="amount"
 				label="Monto a enviar"
-				minLength={1}
-				maxLength={10}
-				type="number"
+				min={0.01}
 				placeholder="Ej. 10.50"
 				bind:value={amount}
-				{attempted}
+				attempted={form.attempted}
 			/>
 		</form>
 	{/snippet}
@@ -109,7 +97,7 @@
 			type="submit"
 			form="transfer-money-form"
 			disabled={!formValid}
-			{loading}
+			loading={form.loading}
 		/>
 	{/snippet}
 </Modal>
