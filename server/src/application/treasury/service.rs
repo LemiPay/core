@@ -8,6 +8,7 @@ use super::{
     list_group_wallets::ListGroupWalletsUseCase, list_user_wallets::ListUserWalletsUseCase,
     transfer_funds::TransferFundsUseCase,
 };
+use crate::application::treasury::list_user_transactions::ListUserTransactionsUseCase;
 
 pub struct TreasuryService {
     // User wallet
@@ -25,5 +26,6 @@ pub struct TreasuryService {
     // Transactions
     pub fund_group: FundGroupUseCase,
     pub list_group_transactions: ListGroupTransactionsUseCase,
+    pub list_user_transactions: ListUserTransactionsUseCase,
     pub get_group_transaction: GetGroupTransactionUseCase,
 }

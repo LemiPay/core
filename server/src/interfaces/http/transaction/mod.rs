@@ -12,19 +12,35 @@ use crate::interfaces::http::middlewares::{
 
 use handlers::{
     fund_group::fund_group, get_transaction::get_transaction, list_transactions::list_transactions,
+    list_transactions_by_user::list_transactions_by_user,
 };
 
 use crate::setup::state::SharedState;
 
 pub fn routes(state: SharedState) -> Router<SharedState> {
     Router::new()
-        .route("/{group_id}/fund", post(fund_group))
-        .route("/{group_id}/list", get(list_transactions))
-        .route("/{group_id}/one", get(get_transaction))
-        .route_layer(middleware::from_fn_with_state(
-            state.clone(),
-            is_in_group_middleware,
-        ))
+        .route(
+            "/{group_id}/fund",
+            post(fund_group).route_layer(middleware::from_fn_with_state(
+                state.clone(),
+                is_in_group_middleware,
+            )),
+        )
+        .route(
+            "/{group_id}/list",
+            get(list_transactions).route_layer(middleware::from_fn_with_state(
+                state.clone(),
+                is_in_group_middleware,
+            )),
+        )
+        .route(
+            "/{group_id}/one",
+            get(get_transaction).route_layer(middleware::from_fn_with_state(
+                state.clone(),
+                is_in_group_middleware,
+            )),
+        )
+        .route("/me", get(list_transactions_by_user))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,

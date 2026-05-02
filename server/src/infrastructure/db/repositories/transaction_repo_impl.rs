@@ -5,6 +5,7 @@ use crate::application::treasury::dto::TransactionDetails;
 use crate::application::treasury::traits::transaction_repo::TransactionRepository;
 use crate::domain::group::GroupId;
 use crate::domain::treasury::{NewTransaction, TransactionId};
+use crate::domain::user::UserId;
 use crate::infrastructure::db::{
     models::treasury::{NewTransactionModel, TransactionModel, TransactionTypeModel},
     pool::{DbConn, DbPool},
@@ -117,7 +118,19 @@ impl TransactionRepository for DieselTransactionRepository {
     fn list_by_group(&self, group_id: GroupId) -> Result<Vec<TransactionDetails>, RepoError> {
         let mut conn = self.get_conn()?;
         let rows = schema::transaction::table
-            .filter(schema::transaction::group_id.eq(group_id.0))
+            .filter(schema::transaction::group_id.eq(group_id.as_uuid()))
+            .order(schema::transaction::created_at.asc())
+            .select(TransactionModel::as_select())
+            .load::<TransactionModel>(&mut conn)
+            .map_err(|_| RepoError::Query)?;
+
+        Ok(rows.into_iter().map(model_to_details).collect())
+    }
+
+    fn list_by_user(&self, user_id: UserId) -> Result<Vec<TransactionDetails>, RepoError> {
+        let mut conn = self.get_conn()?;
+        let rows = schema::transaction::table
+            .filter(schema::transaction::user_id.eq(user_id.as_uuid()))
             .order(schema::transaction::created_at.asc())
             .select(TransactionModel::as_select())
             .load::<TransactionModel>(&mut conn)

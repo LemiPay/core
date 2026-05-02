@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::treasury::list_user_transactions::ListUserTransactionsUseCase;
 use crate::application::treasury::{
     TreasuryService, create_group_wallet::CreateGroupWalletUseCase,
     create_user_wallet::CreateUserWalletUseCase, faucet_fund_wallet::FaucetFundWalletUseCase,
@@ -62,6 +63,9 @@ pub fn build_treasury_service(
             transaction_repo: transaction_repo.clone(),
         },
         list_group_transactions: ListGroupTransactionsUseCase {
+            transaction_repo: transaction_repo.clone(),
+        },
+        list_user_transactions: ListUserTransactionsUseCase {
             transaction_repo: transaction_repo.clone(),
         },
         get_group_transaction: GetGroupTransactionUseCase { transaction_repo },

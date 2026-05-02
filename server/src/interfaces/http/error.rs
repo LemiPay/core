@@ -7,6 +7,7 @@ use axum::{
 use serde::Serialize;
 use thiserror::Error;
 
+use crate::application::treasury::list_user_transactions::ListUserTransactionsError;
 use crate::{
     application::{
         auth::error::AuthError,
@@ -341,6 +342,14 @@ impl From<ListGroupTransactionsError> for AppError {
     fn from(err: ListGroupTransactionsError) -> Self {
         match err {
             ListGroupTransactionsError::Internal => AppError::Internal,
+        }
+    }
+}
+
+impl From<ListUserTransactionsError> for AppError {
+    fn from(err: ListUserTransactionsError) -> Self {
+        match err {
+            ListUserTransactionsError::Internal => AppError::Internal,
         }
     }
 }

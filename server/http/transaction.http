@@ -25,3 +25,7 @@ Authorization: Bearer {{token}}
 ### Transaction - Get one
 GET {{host}}/transaction/{{group_id}}/one?transaction_id={{transaction_id}}
 Authorization: Bearer {{token}}
+
+### Transaction - Get all my transactions
+GET {{host}}/transaction/me
+Authorization: Bearer {{token}}

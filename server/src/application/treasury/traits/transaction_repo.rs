@@ -2,6 +2,7 @@ use crate::application::common::repo_error::RepoError;
 use crate::application::treasury::dto::TransactionDetails;
 use crate::domain::group::GroupId;
 use crate::domain::treasury::{NewTransaction, TransactionId};
+use crate::domain::user::UserId;
 
 pub trait TransactionRepository: Send + Sync {
     /// Atomic deposit from a user wallet to a group wallet.
@@ -12,5 +13,7 @@ pub trait TransactionRepository: Send + Sync {
     ) -> Result<TransactionDetails, RepoError>;
 
     fn list_by_group(&self, group_id: GroupId) -> Result<Vec<TransactionDetails>, RepoError>;
+
+    fn list_by_user(&self, user_id: UserId) -> Result<Vec<TransactionDetails>, RepoError>;
     fn find_by_id(&self, id: TransactionId) -> Result<Option<TransactionDetails>, RepoError>;
 }
