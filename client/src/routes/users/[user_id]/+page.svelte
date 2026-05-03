@@ -2,9 +2,9 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { apiFetch } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
 	import { ArrowLeft, Mail, User as UserIcon } from 'lucide-svelte';
+	import { userInfo } from '$lib/api/auth';
 
 	type UserSummary = {
 		id: string;
@@ -49,7 +49,7 @@
 			return;
 		}
 
-		const response = await apiFetch<UserSummary>(`/users/${userId}`);
+		const response = await userInfo(userId);
 
 		if (!response.ok) {
 			error = response.message || 'No se pudo cargar el usuario.';

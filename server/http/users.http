@@ -1,0 +1,7 @@
+
+### Get me
+GET {{host}}/user/me
+Authorization: Bearer {{token}}
+
+### Get User
+GET {{host}}/user/id/ab35ef0a-741c-4903-9fd7-353424bf81c9

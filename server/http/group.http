@@ -1,0 +1,72 @@
+### Group - Create (legacy route)
+POST {{host}}/group/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Casa 2026",
+  "description": "Grupo principal 2026"
+}
+
+> {%
+  client.global.set("group_id", response.body.id);
+%}
+
+###
+
+### Group - Get by id
+GET {{host}}/group/{{group_id}}
+Authorization: Bearer {{token}}
+
+###
+
+### Group - List my groups (legacy route)
+GET {{host}}/group/my-groups
+Authorization: Bearer {{token}}
+
+###
+
+### Group - Members
+GET {{host}}/group/{{group_id}}/members
+Authorization: Bearer {{token}}
+
+###
+
+### Group - Update group (admin only)
+PUT {{host}}/group/{{group_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Casa 2026 Editada",
+  "description": "Grupo principal actualizado"
+}
+
+###
+
+### Group - Make admin (admin only)
+POST {{host}}/group/{{group_id}}/make_admin
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "new_user_id": "{{other_user_id}}"
+}
+
+###
+
+### Group - Delete group (logical delete, admin only)
+DELETE {{host}}/group/{{group_id}}
+Authorization: Bearer {{token}}
+
+###
+
+### Group - Leave group
+POST {{host}}/group/{{group_id}}/leave
+Authorization: Bearer {{token}}
+
+###
+
+### Group - Verify left (should not include the group)
+GET {{host}}/group/my-groups
+Authorization: Bearer {{token}}

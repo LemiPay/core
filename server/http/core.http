@@ -1,0 +1,3 @@
+### Core - Get balances for group (member only)
+GET {{host}}/core/balances/12d51b9d-ae32-48aa-8b7a-d6f757cbff7f
+Authorization: Bearer {{token}}

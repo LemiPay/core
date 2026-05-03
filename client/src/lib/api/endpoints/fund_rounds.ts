@@ -13,7 +13,7 @@ import type {
 export async function createFundRoundProposal(
 	data: CreateFundRoundData
 ): ApiResponse<FundRoundProposalExpanded> {
-	return authedApiFetch(`/group-wallet/fund-round/create/${data.group_id}`, {
+	return authedApiFetch(`/governance/fund-round/create/${data.group_id}`, {
 		method: 'POST',
 		body: JSON.stringify({
 			target_amount: data.target_amount,
@@ -26,7 +26,7 @@ export async function contributeFundRound(
 	fund_round_id: string,
 	data: ContributeFundRoundData
 ): ApiResponse<FundRoundStatusResponse> {
-	return authedApiFetch(`/group-wallet/fund-round/${fund_round_id}/contribute`, {
+	return authedApiFetch(`/governance/fund-round/${fund_round_id}/contribute`, {
 		method: 'POST',
 		body: JSON.stringify(data)
 	});
@@ -35,7 +35,7 @@ export async function contributeFundRound(
 export async function getMyFundRoundContribution(
 	fund_round_id: string
 ): ApiResponse<FundRoundContribution> {
-	return authedApiFetch(`/group-wallet/fund-round/${fund_round_id}/contribute`, {
+	return authedApiFetch(`/governance/fund-round/${fund_round_id}/contribute`, {
 		method: 'GET'
 	});
 }
@@ -43,7 +43,7 @@ export async function getMyFundRoundContribution(
 export async function getGroupFundRoundProposals(
 	group_id: string
 ): ApiResponse<FundRoundProposalExpanded[]> {
-	return authedApiFetch(`/group-wallet/fund-round/${group_id}/get-all`, {
+	return authedApiFetch(`/governance/fund-round/${group_id}/get-all`, {
 		method: 'GET'
 	});
 }
@@ -51,7 +51,7 @@ export async function getGroupFundRoundProposals(
 export async function getFundRoundProposal(
 	fund_round_id: string
 ): ApiResponse<FundRoundStatusResponse> {
-	return authedApiFetch(`/group-wallet/fund-round/${fund_round_id}`, {
+	return authedApiFetch(`/governance/fund-round/${fund_round_id}`, {
 		method: 'GET'
 	});
 }
@@ -59,7 +59,7 @@ export async function getFundRoundProposal(
 export async function cancelFundRoundProposal(
 	fund_round_id: string
 ): ApiResponse<FundRoundProposalExpanded> {
-	return authedApiFetch(`/group-wallet/fund-round/${fund_round_id}/cancel`, {
+	return authedApiFetch(`/governance/fund-round/${fund_round_id}/cancel`, {
 		method: 'DELETE'
 	});
 }
@@ -67,7 +67,7 @@ export async function cancelFundRoundProposal(
 export async function getFundRoundRemaining(
 	fund_round_id: string
 ): ApiResponse<FundRoundRemainingResponse> {
-	return authedApiFetch(`/group-wallet/fund-round/${fund_round_id}/remaining`, {
+	return authedApiFetch(`/governance/fund-round/${fund_round_id}/remaining`, {
 		method: 'GET'
 	});
 }
