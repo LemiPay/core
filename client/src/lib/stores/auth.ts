@@ -3,6 +3,7 @@ import { me } from '$lib/api/auth';
 import type { AuthState } from '$lib/types/stores/auth.types';
 import { isSuccess } from '$lib/types/client.types';
 import { token } from '$lib/stores/token';
+import { authActions, walletAuthState } from '../../routes/wallet_auth.svelte';
 
 function createAuthStore() {
 	const { subscribe, set, update } = writable<AuthState>({
@@ -60,6 +61,7 @@ function createAuthStore() {
 		logout() {
 			localStorage.removeItem('token');
 			token.set(null);
+			authActions.logout();
 
 			set({
 				token: null,

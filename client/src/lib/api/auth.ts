@@ -28,9 +28,27 @@ export async function userInfo(id: string): ApiResponse<User> {
 	});
 }
 
+export async function wallet_login_mock(
+	email: any,
+	wallet: any
+): ApiResponse<{ token: string; user_id: string }> {
+	let res = {
+		token:
+			'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIzZDJlOTBhMS1kYjVkLTQ4NjUtYTNlMy04MjRiMWE3NGQwYjQiLCJleHAiOjE3NzgzMzY3MDF9.eEFmS31n_EnU-SiJa4n8pjnam4aQpbBm-stQm02F2m4',
+		user_id: '3d2e90a1-db5d-4865-a3e3-824b1a74d0b4'
+	};
+	return {
+		ok: true,
+		status: 200,
+		body: res,
+		message: 'no message, mock function'
+	};
+}
+
 export default {
 	register,
 	login,
 	me,
+	wallet_login_mock,
 	userInfo
 };
