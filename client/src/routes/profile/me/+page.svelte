@@ -63,8 +63,15 @@
 		loadingTransactions = false;
 	}
 
+	let hasInitializedTabEffect = $state(false);
+
 	// --- REFCH LOGIC (Como en group.page) ---
 	$effect(() => {
+		if (!hasInitializedTabEffect) {
+			hasInitializedTabEffect = true;
+			return;
+		}
+
 		if (activeTab === 'wallets') loadWallets();
 		if (activeTab === 'activity') loadTransactions();
 	});
