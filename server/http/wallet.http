@@ -1,0 +1,61 @@
+### Wallet - Create user wallet
+POST {{host}}/wallet/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "address": "0xabc123",
+  "currency_ticker": "USDC"
+}
+
+> {%
+  client.global.set("wallet_id", response.body.id);
+  client.global.set("wallet_address", response.body.address);
+%}
+
+###
+
+### Wallet - Faucet fund
+POST {{host}}/wallet/fund/{{wallet_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "amount": "100.00"
+}
+
+###
+
+### Wallet - Faucet withdraw
+POST {{host}}/wallet/withdraw/{{wallet_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "amount": "10.00"
+}
+
+###
+
+### Wallet - Transfer to another user wallet
+POST {{host}}/wallet/transfer
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "sender_wallet_id": "{{wallet_id}}",
+  "receiver_address": "0xreceiver",
+  "amount": "5.00"
+}
+
+###
+
+### Wallet - Get all my wallets (grouped by address)
+GET {{host}}/wallet/get-all
+Authorization: Bearer {{token}}
+
+###
+
+### Wallet - Get one of my wallets by address + currency ticker
+GET {{host}}/wallet/{{wallet_address}}?currency=USDC
+Authorization: Bearer {{token}}

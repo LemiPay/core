@@ -83,15 +83,28 @@
 		}
 	}
 
+	function getProposalCurrencyId(proposal: WithdrawProposalExpanded): string | null {
+		return proposal.currency_id ?? proposal.withdraw_proposal?.currency_id ?? null;
+	}
+
+	function getProposalAmount(proposal: WithdrawProposalExpanded): string {
+		return proposal.amount ?? proposal.withdraw_proposal?.amount ?? '0';
+	}
+
 	// Ejecutar
 	async function handleExecute(proposal: WithdrawProposalExpanded) {
 		if (!selectedWallet) return;
+		const currencyId = getProposalCurrencyId(proposal);
+		if (!currencyId) {
+			error = 'No se pudo determinar la moneda de la propuesta.';
+			return;
+		}
 
 		actionLoading = true;
 		error = '';
 
 		const request = {
-			currency_id: proposal.withdraw_proposal.currency_id,
+			currency_id: currencyId,
 			proposal_id: proposal.proposal.id,
 			address: selectedWallet.address
 		};
@@ -161,12 +174,13 @@
 				</div>
 			{:else}
 				<div class="space-y-4">
-					{#each proposals as p}
+					{#each proposals as p (p.proposal.id)}
 						{@const isOwner = p.proposal.created_by === currentUserId}
 						{@const isApproved = p.proposal.status === 'Approved'}
 						{@const isExecuted = p.proposal.status === 'Executed'}
+						{@const proposalCurrencyId = getProposalCurrencyId(p)}
 						{@const compatibleWallets = wallets.filter(
-							(w) => w.currency_id === p.withdraw_proposal.currency_id
+							(w) => proposalCurrencyId != null && w.currency_id === proposalCurrencyId
 						)}
 
 						<div
@@ -176,8 +190,7 @@
 								<div class="flex items-start justify-between">
 									<div class="space-y-1">
 										<div class="flex items-center gap-2">
-											<span class="text-lg font-bold text-black">${p.withdraw_proposal.amount}</span
-											>
+											<span class="text-lg font-bold text-black">${getProposalAmount(p)}</span>
 										</div>
 										<div class="text-xs text-gray-500 capitalize">
 											{new Date(p.proposal.created_at).toLocaleDateString('es-AR', {
@@ -252,7 +265,7 @@
 											class="mb-3 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-black focus:border-black focus:ring-0 focus:outline-none"
 										>
 											<option value="" disabled>Elegí una wallet</option>
-											{#each compatibleWallets as w}
+											{#each compatibleWallets as w (w.wallet_id)}
 												<option value={w.wallet_id}>
 													{shortenAddress(w.address) + ' - ' + w.ticker}
 												</option>

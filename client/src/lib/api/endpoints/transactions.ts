@@ -12,7 +12,7 @@ export async function proposeWithdraw(
 	request: WithdrawProposalRequest,
 	group_id: string
 ): ApiResponse<WithdrawProposalExpanded> {
-	return authedApiFetch(`/transaction/${group_id}/withdraw/proposal`, {
+	return authedApiFetch(`/governance/${group_id}/withdraw/proposal`, {
 		method: 'POST',
 		body: JSON.stringify({
 			currency_id: request.currency_id,
@@ -25,7 +25,7 @@ export async function proposeWithdraw(
 export async function getAllWithdrawProposals(
 	group_id: string
 ): ApiResponse<WithdrawProposalExpanded[]> {
-	return authedApiFetch(`/proposal/withdraw/${group_id}`, {
+	return authedApiFetch(`/governance/withdraw/${group_id}`, {
 		method: 'GET'
 	});
 }
@@ -34,7 +34,7 @@ export async function executeWithdrawProposal(
 	group_id: string,
 	execute: ExecuteWithdrawProposal
 ): ApiResponse<Transaction> {
-	return authedApiFetch(`/transaction/${group_id}/withdraw/execute`, {
+	return authedApiFetch(`/governance/${group_id}/withdraw/execute`, {
 		method: 'POST',
 		body: JSON.stringify(execute)
 	});

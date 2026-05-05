@@ -1,0 +1,20 @@
+### Group Wallet - Create (admin only)
+POST {{host}}/group-wallet/{{group_id}}/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "address": "0xgroupaddr",
+  "currency_ticker": "USDC"
+}
+
+> {%
+  client.global.set("group_wallet_id", response.body.id);
+  client.global.set("group_wallet_currency_id", response.body.currency_id);
+%}
+
+###
+
+### Group Wallet - List wallets of a group (member only)
+GET {{host}}/group-wallet/{{group_id}}
+Authorization: Bearer {{token}}
