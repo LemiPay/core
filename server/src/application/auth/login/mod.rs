@@ -10,6 +10,7 @@ use crate::application::{
 };
 
 use crate::domain::user::{Email, UserId};
+use crate::infrastructure::db::schema::user::password;
 
 pub mod dto;
 
@@ -31,9 +32,13 @@ impl LoginUseCase {
             .map_err(|_| AuthError::InternalError)?
             .ok_or(AuthError::InvalidCredentials)?;
 
+        if (user.password.is_none()) {
+            return Err(AuthError::InvalidCredentials);
+        }
+
         let password_valid = self
             .hash_service
-            .verify(&input.password, &user.password)
+            .verify(&input.password, &user.password.unwrap())
             .map_err(|_| AuthError::InternalError)?;
 
         if !password_valid {

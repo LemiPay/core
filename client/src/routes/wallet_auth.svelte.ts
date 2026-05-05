@@ -33,7 +33,6 @@ export const modal = createAppKit({
 	}
 });
 
-// --- ESTADO GLOBAL REACTIVO ---
 export const walletAuthState = $state({
 	address: undefined as string | undefined,
 	email: undefined as string | undefined | null,
@@ -41,14 +40,11 @@ export const walletAuthState = $state({
 });
 
 const syncWallet = () => {
-	// 1. Obtenemos la cuenta completa
 	const account = modal.getAccount();
 
-	// 2. Usamos la ruta que encontraste para el mail
 	const userEmail = account?.embeddedWalletInfo?.user?.email;
 	const address = account?.address;
 
-	// 3. Asignamos a las runas (esto dispara la reactividad en Svelte)
 	walletAuthState.address = address;
 	walletAuthState.email = userEmail;
 

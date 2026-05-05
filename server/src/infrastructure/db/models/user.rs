@@ -10,7 +10,7 @@ use crate::infrastructure::db::schema;
 pub struct UserModel {
     pub id: Uuid,
     pub email: String,
-    pub password: String,
+    pub password: Option<String>,
     pub name: String,
 }
 

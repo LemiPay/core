@@ -11,4 +11,5 @@ pub fn routes() -> Router<SharedState> {
     Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
+        .route("/wallet-login", post(wallet_login))
 }
