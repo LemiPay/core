@@ -65,7 +65,7 @@
 
 	let hasInitializedTabEffect = $state(false);
 
-	// --- REFCH LOGIC (Como en group.page) ---
+	// --- REFETCH LOGIC (Como en group.page) ---
 	$effect(() => {
 		if (!hasInitializedTabEffect) {
 			hasInitializedTabEffect = true;

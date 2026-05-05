@@ -1,6 +1,6 @@
 import { authedApiFetch } from '../client';
 
-import type { ApiResponse, SuccessResponse } from '$lib/types/client.types';
+import type { ApiResponse } from '$lib/types/client.types';
 import type {
 	ExecuteWithdrawProposal,
 	Transaction,
