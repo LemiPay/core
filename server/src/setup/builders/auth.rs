@@ -8,12 +8,16 @@ use crate::{
         db::repositories::user_repo_impl::DieselUserRepository,
     },
 };
+use crate::application::auth::challenge::ChallengeUseCase;
+use crate::application::auth::traits::web3_auth::Web3AuthTrait;
+use crate::infrastructure::auth::web_3_auth::Web3Auth;
 
 pub fn build_auth_service(
     auth_repo: Arc<DieselAuthRepository>,
     user_repo: Arc<DieselUserRepository>,
     hash_service: Arc<Argon2Hasher>,
     token_service: Arc<JwtService>,
+    web3_service: Arc<Web3Auth>,
 ) -> AuthService {
     AuthService {
         login: LoginUseCase {
@@ -25,6 +29,9 @@ pub fn build_auth_service(
             auth_repo,
             user_repo,
             hash_service,
+        },
+        challenge: ChallengeUseCase {
+            web3_service: web3_service.clone(),
         },
     }
 }

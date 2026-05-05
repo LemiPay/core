@@ -7,4 +7,6 @@ pub mod traits;
 pub mod login;
 pub mod register;
 pub mod service;
+pub mod challenge;
+
 pub use service::AuthService;

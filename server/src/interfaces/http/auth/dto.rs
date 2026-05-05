@@ -27,3 +27,18 @@ pub struct LoginResponse {
     pub token: String,
     pub user_id: String,
 }
+
+// ====== ReOwn Login
+
+#[derive(Deserialize)]
+pub struct ChallengeRequest {
+    pub email: String,
+    pub address: String,
+}
+
+
+#[derive(Serialize)]
+pub struct ChallengeResponse {
+    pub nonce: String,
+    pub message: String,
+}

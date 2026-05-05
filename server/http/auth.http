@@ -18,3 +18,12 @@ Content-Type: application/json
   "email": "{{email}}",
   "password": "{{password}}"
 }
+
+### Request Challenge
+POST {{host}}/auth/request-challenge
+Content-type: application/json
+
+{
+  "email": "{{email}}",
+  "address": "Oxfacu"
+}

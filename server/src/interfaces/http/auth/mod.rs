@@ -5,11 +5,11 @@ mod dto;
 pub(crate) mod extractor;
 mod handlers;
 
-use handlers::{login::login, register::register};
+use handlers::{login::login, register::register, generate_challenge::generate_challenge};
 
 pub fn routes() -> Router<SharedState> {
     Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
-        .route("/wallet-login", post(wallet_login))
+        .route("/request-challenge", post(generate_challenge))
 }

@@ -34,6 +34,7 @@ use crate::{
     },
     setup::config::AppConfig,
 };
+use crate::infrastructure::auth::web_3_auth::Web3Auth;
 
 pub fn build_app() -> Router {
     // -------------------------
@@ -62,6 +63,7 @@ pub fn build_app() -> Router {
 
     let hash_service = Arc::new(Argon2Hasher::new().expect("argon2 fail"));
     let token_service = Arc::new(JwtService::new(db_config.jwt_secret));
+    let web_3_service = Arc::new(Web3Auth::new());
 
     // -------------------------
     // 4. Application Services
@@ -71,6 +73,7 @@ pub fn build_app() -> Router {
         user_repo.clone(),
         hash_service,
         token_service,
+        web_3_service,
     );
 
     let user_service = build_user_service(user_repo.clone());
