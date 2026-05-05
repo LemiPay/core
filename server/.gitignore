@@ -14,7 +14,8 @@ Cargo.lock
 .env
 .env.*
 !.env.example
-/server/http/http-client.env.json
+
+http/http-client.env.json
 
 # =========================
 # 🐳 DOCKER

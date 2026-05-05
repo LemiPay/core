@@ -59,7 +59,7 @@
 	async function loadTransactions() {
 		loadingTransactions = true;
 		let result = await listUserTransactions();
-		if (isSuccess(result)) transactionsArray = result.body;
+		if (isSuccess(result)) transactionsArray = result.body.reverse();
 		loadingTransactions = false;
 	}
 
