@@ -13,6 +13,8 @@
 		const types: Record<string, string> = {
 			deposit: 'Depósito',
 			withdraw: 'Retiro',
+			expense: 'Gasto',
+			investment: 'Inversión',
 			Fund: 'Fondeo'
 		};
 		return types[type] || type;
