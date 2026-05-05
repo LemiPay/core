@@ -30,8 +30,6 @@ pub fn build_auth_service(
             user_repo,
             hash_service,
         },
-        challenge: ChallengeUseCase {
-            web3_service: web3_service.clone(),
-        },
+        challenge: ChallengeUseCase::new(web3_service.clone()),
     }
 }

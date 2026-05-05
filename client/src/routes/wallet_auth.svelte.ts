@@ -7,7 +7,7 @@ const reown_project_id = '85e92565831777780ce074f6065bdc7f';
 
 const networks: [AppKitNetwork, ...AppKitNetwork[]] = [mainnet, sepolia];
 
-const wagmiAdapter = new WagmiAdapter({
+export const wagmiAdapter = new WagmiAdapter({
 	networks,
 	projectId: reown_project_id,
 	transports: {

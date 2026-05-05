@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { walletAuthState, authActions } from '../wallet_auth.svelte';
+	import { signMessage } from '@wagmi/core';
+	import { wagmiAdapter } from '../wallet_auth.svelte';
 
 	//NUESTRAS API
-	import api from '$lib/api/auth';
+	import api, { verify_signature } from '$lib/api/auth';
 	import { authStore } from '$lib/stores/auth';
 	import { isSuccess } from '$lib/types/client.types';
 	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
@@ -63,31 +65,34 @@
 			window.location.href = redirectTo;
 		}, 1000);
 	}
-	async function wallet_login_user() {
+	async function request_challenge() {
 		error = '';
 		status = true;
-
-		const response = await api.wallet_login_mock(walletAuthState.email, walletAuthState.address);
-
+		console.log('voy a pedir un challenge');
+		const response = await api.request_challenge(walletAuthState.email, walletAuthState.address);
+		console.log('ya lo recibí');
 		if (!isSuccess(response)) {
-			error = response.message || 'Invalid credentials.';
-			status = null;
+			error = response.message;
+			status = false;
 			return;
 		}
 
-		await authStore.login(response.body.token);
-		status = null;
+		const { nonce, message } = response.body;
+		console.log(message);
 
-		data = {
-			email: '',
-			password: ''
-		};
+		try {
+			const signature = await signMessage(wagmiAdapter.wagmiConfig, {
+				message: message
+			});
 
-		const redirectTo = getSafeRedirectPath(page.url.searchParams.get('redirectTo'));
+			console.log('Firma obtenida:', signature);
 
-		setTimeout(() => {
-			window.location.href = redirectTo;
-		}, 1000);
+			await verify_signature(walletAuthState.email, walletAuthState.address, nonce, signature);
+		} catch (err: any) {
+			error = 'Firma rechazada por el usuario.';
+			status = false;
+			console.error('Error al firmar:', err);
+		}
 	}
 
 	onMount(() => {
@@ -97,7 +102,7 @@
 	$effect(() => {
 		if (walletAuthState.isConnected && walletAuthState.email && status === false) {
 			console.log('Gatillando login de wallet para:', walletAuthState.email);
-			wallet_login_user();
+			request_challenge();
 		}
 	});
 </script>
