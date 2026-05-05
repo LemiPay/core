@@ -36,7 +36,6 @@ pub struct ChallengeRequest {
     pub address: String,
 }
 
-
 #[derive(Serialize)]
 pub struct ChallengeResponse {
     pub nonce: String,

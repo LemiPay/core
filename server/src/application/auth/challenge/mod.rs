@@ -1,15 +1,14 @@
 pub mod dto;
 
-use std::sync::Arc;
 use crate::application::auth::challenge::dto::{ChallengeInput, ChallengeOutput};
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
 use crate::interfaces::http::error::AppError;
 use chrono::Local;
+use std::sync::Arc;
 
 pub struct ChallengeUseCase {
-    pub web3_service: Arc<dyn Web3AuthTrait>
+    pub web3_service: Arc<dyn Web3AuthTrait>,
 }
-
 
 impl ChallengeUseCase {
     pub fn generate_challenge(&self, input: ChallengeInput) -> Result<ChallengeOutput, AppError> {
@@ -24,7 +23,7 @@ impl ChallengeUseCase {
             nonce,
             Local::now().to_rfc3339()
         );
-        Ok(ChallengeOutput{
+        Ok(ChallengeOutput {
             nonce: nonce.to_string(),
             message: message.to_string(),
         })

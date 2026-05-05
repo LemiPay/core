@@ -5,7 +5,7 @@ mod dto;
 pub(crate) mod extractor;
 mod handlers;
 
-use handlers::{login::login, register::register, generate_challenge::generate_challenge};
+use handlers::{generate_challenge::generate_challenge, login::login, register::register};
 
 pub fn routes() -> Router<SharedState> {
     Router::new()

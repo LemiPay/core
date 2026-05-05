@@ -4,9 +4,9 @@ pub mod stored_user;
 pub mod traits;
 
 // Use cases
+pub mod challenge;
 pub mod login;
 pub mod register;
 pub mod service;
-pub mod challenge;
 
 pub use service::AuthService;

@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use crate::application::auth::challenge::ChallengeUseCase;
+use crate::application::auth::traits::web3_auth::Web3AuthTrait;
+use crate::infrastructure::auth::web_3_auth::Web3Auth;
 use crate::{
     application::auth::{AuthService, login::LoginUseCase, register::RegisterUseCase},
     infrastructure::{
@@ -8,9 +11,6 @@ use crate::{
         db::repositories::user_repo_impl::DieselUserRepository,
     },
 };
-use crate::application::auth::challenge::ChallengeUseCase;
-use crate::application::auth::traits::web3_auth::Web3AuthTrait;
-use crate::infrastructure::auth::web_3_auth::Web3Auth;
 
 pub fn build_auth_service(
     auth_repo: Arc<DieselAuthRepository>,

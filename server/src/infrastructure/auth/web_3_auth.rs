@@ -1,12 +1,12 @@
-use uuid::Uuid;
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
+use uuid::Uuid;
 
-pub struct Web3Auth {
-    
-}
+pub struct Web3Auth {}
 
 impl Web3Auth {
-    pub fn new() -> Self {Self{}}
+    pub fn new() -> Self {
+        Self {}
+    }
 }
 
 impl Web3AuthTrait for Web3Auth {

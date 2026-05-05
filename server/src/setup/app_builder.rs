@@ -13,6 +13,7 @@ use crate::setup::{
     state::AppState,
 };
 
+use crate::infrastructure::auth::web_3_auth::Web3Auth;
 use crate::{
     // infrastructure
     infrastructure::{
@@ -34,7 +35,6 @@ use crate::{
     },
     setup::config::AppConfig,
 };
-use crate::infrastructure::auth::web_3_auth::Web3Auth;
 
 pub fn build_app() -> Router {
     // -------------------------
