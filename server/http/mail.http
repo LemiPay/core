@@ -1,0 +1,10 @@
+### Send test email (internal only)
+POST http://localhost:5173/api/send-mail
+Content-Type: application/json
+x-internal-secret: SECRET_KEY
+
+{
+  "to": "mateo.julian.d@gmail.com",
+  "subject": "Test desde SvelteKit 🚀",
+  "text": "Si estás viendo esto, funciona perfecto 🔥"
+}
