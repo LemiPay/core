@@ -27,6 +27,10 @@
 	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
 	import { resolve } from '$app/paths';
 	import { fly, fade, scale } from 'svelte/transition';
+	import { ReceiptText } from '@lucide/svelte';
+	import UserTransactionHistory from '$lib/components/UserTransactionHistory.svelte';
+	import type { Transaction } from '$lib/types/endpoints/transactions.types';
+	import { listUserTransactions } from '$lib/api/endpoints/transactions';
 
 	let loadingUserInfo = $state(true);
 	let errorInLoadingProfile = $state('');
@@ -35,8 +39,12 @@
 	let transferTarget = $state<{ sender_wallet_id: string; ticker: string } | null>(null);
 	let openFaucetModal = $state(false);
 	let openTransferModal = $state(false);
+	let openTxHistory = $state(false);
 	let openCreateWalletModal = $state(false);
 	let copiedAddress = $state<string | null>(null);
+
+	let loadingTransactions = $state(true);
+	let transactionsArray = $state([] as Transaction[]);
 
 	async function loadUserProfile() {
 		let result: SuccessResponse<User> | FailedResponse = await me();
@@ -62,6 +70,13 @@
 		}
 		loadingWalletsInfo = false;
 		walletsArray = result.body;
+	}
+
+	async function loadTransactions() {
+		loadingTransactions = true;
+		let result = await listUserTransactions();
+		if (isSuccess(result)) transactionsArray = result.body.reverse();
+		loadingTransactions = false;
 	}
 
 	async function handleCopy(address: string) {
@@ -99,8 +114,12 @@
 			: '?'
 	);
 
+	let hasInitializedTabEffect = $state(false);
+
+	// --- INIT ---
 	loadUserProfile();
 	loadWallets();
+	loadTransactions();
 </script>
 
 <svelte:head>
@@ -129,6 +148,14 @@
 	onsuccess={() => loadWallets()}
 />
 
+<UserTransactionHistory
+	open={openTxHistory}
+	onclose={() => (openTxHistory = false)}
+	onsuccess={() => (openTxHistory = false)}
+	{transactionsArray}
+	loadingTransactions={false}
+/>
+
 <div class="min-h-screen bg-background text-foreground">
 	<!-- Ambient background blobs matching dashboard -->
 	<div
@@ -136,15 +163,29 @@
 	></div>
 
 	<div class="mx-auto w-full max-w-3xl px-4 pt-28 pb-16 sm:px-6">
-		<!-- Back button -->
-		<div in:fly={{ y: -8, duration: 300 }}>
-			<button
-				onclick={goBack}
-				class="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur transition hover:border-border/80 hover:text-foreground"
-			>
-				<ArrowLeft class="size-3.5" />
-				Volver
-			</button>
+		<!-- Barrita -->
+		<div class="flex w-full justify-between">
+			<!-- Back button -->
+			<div in:fly={{ x: -20, duration: 600 }}>
+				<button
+					onclick={goBack}
+					class="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur transition hover:border-border/80 hover:text-foreground"
+				>
+					<ArrowLeft class="size-3.5" />
+					Volver
+				</button>
+			</div>
+
+			<!-- Back button -->
+			<div in:fly={{ x: 20, duration: 600 }}>
+				<button
+					onclick={() => (openTxHistory = true)}
+					class="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur transition hover:border-border/80 hover:text-foreground"
+				>
+					<ReceiptText class="size-3.5" />
+					Historial de transacciones
+				</button>
+			</div>
 		</div>
 
 		<!-- Hero profile card -->
@@ -235,10 +276,12 @@
 							${totalBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}
 						</p>
 					</div>
+
 					<div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
 						<p class="text-xs font-medium text-muted-foreground">Wallets activas</p>
 						<p class="mt-1.5 text-xl font-semibold">{totalWallets}</p>
 					</div>
+
 					<div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
 						<p class="text-xs font-medium text-muted-foreground">Último acceso</p>
 						<p class="mt-1.5 flex items-center gap-1 text-sm font-semibold">

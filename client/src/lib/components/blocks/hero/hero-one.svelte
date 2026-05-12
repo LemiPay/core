@@ -72,7 +72,9 @@
 									<span class="text-nowrap">Registrarse</span>
 								</Button>
 							</div>
-							<Button size="lg" variant="ghost" class="rounded-xl px-5">Crear grupo</Button>
+							<Button href="/dashboard" size="lg" variant="ghost" class="rounded-xl px-5"
+								>Dashboard</Button
+							>
 						</div>
 					</div>
 				</div>
