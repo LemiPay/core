@@ -8,5 +8,6 @@ pub mod challenge;
 pub mod login;
 pub mod register;
 pub mod service;
+pub mod verify_challenge;
 
 pub use service::AuthService;

@@ -41,3 +41,16 @@ pub struct ChallengeResponse {
     pub nonce: String,
     pub message: String,
 }
+
+#[derive(Deserialize)]
+pub struct VerificationRequest {
+    pub email: String,
+    pub address: String,
+    pub nonce: String,
+    pub signature: String,
+}
+#[derive(Serialize)]
+pub struct VerificationResponse {
+    pub token: String,
+    pub user_id: String,
+}

@@ -18,7 +18,7 @@ pub struct UserModel {
 #[diesel(table_name = schema::user)]
 pub struct NewUserModel {
     pub email: String,
-    pub password: String,
+    pub password: Option<String>,
     pub name: String,
 }
 // #[derive(Serialize, Deserialize)]

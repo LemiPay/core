@@ -74,6 +74,7 @@ pub fn build_app() -> Router {
         hash_service,
         token_service,
         web_3_service,
+        user_wallet_repo.clone(),
     );
 
     let user_service = build_user_service(user_repo.clone());

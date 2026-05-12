@@ -1,0 +1,133 @@
+use crate::application::auth::stored_user::StoredUser;
+use crate::application::auth::traits::repository::AuthRepository;
+use crate::application::auth::traits::token_service::TokenService;
+use crate::application::auth::traits::web3_auth::Web3AuthTrait;
+use crate::application::auth::verify_challenge::dto::{VerificationInput, VerificationOutput};
+use crate::application::treasury::traits::user_wallet_repo::UserWalletRepository;
+use crate::application::users::traits::repository::UserRepository;
+use crate::domain::treasury::{CurrencyId, Money, UserWallet, UserWalletId};
+use crate::domain::user::{Email, User, UserId, UserName};
+use crate::infrastructure::auth::jwt_service::JwtService;
+use crate::infrastructure::db::models::user::NewUserModel;
+use crate::interfaces::http::error::AppError;
+use moka::sync::Cache;
+use std::ptr::null;
+use std::str::FromStr;
+use std::sync::Arc;
+
+pub mod dto;
+
+pub struct VerifyChallengeUseCase {
+    pub web3_service: Arc<dyn Web3AuthTrait>,
+    pub user_repository: Arc<dyn UserRepository>,
+    pub auth_repository: Arc<dyn AuthRepository>,
+    pub user_wallet_repository: Arc<dyn UserWalletRepository>,
+    nonce_cache: Cache<String, String>,
+    jwt_service: Arc<JwtService>,
+}
+
+impl VerifyChallengeUseCase {
+    pub fn new(
+        web3_service: Arc<dyn Web3AuthTrait>,
+        nonce_cache: Cache<String, String>,
+        user_repository: Arc<dyn UserRepository>,
+        user_wallet_repository: Arc<dyn UserWalletRepository>,
+        auth_repository: Arc<dyn AuthRepository>,
+        jwt_service: Arc<JwtService>,
+    ) -> Self {
+        Self {
+            web3_service,
+            user_repository,
+            auth_repository,
+            user_wallet_repository,
+            nonce_cache,
+            jwt_service,
+        }
+    }
+    pub fn verify_challenge(
+        &self,
+        input: VerificationInput,
+    ) -> Result<VerificationOutput, AppError> {
+        let stored_nonce = self.nonce_cache.get(&input.email);
+
+        match stored_nonce {
+            None => {
+                return Err(AppError::Forbidden(
+                    "Sesión expirada o desafío no solicitado".into(),
+                ));
+            }
+            Some(n) if n != input.nonce => {
+                return Err(AppError::Forbidden("Nonce inválido".into()));
+            }
+            _ => (),
+        }
+        let is_valid = self.web3_service.validate_signature(
+            input.email.clone(),
+            input.address.clone(),
+            input.signature,
+            input.nonce,
+        );
+
+        if !is_valid {
+            return Err(AppError::Forbidden("Firma criptográfica inválida".into()));
+        }
+        self.nonce_cache.remove(&input.email);
+        let mail = Email(input.email.clone());
+
+        let find_user = self
+            .user_repository
+            .find_by_email(&mail)
+            .map_err(|_| AppError::Internal)?;
+
+        let id;
+        match find_user {
+            Some(user) => {
+                id = UserId(user.id.clone());
+                self.handle_known_user(id, mail, input.address)
+            }
+            None => id = self.handle_new_user(mail, input.address)?,
+        }
+
+        let token = self.jwt_service.generate(id)?;
+        Ok(VerificationOutput {
+            token: token.0,
+            user_id: id.to_string(),
+        })
+    }
+    fn handle_new_user(&self, mail: Email, addr: String) -> Result<UserId, AppError> {
+        let id = UserId(uuid::Uuid::new_v4());
+
+        let new_user = StoredUser {
+            user: User {
+                id: id.clone(),
+                name: UserName(addr.clone()),
+                email: mail,
+            },
+            password_hash: None,
+        };
+
+        self.auth_repository
+            .save(&new_user)
+            .map_err(|_| AppError::Internal)?;
+
+        let user_wallet = UserWallet {
+            id: UserWalletId(uuid::Uuid::new_v4()),
+            address: addr,
+            user_id: id.clone(),
+            balance: Money {
+                amount: Default::default(),
+                currency: CurrencyId(
+                    uuid::Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d")
+                        .map_err(|_| AppError::Internal)?,
+                ),
+            },
+        };
+
+        self.user_wallet_repository
+            .save(&user_wallet)
+            .map_err(|_| AppError::Internal)?;
+
+        Ok(id)
+    }
+    fn handle_known_user(&self, user_id: UserId, mail: Email, addr: String) {}
+}

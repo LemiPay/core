@@ -9,6 +9,7 @@ use crate::application::auth::{
 
 use crate::application::users::traits::repository::UserRepository;
 use crate::domain::user::{Email, User, UserId, UserName};
+use crate::interfaces::http::error::AppError;
 
 pub mod dto;
 
@@ -33,7 +34,9 @@ impl RegisterUseCase {
         {
             return Err(AuthError::EmailAlreadyExists);
         }
-
+        if input.password.is_empty() {
+            return Err(AuthError::InvalidCredentials);
+        }
         // 3. crear user
         let user = User {
             id: UserId(uuid::Uuid::new_v4()),
@@ -48,7 +51,7 @@ impl RegisterUseCase {
 
         let auth_user = StoredUser {
             user: user.clone(),
-            password_hash,
+            password_hash: Option::from(password_hash),
         };
 
         self.auth_repo
