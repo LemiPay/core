@@ -49,7 +49,6 @@ impl VerifyChallengeUseCase {
         input: VerificationInput,
     ) -> Result<VerificationOutput, AppError> {
         let stored_nonce = self.nonce_cache.get(&input.email);
-
         match stored_nonce {
             None => {
                 return Err(AppError::Forbidden(
@@ -79,16 +78,19 @@ impl VerifyChallengeUseCase {
             .find_by_email(&mail)
             .map_err(|_| AppError::Internal)?;
 
-        let id;
-        match find_user {
+        let id = match find_user {
             Some(user) => {
-                id = UserId(user.id.clone());
-                self.handle_known_user(id, mail, input.address)
+                let user_id = UserId(user.id.clone());
+                self.handle_known_user(user_id.clone(), mail, input.address);
+                user_id
             }
-            None => id = self.handle_new_user(mail, input.address)?,
-        }
+            None => self.handle_new_user(mail, input.address)?,
+        };
 
-        let token = self.jwt_service.generate(id)?;
+        let token = self
+            .jwt_service
+            .generate(id)
+            .map_err(|_| AppError::Internal)?;
         Ok(VerificationOutput {
             token: token.0,
             user_id: id.to_string(),
@@ -106,9 +108,10 @@ impl VerifyChallengeUseCase {
             password_hash: None,
         };
 
-        self.auth_repository
-            .save(&new_user)
-            .map_err(|_| AppError::Internal)?;
+        self.auth_repository.save(&new_user).map_err(|e| {
+            println!("❌ ERROR FATAL: {:?}", e);
+            AppError::Internal
+        })?;
 
         let user_wallet = UserWallet {
             id: UserWalletId(uuid::Uuid::new_v4()),
@@ -117,17 +120,65 @@ impl VerifyChallengeUseCase {
             balance: Money {
                 amount: Default::default(),
                 currency: CurrencyId(
-                    uuid::Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d")
-                        .map_err(|_| AppError::Internal)?,
+                    uuid::Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d").map_err(|e| {
+                        println!("❌ ERROR FATAL: {:?}", e);
+                        AppError::Internal
+                    })?,
                 ),
             },
         };
 
         self.user_wallet_repository
             .save(&user_wallet)
-            .map_err(|_| AppError::Internal)?;
+            .map_err(|e| {
+                println!("❌ ERROR FATAL: {:?}", e);
+                AppError::Internal
+            })?;
 
         Ok(id)
     }
     fn handle_known_user(&self, user_id: UserId, mail: Email, addr: String) {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::application::auth::verify_challenge;
+    use crate::infrastructure::auth::web_3_auth::Web3Auth;
+    use alloy::signers::SignerSync;
+    use alloy::signers::local::PrivateKeySigner;
+
+    #[test]
+    fn simulate_frontend_payload() {
+        let email = "facu@lemipay.com";
+        let nonce = "e10c0174-d60d-4a77-b0b1-1137b1d38b65";
+
+        let signer = PrivateKeySigner::random();
+        let address = signer.address().to_string();
+
+        let message = format!(
+            "Bienvenido a LemiPay.\n\n\
+            Al firmar este mensaje, confirmas que eres el dueño de esta cuenta.\n\n\
+            Email: {}\n\
+            Nonce: {}",
+            email, nonce
+        );
+
+        let signature_obj = signer
+            .sign_message_sync(message.as_bytes())
+            .expect("Error firmando");
+        let signature_hex = format!("0x{}", alloy::hex::encode(signature_obj.as_bytes()));
+
+        println!("\n=== JSON para /verify-challenge ===");
+        println!(
+            r#"{{
+  "email": "{}",
+  "address": "{}",
+  "signature": "{}",
+  "nonce": "{}"
+}}"#,
+            email, address, signature_hex, nonce
+        );
+        println!("=======================================================\n");
+    }
 }

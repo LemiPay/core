@@ -31,6 +31,8 @@ pub fn build_auth_service(
     web3_service: Arc<Web3Auth>,
     user_wallet_repository: Arc<DieselUserWalletRepository>,
 ) -> AuthService {
+    let shared_nonce_cache = build_nonce_cache();
+
     AuthService {
         login: LoginUseCase {
             user_repo: user_repo.clone(),
@@ -42,10 +44,10 @@ pub fn build_auth_service(
             user_repo: user_repo.clone(),
             hash_service,
         },
-        challenge: ChallengeUseCase::new(web3_service.clone(), build_nonce_cache()),
+        challenge: ChallengeUseCase::new(web3_service.clone(), shared_nonce_cache.clone()),
         verify_challenge: VerifyChallengeUseCase::new(
             web3_service.clone(),
-            build_nonce_cache(),
+            shared_nonce_cache,
             user_repo.clone(),
             user_wallet_repository.clone(),
             auth_repo.clone(),
