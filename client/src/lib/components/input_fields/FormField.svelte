@@ -47,7 +47,7 @@
 </script>
 
 <div>
-	<label for={id} class="mb-1.5 block text-sm font-medium text-black">{label}</label>
+	<label for={id} class="mb-1.5 block text-sm font-medium text-foreground">{label}</label>
 
 	{#if type === 'textarea'}
 		<textarea
@@ -58,12 +58,12 @@
 			minlength={minLength}
 			maxlength={maxLength}
 			onblur={() => (touched = true)}
-			class="w-full resize-none rounded-md border px-3 py-2 text-sm text-black placeholder-gray-400 transition focus:ring-0 focus:outline-none
-				{showFeedback
+			class="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm text-foreground transition placeholder:text-muted-foreground focus:ring-0 focus:outline-none
+							{showFeedback
 				? isValid
-					? 'border-green-400 focus:border-green-500'
-					: 'border-red-400 focus:border-red-500'
-				: 'border-gray-200 focus:border-gray-400'}"
+					? 'border-green-400 focus:border-green-500 dark:border-green-500/60 dark:focus:border-green-400'
+					: 'border-red-400 focus:border-red-500 dark:border-red-500/60 dark:focus:border-red-400'
+				: 'border-input focus:border-ring'}"
 		></textarea>
 	{:else}
 		<input
@@ -74,12 +74,12 @@
 			minlength={minLength}
 			maxlength={maxLength}
 			onblur={() => (touched = true)}
-			class="w-full rounded-md border px-3 py-2 text-sm text-black placeholder-gray-400 transition focus:ring-0 focus:outline-none
-				{showFeedback
+			class="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground transition placeholder:text-muted-foreground focus:ring-0 focus:outline-none
+							{showFeedback
 				? isValid
-					? 'border-green-400 focus:border-green-500'
-					: 'border-red-400 focus:border-red-500'
-				: 'border-gray-200 focus:border-gray-400'}"
+					? 'border-green-400 focus:border-green-500 dark:border-green-500/60 dark:focus:border-green-400'
+					: 'border-red-400 focus:border-red-500 dark:border-red-500/60 dark:focus:border-red-400'
+				: 'border-input focus:border-ring'}"
 		/>
 	{/if}
 
@@ -119,7 +119,7 @@
 				{/if}
 				{message}
 			</span>
-			<span class="{len > maxLength ? 'text-red-500' : 'text-gray-400'} tabular-nums">
+			<span class="{len > maxLength ? 'text-red-500' : 'text-muted-foreground'} tabular-nums">
 				{len}/{maxLength}
 			</span>
 		</div>

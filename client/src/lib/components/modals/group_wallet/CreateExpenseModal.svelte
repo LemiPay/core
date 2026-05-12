@@ -127,7 +127,8 @@
 	{#snippet children()}
 		<form id="create-expense-form" onsubmit={handleSubmit} class="space-y-4">
 			<div>
-				<label class="mb-1.5 block text-sm font-medium text-black" for="expense-amount">Monto</label
+				<label class="mb-1.5 block text-sm font-medium text-foreground" for="expense-amount"
+					>Monto</label
 				>
 				<input
 					id="expense-amount"
@@ -136,39 +137,39 @@
 					min="0"
 					placeholder="Ej. 150.00"
 					bind:value={amount}
-					class="w-full rounded-md border px-3 py-2 text-sm text-black placeholder-gray-400 transition focus:ring-0 focus:outline-none {attempted &&
+					class="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground transition placeholder:text-muted-foreground focus:ring-0 focus:outline-none {attempted &&
 					!amountValid
-						? 'border-red-400 focus:border-red-500'
-						: 'border-gray-200 focus:border-gray-400'}"
+						? 'border-red-400 focus:border-red-500 dark:border-red-500/60 dark:focus:border-red-400'
+						: 'border-input focus:border-ring'}"
 				/>
 			</div>
 
 			<div>
-				<label for="fund-round-currency" class="mb-1.5 block text-sm font-medium text-black">
+				<label for="fund-round-currency" class="mb-1.5 block text-sm font-medium text-foreground">
 					Moneda
 				</label>
 
 				{#if loadingWallets}
 					<div class="flex items-center gap-2 py-2">
 						<div
-							class="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-black"
+							class="h-4 w-4 animate-spin rounded-full border-2 border-muted border-t-foreground"
 						></div>
-						<span class="text-sm text-gray-400">Cargando billeteras del grupo...</span>
+						<span class="text-sm text-muted-foreground">Cargando billeteras del grupo...</span>
 					</div>
 				{:else if groupWallets.length === 0}
-					<p class="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
+					<p class="rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
 						El grupo no tiene billeteras aún. Creá una antes de crear un gasto.
 					</p>
 				{:else}
 					<select
 						id="fund-round-currency"
 						bind:value={selectedCurrencyId}
-						class="w-full rounded-md border px-3 py-2 text-sm text-black transition focus:ring-0 focus:outline-none
-							{attempted && !currencySelected
-							? 'border-red-400 focus:border-red-500'
+						class="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground transition focus:ring-0 focus:outline-none
+													{attempted && !currencySelected
+							? 'border-red-400 focus:border-red-500 dark:border-red-500/60 dark:focus:border-red-400'
 							: selectedCurrencyId
-								? 'border-green-400 focus:border-green-500'
-								: 'border-gray-200 focus:border-gray-400'}"
+								? 'border-green-400 focus:border-green-500 dark:border-green-500/60 dark:focus:border-green-400'
+								: 'border-input focus:border-ring'}"
 					>
 						<option value="" disabled>Elegí una moneda</option>
 						{#each groupWallets as wallet (wallet.id)}
@@ -188,7 +189,7 @@
 			</div>
 
 			<div>
-				<label class="mb-1.5 block text-sm font-medium text-black" for="expense-description">
+				<label class="mb-1.5 block text-sm font-medium text-foreground" for="expense-description">
 					Descripción (opcional)
 				</label>
 				<textarea
@@ -197,7 +198,7 @@
 					placeholder="Ej. Supermercado"
 					bind:value={description}
 					maxlength="255"
-					class="w-full resize-none rounded-md border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-400 transition focus:border-gray-400 focus:ring-0 focus:outline-none"
+					class="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition placeholder:text-muted-foreground focus:border-ring focus:ring-0 focus:outline-none"
 				></textarea>
 			</div>
 			<!--
@@ -218,7 +219,7 @@
 					</div>
 				{:else}
 					<p
-						class="rounded-md border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-500"
+						class="rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground"
 					>
 						No hay miembros para agregar en el gasto.
 					</p>

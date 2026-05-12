@@ -4,6 +4,7 @@
 	import { isSuccess } from '$lib/types/client.types';
 	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 
 	let data = $state({
 		email: '',
@@ -65,7 +66,7 @@
 		<!-- Success Message -->
 		{#if status === null && !error}
 			<div
-				class="rounded-lg border border-green-300 bg-green-100 p-3 text-sm font-medium text-green-700"
+				class="rounded-lg border border-green-300 bg-green-100 p-3 text-sm font-medium text-green-700 dark:border-green-700 dark:bg-green-900 dark:text-green-200"
 			>
 				Login successful! Redirecting...
 			</div>
@@ -73,7 +74,9 @@
 
 		<!-- Error Message -->
 		{#if status === null && error}
-			<div class="rounded-lg border border-red-300 bg-red-100 p-3 text-sm font-medium text-red-700">
+			<div
+				class="rounded-lg border border-red-300 bg-red-100 p-3 text-sm font-medium text-red-700 dark:border-red-700 dark:bg-red-900 dark:text-red-200"
+			>
 				{error}
 			</div>
 		{/if}
@@ -88,7 +91,7 @@
 					type="email"
 					required
 					placeholder="name@example.com"
-					class="rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-black focus:outline-none"
+					class="rounded-md border border-input bg-background p-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
 				/>
 			</div>
 
@@ -101,7 +104,7 @@
 					type="password"
 					required
 					placeholder="••••••••"
-					class="rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-black focus:outline-none"
+					class="rounded-md border border-input bg-background p-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
 				/>
 			</div>
 		</div>
@@ -109,13 +112,13 @@
 		<button
 			type="submit"
 			disabled={status === true}
-			class="w-full rounded-md bg-black px-4 py-2 font-medium text-white transition hover:bg-gray-800 disabled:bg-gray-400"
+			class="w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
 		>
 			{status === true ? 'Logging in...' : 'Log in'}
 		</button>
 		<a
-			href="/register"
-			class="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-center font-medium text-black transition hover:bg-gray-50"
+			href={resolve('/register')}
+			class="w-full rounded-md border border-input bg-background px-4 py-2 text-center font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
 		>
 			Create account
 		</a>

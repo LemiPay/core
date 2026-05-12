@@ -31,12 +31,14 @@
 	}: Props = $props();
 
 	const variantClasses: Record<Variant, string> = {
-		primary: 'bg-black text-white border border-transparent hover:bg-gray-800 active:bg-gray-900',
-		secondary: 'bg-white text-black border border-gray-300 hover:bg-gray-50 active:bg-gray-100',
+		primary:
+			'bg-primary text-primary-foreground border border-transparent hover:bg-primary/90 active:bg-primary/80',
+		secondary:
+			'bg-background text-foreground border border-input hover:bg-accent hover:text-accent-foreground active:bg-accent/80',
 		danger:
-			'bg-white text-red-500 border border-red-200 hover:bg-red-50 hover:border-red-400 active:bg-red-100',
+			'bg-background text-red-600 border border-red-200 hover:bg-red-50 hover:border-red-400 active:bg-red-100 dark:text-red-300 dark:border-red-400/20 dark:hover:bg-red-400/10 dark:hover:border-red-400/40 dark:active:bg-red-400/15',
 		ghost:
-			'bg-transparent text-gray-500 border border-transparent hover:bg-gray-100 hover:text-black active:bg-gray-200'
+			'bg-transparent text-muted-foreground border border-transparent hover:bg-accent hover:text-accent-foreground active:bg-accent/80'
 	};
 
 	const sizeClasses: Record<Size, string> = {
@@ -54,7 +56,7 @@
 	const classes = $derived(
 		[
 			'inline-flex items-center justify-center transition cursor-pointer',
-			'focus:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2',
+			'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 			'disabled:pointer-events-none disabled:opacity-40',
 			rounded === 'full' ? 'rounded-full' : 'rounded-md',
 			variantClasses[variant],

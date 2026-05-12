@@ -66,7 +66,9 @@
 	<title>Lemipay - Perfil</title>
 </svelte:head>
 
-<div class="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pt-8">
+<div class="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pt-32">
+	<h1 class="text-xl font-bold text-black">Perfil de usuario</h1>
+
 	<button
 		onclick={goBack}
 		class="flex w-fit items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-gray-400 hover:text-black"
@@ -74,8 +76,6 @@
 		<ArrowLeft class="h-3.5 w-3.5" />
 		Volver
 	</button>
-
-	<h1 class="text-xl font-bold text-black">Perfil de usuario</h1>
 
 	{#if isLoading}
 		<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">

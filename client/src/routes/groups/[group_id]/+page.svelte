@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Trash2, Pencil, HandCoins, LogOut } from 'lucide-svelte';
 
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 
 	// API UI bindings (Solo las que borran/salen)
@@ -137,34 +138,38 @@
 	<title>Lemipay - {groupState.groupData.name || 'Group'}</title>
 </svelte:head>
 
-<div class="flex min-h-[calc(100vh-64px)] flex-col items-center px-4">
+<div
+	class="flex min-h-[calc(100vh-64px)] flex-col items-center bg-background px-4 pt-16 text-foreground"
+>
 	{#if groupState.loading}
 		<div
-			class="mt-20 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-black"
+			class="mt-20 h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground"
 		></div>
 	{:else if !groupState.groupExists}
 		<div class="mt-20 space-y-4 text-center">
-			<h1 class="text-2xl font-bold tracking-tight text-black">404 - Group not found</h1>
-			<p class="text-sm text-gray-500">The group you are looking for does not exist.</p>
+			<h1 class="text-2xl font-bold tracking-tight text-foreground">404 - Group not found</h1>
+			<p class="text-sm text-muted-foreground">The group you are looking for does not exist.</p>
 		</div>
 	{:else}
-		<div class="w-full max-w-4xl border-b border-gray-200 pt-8 pb-6">
+		<div class="w-full max-w-4xl border-b border-border pt-8 pb-6">
 			<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 				<div class="space-y-1">
 					<div class="flex items-center gap-3">
-						<h1 class="text-2xl font-bold tracking-tight text-black">
+						<h1 class="text-2xl font-bold tracking-tight text-foreground">
 							{groupState.groupData.name}
 						</h1>
 						{#if groupState.groupData.status}
 							<span
-								class="rounded border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-500"
+								class="rounded border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
 							>
 								{groupState.groupData.status}
 							</span>
 						{/if}
 					</div>
 					{#if groupState.groupData.description}
-						<p class="text-sm leading-relaxed text-gray-500">{groupState.groupData.description}</p>
+						<p class="text-sm leading-relaxed text-muted-foreground">
+							{groupState.groupData.description}
+						</p>
 					{/if}
 				</div>
 
@@ -178,17 +183,17 @@
 					</Button>
 					<button
 						onclick={() => (showEditModal = true)}
-						class="rounded-md p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+						class="rounded-md p-2 text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
 						title="Editar grupo"><Pencil class="h-4 w-4" /></button
 					>
 					<button
 						onclick={() => (showLeaveModal = true)}
-						class="rounded-md p-2 text-gray-400 transition hover:bg-orange-50 hover:text-orange-500"
+						class="rounded-md p-2 text-muted-foreground transition hover:bg-orange-50 hover:text-orange-500 dark:hover:bg-orange-400/10 dark:hover:text-orange-300"
 						title="Salir del grupo"><LogOut class="h-4 w-4" /></button
 					>
 					<button
 						onclick={() => (showDeleteModal = true)}
-						class="rounded-md p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+						class="rounded-md p-2 text-muted-foreground transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-400/10 dark:hover:text-red-300"
 						title="Eliminar grupo"><Trash2 class="h-4 w-4" /></button
 					>
 				</div>
@@ -196,15 +201,15 @@
 		</div>
 
 		<div class="w-full max-w-4xl">
-			<div class="flex border-b border-gray-200">
-				{#each GROUP_TABS as tab}
+			<div class="flex border-b border-border">
+				{#each GROUP_TABS as tab (tab.key)}
 					<button
 						onclick={() => (activeTab = tab.key)}
 						class={[
 							'px-4 py-3 text-sm font-medium transition-colors',
 							activeTab === tab.key
-								? 'border-b-2 border-black text-black'
-								: 'text-gray-500 hover:text-black'
+								? 'border-b-2 border-foreground text-foreground'
+								: 'text-muted-foreground hover:text-foreground'
 						].join(' ')}
 					>
 						{tab.label}
@@ -252,8 +257,8 @@
 
 		<div class="w-full max-w-4xl pb-10">
 			<a
-				href="/dashboard"
-				class="text-sm font-medium text-gray-400 transition hover:text-black hover:underline"
+				href={resolve('/dashboard')}
+				class="text-sm font-medium text-muted-foreground transition hover:text-foreground hover:underline"
 				>← Volver al Dashboard</a
 			>
 		</div>

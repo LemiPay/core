@@ -61,7 +61,14 @@
 	<title>Lemipay - Perfil de {user.name}</title>
 </svelte:head>
 
-<div class="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 pt-8">
+<div class="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 pt-32">
+	<div class="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6">
+		<div class="flex flex-col">
+			<h1 class="text-2xl font-bold text-black">{user.name}</h1>
+			<p class="text-sm text-gray-500">{user.email}</p>
+		</div>
+	</div>
+
 	<button
 		onclick={goBack}
 		class="flex w-fit items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-gray-400 hover:text-black"
@@ -69,13 +76,6 @@
 		<ArrowLeft class="h-3.5 w-3.5" />
 		Volver
 	</button>
-
-	<div class="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6">
-		<div class="flex flex-col">
-			<h1 class="text-2xl font-bold text-black">{user.name}</h1>
-			<p class="text-sm text-gray-500">{user.email}</p>
-		</div>
-	</div>
 
 	<div class="flex items-center justify-between">
 		<h2 class="text-xl font-bold text-black">Mis Billeteras</h2>

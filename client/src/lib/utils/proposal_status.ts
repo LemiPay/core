@@ -14,12 +14,14 @@ export function getProposalStatusDisplay(
 		case 'Approved':
 			return {
 				label: 'En curso',
-				classes: 'border-blue-200 bg-blue-50 text-blue-700'
+				classes:
+					'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-300'
 			};
 		case 'Executed':
 			return {
 				label: 'Finalizada',
-				classes: 'border-green-200 bg-green-50 text-green-700'
+				classes:
+					'border-green-200 bg-green-50 text-green-700 dark:border-green-400/20 dark:bg-green-400/10 dark:text-green-300'
 			};
 		case 'Canceled':
 			return {
