@@ -4,7 +4,7 @@ use server::infrastructure::email::email_sender::EmailService;
 
 /// Este bin es para probar el envío de mails. Se puede ejecutar con `cargo run --bin send --features production`.
 pub async fn test_mail() {
-    const EMAIL: &str = "mateo.julian.d@gmail.com";
+    const EMAIL: &str = "example@user.com";
 
     let email_service = AzureEmailSender::new();
 
@@ -13,14 +13,17 @@ pub async fn test_mail() {
     email_service
         .send_welcome_email(&email, "Joe")
         .await
-        .expect("Pincho el mail");
+        .expect("Failed to send welcome email");
 
     email_service
         .send_login_alert(&email, "Joe")
         .await
-        .expect("Pincho el mail");
+        .expect("Failed to send login alert email");
 
-    email_service.example(&email).await.expect("Pincho el mail");
+    email_service
+        .example(&email)
+        .await
+        .expect("Failed to send example email");
 
     println!("Done! Esperando a que los hilos de fondo terminen...");
 
