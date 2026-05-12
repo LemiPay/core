@@ -1,5 +1,7 @@
 use askama::Template;
 use async_trait::async_trait;
+
+#[allow(unused_imports)]
 use std::env;
 
 use crate::domain::user::Email;
@@ -26,16 +28,24 @@ pub struct AzureWelcomeRequest {
 
 impl AzureEmailSender {
     pub fn new() -> Self {
-        dotenvy::dotenv().ok(); // intenta cargar .env del cwd
-        dotenvy::from_filename("../.env").ok(); // fallback
+        #[cfg(not(test))]
+        let (base_url, secret) = {
+            dotenvy::dotenv().ok();
+            dotenvy::from_filename("../.env").ok();
 
-        let mail_server_api = env::var("MAIL_API_URL").expect("MAIL_API_URL must be set");
-        let secret = env::var("MAIL_SERVER_SECRET").expect("MAIL_SERVER_SECRET must be set");
+            (
+                env::var("MAIL_API_URL").expect("MAIL_API_URL must be set"),
+                env::var("MAIL_SERVER_SECRET").expect("MAIL_SERVER_SECRET must be set"),
+            )
+        };
+
+        #[cfg(test)]
+        let (base_url, secret) = ("http://localhost:8000".to_string(), "secret".to_string());
 
         Self {
             client: Client::new(),
             secret,
-            base_url: mail_server_api,
+            base_url,
         }
     }
 
