@@ -8,7 +8,7 @@
 		duration?: number;
 	}
 
-	let { class: className, duration = 400, ...props }: AnimatedThemeTogglerProps = $props();
+	let { class: className, duration = 1500, ...props }: AnimatedThemeTogglerProps = $props();
 
 	let isDark = $state(false);
 	let buttonRef: HTMLButtonElement | null = $state(null);
@@ -70,11 +70,17 @@
 	};
 </script>
 
-<button bind:this={buttonRef} onclick={toggleTheme} class={cn(className)} {...props}>
+<button
+	bind:this={buttonRef}
+	onclick={toggleTheme}
+	class={cn(className) +
+		' rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground'}
+	{...props}
+>
 	{#if isDark}
-		<Sun />
+		<Sun size={20} />
 	{:else}
-		<Moon />
+		<Moon size={20} />
 	{/if}
 	<span class="sr-only">Toggle theme</span>
 </button>

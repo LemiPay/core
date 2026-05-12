@@ -9,6 +9,7 @@
 	import { authStore } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import AnimatedThemeToggler from '../magic/animated-theme-toggler/animated-theme-toggler.svelte';
+	import NotificationDropdown from '../NotificationDropdown.svelte';
 
 	type MenuItem = {
 		name: string;
@@ -123,6 +124,7 @@
 
 							{#if effectiveAuth}
 								<!-- When authenticated show profile and logout -->
+								<NotificationDropdown />
 								<Button
 									variant="outline"
 									size="sm"
