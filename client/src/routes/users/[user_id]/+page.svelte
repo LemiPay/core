@@ -3,8 +3,9 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
-	import { ArrowLeft, Mail, User as UserIcon } from 'lucide-svelte';
+	import { ArrowLeft, Mail, User as UserIcon, Hash, UserPlus, ShieldCheck } from 'lucide-svelte';
 	import { userInfo } from '$lib/api/auth';
+	import { fly, fade, scale } from 'svelte/transition';
 
 	type UserSummary = {
 		id: string;
@@ -38,7 +39,7 @@
 
 	onMount(async () => {
 		if (!userId) {
-			error = 'No se encontro el id del usuario.';
+			error = 'No se encontró el id del usuario.';
 			isLoading = false;
 			return;
 		}
@@ -63,79 +64,153 @@
 </script>
 
 <svelte:head>
-	<title>Lemipay - Perfil</title>
+	<title>Lemipay – {user?.name ?? 'Perfil'}</title>
 </svelte:head>
 
-<div class="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pt-32">
-	<h1 class="text-xl font-bold text-black">Perfil de usuario</h1>
+<div class="min-h-screen bg-background text-foreground">
+	<!-- Ambient blobs (más sutiles para vista de perfil) -->
+	<div
+		class="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_-20%,rgba(168,85,247,0.15),transparent_45%)]"
+	></div>
 
-	<button
-		onclick={goBack}
-		class="flex w-fit items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-gray-400 hover:text-black"
-	>
-		<ArrowLeft class="h-3.5 w-3.5" />
-		Volver
-	</button>
-
-	{#if isLoading}
-		<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-			<div class="flex items-center gap-4">
-				<div class="h-16 w-16 animate-pulse rounded-full bg-gray-200"></div>
-				<div class="flex flex-1 flex-col gap-2">
-					<div class="h-4 w-1/2 animate-pulse rounded bg-gray-200"></div>
-					<div class="h-3 w-2/3 animate-pulse rounded bg-gray-200"></div>
-				</div>
-			</div>
-		</div>
-	{:else if error}
-		<div class="rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">
-			<p class="font-medium">Hubo un problema al cargar el usuario.</p>
-			<p class="text-sm">{error}</p>
-		</div>
-	{:else if user}
-		<div class="flex flex-col gap-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-			<div class="flex items-center gap-4">
+	<div class="mx-auto w-full max-w-2xl px-4 pt-24 pb-16 sm:px-6">
+		<!-- Back button -->
+		<div in:fly={{ y: -8, duration: 280 }}>
+			<button
+				onclick={goBack}
+				class="group mb-8 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+			>
 				<div
-					class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-gray-200 to-gray-300 text-lg font-semibold text-gray-700 select-none"
-					aria-hidden="true"
+					class="flex size-8 items-center justify-center rounded-full border border-border bg-card shadow-sm transition group-hover:-translate-x-1 group-hover:border-foreground/20 group-hover:bg-muted"
 				>
-					{initials}
+					<ArrowLeft class="size-4" />
 				</div>
-				<div class="min-w-0">
-					<p class="truncate text-lg font-semibold text-black">{user.name}</p>
-					<p class="truncate text-sm text-gray-500">{user.email}</p>
+				Volver
+			</button>
+		</div>
+
+		<!-- Loading skeleton -->
+		{#if isLoading}
+			<div
+				class="overflow-hidden rounded-[2.5rem] border border-border/60 bg-card shadow-xl"
+				in:fade={{ duration: 200 }}
+			>
+				<div class="h-32 animate-pulse bg-muted/50"></div>
+				<div class="px-8 pb-8">
+					<div
+						class="-mt-12 mb-4 size-24 animate-pulse rounded-full border-[6px] border-card bg-muted"
+					></div>
+					<div class="h-6 w-48 animate-pulse rounded-lg bg-muted"></div>
+					<div class="mt-2 h-4 w-32 animate-pulse rounded-lg bg-muted"></div>
 				</div>
 			</div>
 
-			<div class="h-px w-full bg-gray-100"></div>
-
-			<dl class="flex flex-col gap-4 text-sm">
-				<div class="flex items-start gap-3">
-					<UserIcon class="mt-0.5 h-4 w-4 text-gray-400" />
-					<div class="flex flex-col">
-						<dt class="text-xs font-medium text-gray-500">Nombre</dt>
-						<dd class="text-sm text-black">{user.name}</dd>
-					</div>
+			<!-- Error state -->
+		{:else if error}
+			<div
+				class="rounded-[2.5rem] border border-rose-200 bg-rose-50 p-10 text-center dark:border-rose-900/30 dark:bg-rose-900/10"
+				in:scale={{ duration: 220 }}
+			>
+				<div
+					class="mx-auto flex size-14 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/50"
+				>
+					<UserIcon class="size-6 text-rose-600 dark:text-rose-400" />
 				</div>
+				<h2 class="mt-4 text-xl font-semibold text-rose-700 dark:text-rose-300">
+					Usuario no encontrado
+				</h2>
+				<p class="mt-2 text-sm text-rose-600/80 dark:text-rose-400/80">{error}</p>
+			</div>
 
-				<div class="flex items-start gap-3">
-					<Mail class="mt-0.5 h-4 w-4 text-gray-400" />
-					<div class="flex flex-col">
-						<dt class="text-xs font-medium text-gray-500">Email</dt>
-						<dd class="text-sm text-black">{user.email}</dd>
-					</div>
-				</div>
+			<!-- User profile -->
+		{:else if user}
+			<div in:fly={{ y: 14, duration: 400 }} class="space-y-6">
+				<!-- Tarjeta Principal (Hero Cover) -->
+				<section
+					class="relative overflow-hidden rounded-[2.5rem] border border-border/80 bg-card shadow-xl shadow-black/5 dark:shadow-none"
+				>
+					<!-- Banner Header -->
+					<div
+						class="h-32 w-full bg-linear-to-r from-violet-500/20 via-sky-400/20 to-lime-500/20 dark:from-violet-500/10 dark:via-sky-400/10 dark:to-lime-500/10"
+					></div>
 
-				<div class="flex items-start gap-3">
-					<span class="mt-0.5 text-xs font-semibold text-gray-400">ID</span>
-					<div class="flex flex-col">
-						<dt class="text-xs font-medium text-gray-500">Identificador</dt>
-						<dd class="font-mono text-xs break-all text-gray-700">{user.id}</dd>
+					<!-- Floating Action: Add Friend (Top Right) -->
+					<div class="absolute top-4 right-4 sm:top-6 sm:right-6">
+						<button
+							title="Enviar solicitud de amistad"
+							aria-label="Agregar amigo"
+							class="group flex size-11 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur-md transition hover:scale-105 hover:bg-foreground hover:text-background focus:ring-2 focus:ring-ring focus:outline-none"
+						>
+							<UserPlus class="size-5 transition-transform group-hover:rotate-6" />
+						</button>
 					</div>
+
+					<div class="px-6 pt-0 pb-8 sm:px-10">
+						<!-- Avatar Overlapping -->
+						<div class="flex items-end gap-5">
+							<div
+								class="-mt-14 flex size-28 shrink-0 items-center justify-center rounded-full border-[6px] border-card bg-linear-to-br from-violet-200 to-lime-200 text-4xl font-bold text-violet-800 shadow-md select-none dark:from-violet-400/30 dark:to-lime-400/20 dark:text-violet-200"
+							>
+								{initials}
+							</div>
+						</div>
+
+						<!-- Identidad -->
+						<div class="mt-4">
+							<h1 class="text-3xl font-bold tracking-tight">{user.name}</h1>
+							<div class="mt-1 flex items-center gap-2 text-muted-foreground">
+								<ShieldCheck class="size-4 text-emerald-500" />
+								<span class="text-sm font-medium">Cuenta LemiPay Verificada</span>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- Bloques de Información -->
+				<section class="grid gap-4 sm:grid-cols-2" in:fly={{ y: 10, duration: 360, delay: 80 }}>
+					<!-- Email Card -->
+					<div
+						class="group flex items-center gap-4 rounded-3xl border border-border/60 bg-card/50 p-5 backdrop-blur transition hover:border-border hover:bg-muted/50"
+					>
+						<div
+							class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-600 transition group-hover:scale-105 dark:text-sky-400"
+						>
+							<Mail class="size-5" />
+						</div>
+						<div class="min-w-0 flex-1">
+							<p class="text-xs font-medium text-muted-foreground">Contacto</p>
+							<p class="mt-0.5 truncate text-sm font-semibold">{user.email}</p>
+						</div>
+					</div>
+
+					<!-- ID Card -->
+					<div
+						class="group flex items-center gap-4 rounded-3xl border border-border/60 bg-card/50 p-5 backdrop-blur transition hover:border-border hover:bg-muted/50"
+					>
+						<div
+							class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-muted text-muted-foreground transition group-hover:scale-105"
+						>
+							<Hash class="size-5" />
+						</div>
+						<div class="min-w-0 flex-1">
+							<p class="text-xs font-medium text-muted-foreground">LemiPay ID</p>
+							<p class="mt-0.5 truncate font-mono text-xs font-medium text-foreground/80">
+								{user.id}
+							</p>
+						</div>
+					</div>
+				</section>
+			</div>
+
+			<!-- Fallback -->
+		{:else}
+			<div class="rounded-[2.5rem] border border-dashed border-border bg-card p-12 text-center">
+				<div class="mx-auto flex size-14 items-center justify-center rounded-3xl bg-muted">
+					<UserIcon class="size-6 text-muted-foreground" />
 				</div>
-			</dl>
-		</div>
-	{:else}
-		<p class="text-sm text-gray-500">No hay informacion disponible para este usuario.</p>
-	{/if}
+				<h3 class="mt-5 text-lg font-semibold">Sin información disponible</h3>
+				<p class="mt-2 text-sm text-muted-foreground">No hay datos para mostrar de este usuario.</p>
+			</div>
+		{/if}
+	</div>
 </div>
