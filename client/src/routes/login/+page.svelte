@@ -22,7 +22,7 @@
 	let error = $state('');
 
 	// NUEVO: Memoria para saber si ya le pedimos la firma a esta address
-	let lastHandledAddress = $state('');
+	let lastHandledAddress = $state('' as string | undefined);
 
 	function getSafeRedirectPath(redirectTo: string | null): string {
 		if (!redirectTo) return '/dashboard';
