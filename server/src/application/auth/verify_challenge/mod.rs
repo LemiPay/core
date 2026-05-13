@@ -44,7 +44,9 @@ impl VerifyChallengeUseCase {
             jwt_service,
         }
     }
-    pub fn verify_challenge(
+
+    // 1. AHORA ES ASYNC
+    pub async fn verify_challenge(
         &self,
         input: VerificationInput,
     ) -> Result<VerificationOutput, AppError> {
@@ -60,16 +62,22 @@ impl VerifyChallengeUseCase {
             }
             _ => (),
         }
-        let is_valid = self.web3_service.validate_signature(
-            input.email.clone(),
-            input.address.clone(),
-            input.signature,
-            input.nonce,
-        );
+
+        // 2. LLAMAMOS AL MÉTODO NUEVO CON .await
+        let is_valid = self
+            .web3_service
+            .validate_signature_eip1271(
+                input.email.clone(),
+                input.address.clone(),
+                input.signature,
+                input.nonce,
+            )
+            .await;
 
         if !is_valid {
             return Err(AppError::Forbidden("Firma criptográfica inválida".into()));
         }
+
         self.nonce_cache.remove(&input.email);
         let mail = Email(input.email.clone());
 
@@ -87,15 +95,18 @@ impl VerifyChallengeUseCase {
             None => self.handle_new_user(mail, input.address)?,
         };
 
-        let token = self
-            .jwt_service
-            .generate(id)
-            .map_err(|_| AppError::Internal)?;
+        // 3. Le agrego también el println! al JWT por si el error 500 venía de acá
+        let token = self.jwt_service.generate(id.clone()).map_err(|e| {
+            println!("❌ ERROR FATAL GENERANDO JWT: {:?}", e);
+            AppError::Internal
+        })?;
+
         Ok(VerificationOutput {
             token: token.0,
             user_id: id.to_string(),
         })
     }
+
     fn handle_new_user(&self, mail: Email, addr: String) -> Result<UserId, AppError> {
         let id = UserId(uuid::Uuid::new_v4());
 
@@ -109,7 +120,7 @@ impl VerifyChallengeUseCase {
         };
 
         self.auth_repository.save(&new_user).map_err(|e| {
-            println!("❌ ERROR FATAL: {:?}", e);
+            println!("❌ ERROR FATAL GUARDANDO USUARIO: {:?}", e);
             AppError::Internal
         })?;
 
@@ -121,7 +132,7 @@ impl VerifyChallengeUseCase {
                 amount: Default::default(),
                 currency: CurrencyId(
                     uuid::Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d").map_err(|e| {
-                        println!("❌ ERROR FATAL: {:?}", e);
+                        println!("❌ ERROR FATAL PARSEANDO UUID: {:?}", e);
                         AppError::Internal
                     })?,
                 ),
@@ -131,12 +142,13 @@ impl VerifyChallengeUseCase {
         self.user_wallet_repository
             .save(&user_wallet)
             .map_err(|e| {
-                println!("❌ ERROR FATAL: {:?}", e);
+                println!("❌ ERROR FATAL GUARDANDO WALLET: {:?}", e);
                 AppError::Internal
             })?;
 
         Ok(id)
     }
+
     fn handle_known_user(&self, user_id: UserId, mail: Email, addr: String) {}
 }
 

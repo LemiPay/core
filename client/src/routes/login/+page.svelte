@@ -21,6 +21,9 @@
 	let status: boolean | null = $state(false);
 	let error = $state('');
 
+	// NUEVO: Memoria para saber si ya le pedimos la firma a esta address
+	let lastHandledAddress = $state('');
+
 	function getSafeRedirectPath(redirectTo: string | null): string {
 		if (!redirectTo) return '/dashboard';
 
@@ -47,7 +50,7 @@
 
 		if (!isSuccess(response)) {
 			error = response.message || 'Invalid credentials.';
-			status = null;
+			status = false; // Lo pasamos a false para permitir reintentos manuales
 			return;
 		}
 
@@ -65,15 +68,18 @@
 			window.location.href = redirectTo;
 		}, 1000);
 	}
+
 	async function request_challenge() {
 		error = '';
 		status = true;
 		console.log('voy a pedir un challenge');
+
 		const response = await api.request_challenge(walletAuthState.email, walletAuthState.address);
 		console.log('ya lo recibí');
+
 		if (!isSuccess(response)) {
 			error = response.message;
-			status = false;
+			status = false; // Permitimos reintentar si el challenge falla
 			return;
 		}
 
@@ -87,7 +93,27 @@
 
 			console.log('Firma obtenida:', signature);
 
-			await verify_signature(walletAuthState.email, walletAuthState.address, nonce, signature);
+			const res = await verify_signature(
+				walletAuthState.email,
+				walletAuthState.address,
+				nonce,
+				signature
+			);
+
+			if (!isSuccess(res)) {
+				error = res.message || 'Invalid credentials.';
+				status = false; // Evitamos el estado zombi 'null' cuando falla la verificación
+				return;
+			}
+
+			await authStore.login(res.body.token);
+			status = null;
+
+			const redirectTo = getSafeRedirectPath(page.url.searchParams.get('redirectTo'));
+
+			setTimeout(() => {
+				window.location.href = redirectTo;
+			}, 1000);
 		} catch (err: any) {
 			error = 'Firma rechazada por el usuario.';
 			status = false;
@@ -100,8 +126,22 @@
 	});
 
 	$effect(() => {
-		if (walletAuthState.isConnected && walletAuthState.email && status === false) {
+		// 1. Si el usuario se desconecta, limpiamos la memoria
+		if (!walletAuthState.isConnected) {
+			lastHandledAddress = '';
+		}
+
+		// 2. Evaluamos si hay que disparar el challenge
+		if (
+			walletAuthState.isConnected &&
+			walletAuthState.email &&
+			walletAuthState.address !== lastHandledAddress
+		) {
 			console.log('Gatillando login de wallet para:', walletAuthState.email);
+
+			// Anotamos el address ANTES de llamar, así evitamos loops infinitos si da error
+			lastHandledAddress = walletAuthState.address;
+
 			request_challenge();
 		}
 	});
@@ -175,7 +215,7 @@
 		{/if}
 
 		<!-- Error Message -->
-		{#if status === null && error}
+		{#if status === false && error}
 			<div class="rounded-lg border border-red-300 bg-red-100 p-3 text-sm font-medium text-red-700">
 				{error}
 			</div>

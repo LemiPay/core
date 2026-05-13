@@ -1,7 +1,22 @@
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
-use alloy::primitives::{Address, Signature};
+use alloy::primitives::{Address, Bytes, Signature};
+use alloy::providers::ProviderBuilder;
+use alloy::sol;
+use async_trait::async_trait;
+use std::env;
 use std::str::FromStr;
 use uuid::Uuid;
+
+// 1. Definimos la interfaz del Smart Contract para EIP-1271
+sol! {
+    #[sol(rpc)]
+    interface IERC1271 {
+        function isValidSignature(bytes32 hash, bytes signature) external view returns (bytes4 magicValue);
+    }
+}
+
+// Valor mágico que devuelve el contrato si la firma es correcta
+const EIP1271_MAGIC_VALUE: [u8; 4] = [0x16, 0x26, 0xba, 0x7e];
 
 pub struct Web3Auth {}
 
@@ -10,7 +25,7 @@ impl Web3Auth {
         Self {}
     }
 }
-
+#[async_trait]
 impl Web3AuthTrait for Web3Auth {
     fn generate_nonce(&self) -> String {
         Uuid::new_v4().to_string()
@@ -42,6 +57,84 @@ impl Web3AuthTrait for Web3Auth {
         match sig.recover_address_from_msg(message) {
             Ok(recovered_addr) => recovered_addr == expected_addr,
             Err(_) => false,
+        }
+    }
+
+    async fn validate_signature_eip1271(
+        &self,
+        email: String,
+        address: String,
+        signature_hex: String,
+        nonce: String,
+    ) -> bool {
+        let email = email.trim().to_lowercase();
+        let nonce = nonce.trim();
+        let address_trim = address.trim();
+        let signature_trim = signature_hex.trim();
+
+        let message = format!(
+            "Bienvenido a LemiPay.\n\n\
+            Al firmar este mensaje, confirmas que eres el dueño de esta cuenta.\n\n\
+            Email: {}\n\
+            Nonce: {}",
+            email, nonce
+        );
+
+        let expected_addr = match Address::from_str(address_trim) {
+            Ok(a) => a,
+            Err(_) => return false,
+        };
+
+        // --- INTENTO 1: Verificación tradicional (EOA / MetaMask) ---
+        if let Ok(sig) = Signature::from_str(signature_trim) {
+            if let Ok(recovered_addr) = sig.recover_address_from_msg(&message) {
+                if recovered_addr == expected_addr {
+                    return true; // Es una wallet normal y validó perfecto
+                }
+            }
+        }
+
+        let alchemy_url_string =
+            env::var("ALCHEMY_RPC_URL").expect("ALCHEMY_URL must be set in .env");
+
+        let rpc_url = match alchemy_url_string.parse() {
+            Ok(url) => url,
+            Err(e) => {
+                println!("ERROR PARSEANDO URL RPC: {:?}", e);
+                return false;
+            }
+        };
+
+        let provider = ProviderBuilder::new().on_http(rpc_url);
+
+        let contract = IERC1271::new(expected_addr, provider);
+
+        let formatted_msg = format!("\x19Ethereum Signed Message:\n{}{}", message.len(), message);
+        let message_hash = alloy::primitives::keccak256(formatted_msg);
+
+        let signature_bytes = match signature_trim.parse::<Bytes>() {
+            Ok(b) => b,
+            Err(e) => {
+                println!("ERROR PARSEANDO FIRMA A BYTES: {:?}", e);
+                return false;
+            }
+        };
+
+        // Consultamos a la blockchain
+        match contract
+            .isValidSignature(message_hash, signature_bytes)
+            .call()
+            .await
+        {
+            Ok(result) => result.magicValue == EIP1271_MAGIC_VALUE,
+            Err(e) => {
+                println!(
+                    "⚠️ EIP-1271 Falló (¿Contrato no desplegado o red incorrecta?). Address: {}",
+                    expected_addr
+                );
+                println!("Detalle técnico: {:?}", e);
+                false
+            }
         }
     }
 }

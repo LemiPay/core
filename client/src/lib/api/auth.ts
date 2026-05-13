@@ -46,13 +46,16 @@ export async function verify_signature(
 	address: any,
 	nonce: string,
 	signature: string
-): ApiResponse<boolean> {
-	return {
-		status: 200,
-		ok: true,
-		body: true,
-		message: 'mock'
-	};
+): ApiResponse<{ token: string; user_id: string }> {
+	return authedApiFetch('/auth/verify-challenge', {
+		method: 'POST',
+		body: JSON.stringify({
+			email,
+			address,
+			signature,
+			nonce
+		})
+	});
 }
 
 export default {

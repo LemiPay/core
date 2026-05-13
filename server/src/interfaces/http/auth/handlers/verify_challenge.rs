@@ -17,7 +17,8 @@ pub async fn verify_challenge(
     let res = state
         .auth_service
         .verify_challenge
-        .verify_challenge(input)?;
+        .verify_challenge(input)
+        .await?;
 
     Ok(Json(VerificationResponse {
         token: res.token,
