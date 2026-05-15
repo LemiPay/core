@@ -8,7 +8,6 @@ use crate::application::users::traits::repository::UserRepository;
 use crate::domain::treasury::{CurrencyId, Money, UserWallet, UserWalletId};
 use crate::domain::user::{Email, User, UserId, UserName};
 use crate::infrastructure::auth::jwt_service::JwtService;
-use crate::infrastructure::db::models::user::NewUserModel;
 use crate::interfaces::http::error::AppError;
 use moka::sync::Cache;
 use std::ptr::null;
@@ -64,15 +63,12 @@ impl VerifyChallengeUseCase {
         }
 
         // 2. LLAMAMOS AL MÉTODO NUEVO CON .await
-        let is_valid = self
-            .web3_service
-            .validate_signature_eip1271(
-                input.email.clone(),
-                input.address.clone(),
-                input.signature,
-                input.nonce,
-            )
-            .await;
+        let is_valid = self.web3_service.validate_signature(
+            input.email.clone(),
+            input.address.clone(),
+            input.signature,
+            input.nonce,
+        );
 
         if !is_valid {
             return Err(AppError::Forbidden("Firma criptográfica inválida".into()));

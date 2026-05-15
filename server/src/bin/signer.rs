@@ -1,54 +1,32 @@
-use alloy::signers::SignerSync;
-use alloy::signers::local::PrivateKeySigner;
-use std::io;
+use alloy::primitives::{address, bytes, eip191_hash_message};
+use alloy::providers::ProviderBuilder;
+use erc6492::verify_signature;
 
-fn main() {
-    let signer = PrivateKeySigner::random();
-    let address = signer.address().to_string();
-
-    println!("=======================================================");
-    println!("🏦 BILLETERA DE PRUEBA GENERADA");
-    println!("Address: {}", address);
-    println!("=======================================================\n");
-    println!(
-        "1️⃣ Copiá este Address y usalo en Postman para pedir el Challenge (/request-challenge)."
-    );
-    println!("2️⃣ Cuando Postman te devuelva el Nonce, pegalo acá abajo.\n");
-
-    let mut email = String::new();
-    let mut nonce = String::new();
-
-    println!("📧 Ingresá el Email (el mismo que usaste en Postman):");
-    io::stdin().read_line(&mut email).unwrap();
-    println!("🔑 Ingresá el Nonce que te dio Postman:");
-    io::stdin().read_line(&mut nonce).unwrap();
-
-    let email = email.trim().to_lowercase();
-    let nonce = nonce.trim();
-
-    let message = format!(
-        "Bienvenido a LemiPay.\n\n\
-        Al firmar este mensaje, confirmas que eres el dueño de esta cuenta.\n\n\
-        Email: {}\n\
-        Nonce: {}",
-        email, nonce
+#[tokio::test]
+pub async fn test() {
+    let provider = ProviderBuilder::new().connect_http(
+        "https://eth-sepolia.g.alchemy.com/v2/kwG4Yfs0ldfJPecoxNtEG"
+            .parse()
+            .unwrap(),
     );
 
-    let signature = signer.sign_message_sync(message.as_bytes()).unwrap();
-    let signature_hex = format!("0x{}", alloy::hex::encode(signature.as_bytes()));
+    let address = address!("0x0d335E6e86D3b7645Dd460671070Cd7592c90BEE");
+    let message = eip191_hash_message(
+        "Bienvenido a LemiPay.
 
-    println!("\n=======================================================");
-    println!("🚀 PAYLOAD LISTO PARA /verify-challenge");
-    println!("Copiá este JSON y pegalo en el Body de Postman:");
-    println!("=======================================================\n");
-    println!(
-        r#"{{
-  "email": "{}",
-  "address": "{}",
-  "signature": "{}",
-  "nonce": "{}"
-}}"#,
-        email, address, signature_hex, nonce
+Al firmar este mensaje, confirmas que eres el dueño de esta cuenta.
+
+Email: mateo.julian.d@gmail.com
+Nonce: a35ae280-1fbe-432c-9733-ed1fa6569f28",
     );
-    println!("\n=======================================================");
+    let signature = bytes!(
+        "0x0000000000000000000000004e1dcf7ad4e460cfd30791ccc4f9c8a4f820ec67000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000003c000000000000000000000000000000000000000000000000000000000000003241688f0b900000000000000000000000041675c099f32341bf84bfc5382af534df5c7461a0000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000007a6733696a79300000000000000000000000000000000000000000000000000000000000000000000284b63e800d0000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000038869bf66a61cf6bdb996a6ae40d5853fd43b5260000000000000000000000000000000000000000000000000000000000000140000000000000000000000000a581c4a4db7175302464ff3c06380bc3270b40370000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000bac9898791b37b282223b5f75c6b374254f8a2c100000000000000000000000000000000000000000000000000000000000001048d80ff0a000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000b9018ecd4ec46d4d2a6b64fe960b3d64e8b94b2234eb000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000648d0dc49f00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000a581c4a4db7175302464ff3c06380bc3270b40370000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000413e024f4bd2c62b34a00bf01135c1e4b49405fa66188f0a838c833133c76fc84e3a93dfc424e5238642af3b9ead849f41514206ee762dc9deb465f68f4285a4621f000000000000000000000000000000000000000000000000000000000000006492649264926492649264926492649264926492649264926492649264926492"
+    );
+
+    let verification = verify_signature(signature, address, message, &provider)
+        .await
+        .unwrap();
+    assert!(verification.is_valid());
 }
+
+fn main() {}
