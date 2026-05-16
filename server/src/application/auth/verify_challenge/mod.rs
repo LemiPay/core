@@ -44,7 +44,6 @@ impl VerifyChallengeUseCase {
         }
     }
 
-    // 1. AHORA ES ASYNC
     pub async fn verify_challenge(
         &self,
         input: VerificationInput,
@@ -62,13 +61,15 @@ impl VerifyChallengeUseCase {
             _ => (),
         }
 
-        // 2. LLAMAMOS AL MÉTODO NUEVO CON .await
-        let is_valid = self.web3_service.validate_signature(
-            input.email.clone(),
-            input.address.clone(),
-            input.signature,
-            input.nonce,
-        );
+        let is_valid = self
+            .web3_service
+            .validate_signature_rpc(
+                input.email.clone(),
+                input.address.clone(),
+                input.signature,
+                input.nonce,
+            )
+            .await;
 
         if !is_valid {
             return Err(AppError::Forbidden("Firma criptográfica inválida".into()));

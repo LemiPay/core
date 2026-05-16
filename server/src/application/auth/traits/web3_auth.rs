@@ -12,7 +12,7 @@ pub trait Web3AuthTrait: Send + Sync {
         nonce: String,
     ) -> bool;
 
-    async fn validate_signature_eip1271(
+    async fn validate_signature_rpc(
         &self,
         email: String,
         address: String,

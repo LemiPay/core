@@ -1,8 +1,9 @@
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
-use alloy::primitives::{Address, Bytes, Signature};
+use alloy::primitives::{Address, Bytes, Signature, address, bytes, eip191_hash_message};
 use alloy::providers::ProviderBuilder;
 use alloy::sol;
 use async_trait::async_trait;
+use erc6492::{Verification, verify_signature};
 use std::env;
 use std::str::FromStr;
 use uuid::Uuid;
@@ -61,18 +62,43 @@ impl Web3AuthTrait for Web3Auth {
         }
     }
 
-    async fn validate_signature_eip1271(
+    async fn validate_signature_rpc(
         &self,
         email: String,
         address: String,
         signature_hex: String,
         nonce: String,
     ) -> bool {
-        true
-        // let email = email.trim().to_lowercase();
-        // let nonce = nonce.trim();
-        // let address_trim = address.trim();
-        // let signature_trim = signature_hex.trim();
+        let email = email.trim().to_lowercase();
+        let nonce = nonce.trim();
+        let address_trim = address
+            .trim()
+            .parse::<Address>()
+            .expect("Formato de address inválido");
+        let signature_trim = signature_hex
+            .trim()
+            .parse::<Bytes>()
+            .expect("Formato de Bytes inválido");
+
+        let message = eip191_hash_message(format!(
+            "Bienvenido a LemiPay.\n\n\
+            Al firmar este mensaje, confirmas que eres el dueño de esta cuenta.\n\n\
+            Email: {}\n\
+            Nonce: {}",
+            email, nonce
+        ));
+
+        let provider = ProviderBuilder::new().connect_http(
+            "https://eth-sepolia.g.alchemy.com/v2/kwG4Yfs0ldfJPecoxNtEG"
+                .parse()
+                .unwrap(),
+        );
+
+        let verification = verify_signature(signature_trim, address_trim, message, &provider)
+            .await
+            .unwrap();
+        verification.is_valid()
+
         //
         // let message = format!(
         //     "Bienvenido a LemiPay.\n\n\

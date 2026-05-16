@@ -19,7 +19,6 @@ pub async fn verify_challenge(
         .verify_challenge
         .verify_challenge(input)
         .await?;
-
     Ok(Json(VerificationResponse {
         token: res.token,
         user_id: res.user_id,
