@@ -3,6 +3,11 @@ name = "server"
 version = "1.1.0"
 edition = "2024"
 default-run = "server"
+readme = "README.md"
+
+[features]
+default = []
+production = []
 
 [dependencies]
 diesel = { version = "2.2.0", features = ["postgres", "uuid", "r2d2", "chrono", "numeric"] }
@@ -24,3 +29,5 @@ rand = "0.8.5"
 validator = "0.20.0"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 serde_json = "1.0"
+async-trait = "0.1.89"
+askama = "0.16.0"
