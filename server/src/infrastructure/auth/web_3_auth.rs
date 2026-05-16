@@ -87,11 +87,17 @@ impl Web3AuthTrait for Web3Auth {
             email, nonce
         ));
 
-        let provider = ProviderBuilder::new().connect_http(
-            "https://eth-sepolia.g.alchemy.com/v2/kwG4Yfs0ldfJPecoxNtEG"
-                .parse()
-                .unwrap(),
-        );
+        let rpc_url = match env::var("ALCHEMY_RPC_URL") {
+            Ok(url) => url,
+            Err(_) => return false,
+        };
+
+        let rpc_url = match rpc_url.parse() {
+            Ok(url) => url,
+            Err(_) => return false,
+        };
+
+        let provider = ProviderBuilder::new().connect_http(rpc_url);
 
         let verification = verify_signature(signature_trim, address_trim, message, &provider)
             .await
