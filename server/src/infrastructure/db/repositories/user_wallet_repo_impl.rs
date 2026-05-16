@@ -72,7 +72,10 @@ impl UserWalletRepository for DieselUserWalletRepository {
                 schema::user_wallet::updated_at.eq(chrono::Utc::now().naive_utc()),
             ))
             .execute(&mut conn)
-            .map_err(|_| RepoError::Insert)?;
+            .map_err(|e| {
+                eprintln!("Error de Diesel al guardar wallet: {:?}", e);
+                RepoError::Insert
+            })?;
 
         Ok(())
     }

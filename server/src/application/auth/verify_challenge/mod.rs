@@ -8,6 +8,7 @@ use crate::application::users::traits::repository::UserRepository;
 use crate::domain::treasury::{CurrencyId, Money, UserWallet, UserWalletId};
 use crate::domain::user::{Email, User, UserId, UserName};
 use crate::infrastructure::auth::jwt_service::JwtService;
+use crate::infrastructure::db::models::user::NewUserModel;
 use crate::interfaces::http::error::AppError;
 use moka::sync::Cache;
 use std::ptr::null;
@@ -105,26 +106,24 @@ impl VerifyChallengeUseCase {
     }
 
     fn handle_new_user(&self, mail: Email, addr: String) -> Result<UserId, AppError> {
-        let id = UserId(uuid::Uuid::new_v4());
-
-        let new_user = StoredUser {
-            user: User {
-                id: id.clone(),
-                name: UserName(addr.clone()),
-                email: mail,
-            },
-            password_hash: None,
+        let new_user = NewUserModel {
+            email: mail.0,
+            password: None,
+            name: addr.to_string(),
         };
 
-        self.auth_repository.save(&new_user).map_err(|e| {
+        let saved_user = self.auth_repository.save(&new_user).map_err(|e| {
             println!("❌ ERROR FATAL GUARDANDO USUARIO: {:?}", e);
             AppError::Internal
         })?;
 
+        let real_user_id = saved_user.user.id;
+        println!("✅ Usuario creado con ID real: {:?}", real_user_id);
+
         let user_wallet = UserWallet {
             id: UserWalletId(uuid::Uuid::new_v4()),
             address: addr,
-            user_id: id.clone(),
+            user_id: real_user_id.clone(),
             balance: Money {
                 amount: Default::default(),
                 currency: CurrencyId(
@@ -143,7 +142,7 @@ impl VerifyChallengeUseCase {
                 AppError::Internal
             })?;
 
-        Ok(id)
+        Ok(real_user_id)
     }
 
     fn handle_known_user(&self, user_id: UserId, mail: Email, addr: String) {}
