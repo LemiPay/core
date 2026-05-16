@@ -113,7 +113,7 @@ impl EmailService for AzureEmailSender {
             text: "Welcome to LemiPay!".to_string(),
         };
 
-        self.send(to, &[body]);
+        self.send(to, &body);
 
         Ok(())
     }
@@ -133,7 +133,7 @@ impl EmailService for AzureEmailSender {
             text: html_content,
         };
 
-        self.send(to, &[body]);
+        self.send(to, &body);
 
         Ok(())
     }
@@ -154,7 +154,7 @@ impl EmailService for AzureEmailSender {
             text: html_content,
         };
 
-        self.send(to, &[body]);
+        self.send(to, &body);
 
         Ok(())
     }

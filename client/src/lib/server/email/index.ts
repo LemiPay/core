@@ -1,4 +1,5 @@
 import { env } from '$env/dynamic/private';
+import type { MailRequest } from '$lib/types/endpoints/api.types';
 
 import { EmailClient } from '@azure/communication-email';
 
@@ -7,15 +8,7 @@ const env_vars = {
 	sender: env.AZURE_EMAIL
 };
 
-export async function sendEmail({
-	to,
-	subject,
-	text
-}: {
-	to: string;
-	subject: string;
-	text: string;
-}) {
+export async function sendEmail({ to, subject, text }: MailRequest) {
 	if (!env_vars.sender) {
 		throw new Error('AZURE_EMAIL is not set');
 	}

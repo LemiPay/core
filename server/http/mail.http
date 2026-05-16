@@ -1,7 +1,7 @@
 ### Send test email (internal only)
 POST http://localhost:5173/api/send-mail
 Content-Type: application/json
-x-internal-secret: SECRET_KEY
+x-internal-secret: {{secret}}
 
 {
   "to": "mateo.julian.d@gmail.com",
