@@ -14,6 +14,7 @@ use moka::sync::Cache;
 use std::ptr::null;
 use std::str::FromStr;
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub mod dto;
 
@@ -121,13 +122,13 @@ impl VerifyChallengeUseCase {
         println!("✅ Usuario creado con ID real: {:?}", real_user_id);
 
         let user_wallet = UserWallet {
-            id: UserWalletId(uuid::Uuid::new_v4()),
+            id: UserWalletId(Uuid::new_v4()),
             address: addr,
             user_id: real_user_id.clone(),
             balance: Money {
                 amount: Default::default(),
                 currency: CurrencyId(
-                    uuid::Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d").map_err(|e| {
+                    Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d").map_err(|e| {
                         println!("❌ ERROR FATAL PARSEANDO UUID: {:?}", e);
                         AppError::Internal
                     })?,
@@ -145,7 +146,50 @@ impl VerifyChallengeUseCase {
         Ok(real_user_id)
     }
 
-    fn handle_known_user(&self, user_id: UserId, mail: Email, addr: String) {}
+    fn handle_known_user(
+        &self,
+        user_id: UserId,
+        mail: Email,
+        addr: String,
+    ) -> Result<UserId, AppError> {
+        let usdc_currency = CurrencyId(
+            Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d").map_err(|e| {
+                println!("❌ ERROR FATAL PARSEANDO UUID: {:?}", e);
+                AppError::Internal
+            })?,
+        );
+        let user_wallet = self
+            .user_wallet_repository
+            .find_by_address_and_currency(&addr, usdc_currency.clone())
+            .map_err(|e| AppError::Internal)?;
+
+        if user_wallet.is_some() {
+            println!("Wallet ya existe",);
+            return Ok(user_id);
+        }
+
+        let wallet = UserWallet {
+            id: UserWalletId(Uuid::new_v4()),
+            address: addr,
+            user_id,
+            balance: Money {
+                amount: Default::default(),
+                currency: CurrencyId(
+                    Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d").map_err(|e| {
+                        println!("❌ ERROR FATAL PARSEANDO UUID: {:?}", e);
+                        AppError::Internal
+                    })?,
+                ),
+            },
+        };
+
+        self.user_wallet_repository.save(&wallet).map_err(|e| {
+            println!("❌ ERROR FATAL GUARDANDO WALLET: {:?}", e);
+            AppError::Internal
+        })?;
+
+        Ok(user_id)
+    }
 }
 
 #[cfg(test)]
