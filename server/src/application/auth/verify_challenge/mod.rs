@@ -1,4 +1,3 @@
-use crate::application::auth::stored_user::StoredUser;
 use crate::application::auth::traits::repository::AuthRepository;
 use crate::application::auth::traits::token_service::TokenService;
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
@@ -6,12 +5,11 @@ use crate::application::auth::verify_challenge::dto::{VerificationInput, Verific
 use crate::application::treasury::traits::user_wallet_repo::UserWalletRepository;
 use crate::application::users::traits::repository::UserRepository;
 use crate::domain::treasury::{CurrencyId, Money, UserWallet, UserWalletId};
-use crate::domain::user::{Email, User, UserId, UserName};
+use crate::domain::user::{Email, UserId};
 use crate::infrastructure::auth::jwt_service::JwtService;
 use crate::infrastructure::db::models::user::NewUserModel;
 use crate::interfaces::http::error::AppError;
 use moka::sync::Cache;
-use std::ptr::null;
 use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -94,11 +92,10 @@ impl VerifyChallengeUseCase {
             None => self.handle_new_user(mail, input.address)?,
         };
 
-        // 3. Le agrego también el println! al JWT por si el error 500 venía de acá
-        let token = self.jwt_service.generate(id.clone()).map_err(|e| {
-            println!("❌ ERROR FATAL GENERANDO JWT: {:?}", e);
-            AppError::Internal
-        })?;
+        let token = self
+            .jwt_service
+            .generate(id.clone())
+            .map_err(|e| AppError::Internal)?;
 
         Ok(VerificationOutput {
             token: token.0,
@@ -113,13 +110,12 @@ impl VerifyChallengeUseCase {
             name: addr.to_string(),
         };
 
-        let saved_user = self.auth_repository.save(&new_user).map_err(|e| {
-            println!("❌ ERROR FATAL GUARDANDO USUARIO: {:?}", e);
-            AppError::Internal
-        })?;
+        let saved_user = self
+            .auth_repository
+            .save(&new_user)
+            .map_err(|e| AppError::Internal)?;
 
         let real_user_id = saved_user.user.id;
-        println!("✅ Usuario creado con ID real: {:?}", real_user_id);
 
         let user_wallet = UserWallet {
             id: UserWalletId(Uuid::new_v4()),
@@ -128,20 +124,15 @@ impl VerifyChallengeUseCase {
             balance: Money {
                 amount: Default::default(),
                 currency: CurrencyId(
-                    Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d").map_err(|e| {
-                        println!("❌ ERROR FATAL PARSEANDO UUID: {:?}", e);
-                        AppError::Internal
-                    })?,
+                    Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d")
+                        .map_err(|e| AppError::Internal)?,
                 ),
             },
         };
 
         self.user_wallet_repository
             .save(&user_wallet)
-            .map_err(|e| {
-                println!("❌ ERROR FATAL GUARDANDO WALLET: {:?}", e);
-                AppError::Internal
-            })?;
+            .map_err(|e| AppError::Internal)?;
 
         Ok(real_user_id)
     }
@@ -153,10 +144,8 @@ impl VerifyChallengeUseCase {
         addr: String,
     ) -> Result<UserId, AppError> {
         let usdc_currency = CurrencyId(
-            Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d").map_err(|e| {
-                println!("❌ ERROR FATAL PARSEANDO UUID: {:?}", e);
-                AppError::Internal
-            })?,
+            Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d")
+                .map_err(|e| AppError::Internal)?,
         );
         let user_wallet = self
             .user_wallet_repository
@@ -164,7 +153,6 @@ impl VerifyChallengeUseCase {
             .map_err(|e| AppError::Internal)?;
 
         if user_wallet.is_some() {
-            println!("Wallet ya existe",);
             return Ok(user_id);
         }
 
@@ -175,18 +163,15 @@ impl VerifyChallengeUseCase {
             balance: Money {
                 amount: Default::default(),
                 currency: CurrencyId(
-                    Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d").map_err(|e| {
-                        println!("❌ ERROR FATAL PARSEANDO UUID: {:?}", e);
-                        AppError::Internal
-                    })?,
+                    Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d")
+                        .map_err(|e| AppError::Internal)?,
                 ),
             },
         };
 
-        self.user_wallet_repository.save(&wallet).map_err(|e| {
-            println!("❌ ERROR FATAL GUARDANDO WALLET: {:?}", e);
-            AppError::Internal
-        })?;
+        self.user_wallet_repository
+            .save(&wallet)
+            .map_err(|e| AppError::Internal)?;
 
         Ok(user_id)
     }
