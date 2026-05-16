@@ -13,7 +13,7 @@ export function getInitials(name: string): string {
 	);
 }
 
-export function formatExpenseDate(value: string): string {
+export function formatDate(value: string): string {
 	return new Date(value).toLocaleDateString('es-AR', {
 		day: '2-digit',
 		month: '2-digit',

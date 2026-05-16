@@ -43,3 +43,8 @@ export async function executeWithdrawProposal(
 export async function listGroupTransactions(group_id: string): ApiResponse<Transaction[]> {
 	return authedApiFetch(`/transaction/${group_id}/list`, { method: 'GET' });
 }
+export async function listUserTransactions(): ApiResponse<Transaction[]> {
+	return await authedApiFetch<Transaction[]>(`/transaction/me`, {
+		method: 'GET'
+	});
+}
