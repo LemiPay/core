@@ -1,10 +1,10 @@
 import { createAppKit } from '@reown/appkit';
 import { type AppKitNetwork, mainnet, sepolia } from '@reown/appkit/networks';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
-import { PUBLIC_REOWN_KEY } from '$env/static/public';
+
 import { http } from 'wagmi';
 
-const reown_project_id = PUBLIC_REOWN_KEY;
+const reown_project_id = import.meta.env.VITE_PUBLIC_REOWN_KEY || 'random key';
 
 const networks: [AppKitNetwork, ...AppKitNetwork[]] = [mainnet, sepolia];
 
