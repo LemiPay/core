@@ -30,6 +30,9 @@
 		if (!initialized) return;
 
 		const pathname = page.url.pathname;
+
+		if (pathname.startsWith('/api')) return;
+
 		const authed = $authStore.isAuthenticated;
 
 		if (!authed && !isPublic(pathname)) {

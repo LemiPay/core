@@ -7,74 +7,76 @@
 		Send,
 		Wallet,
 		ArrowUpRight,
-		Sparkles,
 		Shield,
-		TrendingUp,
 		Clock,
 		CheckCircle,
-		// User2,
 		Mail,
-		Star
+		ReceiptText
 	} from 'lucide-svelte';
 	import type { User } from '$lib/types/endpoints/auth.types';
 	import { me } from '$lib/api/auth';
-	import { type FailedResponse, isSuccess, type SuccessResponse } from '$lib/types/client.types';
+	import { isSuccess } from '$lib/types/client.types';
 	import type { WalletInfo } from '$lib/types/endpoints/user_wallet.types';
 	import { getAllMyWallets } from '$lib/api/endpoints/user_wallet';
+
+	// Importar Modales
 	import FaucetModal from '$lib/components/modals/user/FaucetModal.svelte';
 	import TransferModal from '$lib/components/modals/user/TransferModal.svelte';
 	import CreateWalletModal from '$lib/components/modals/user/CreateWalletModal.svelte';
 	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
 	import { resolve } from '$app/paths';
 	import { fly, fade, scale } from 'svelte/transition';
-	import { ReceiptText } from '@lucide/svelte';
 	import UserTransactionHistory from '$lib/components/UserTransactionHistory.svelte';
 	import type { Transaction } from '$lib/types/endpoints/transactions.types';
 	import { listUserTransactions } from '$lib/api/endpoints/transactions';
 
+	// --- ESTADOS DE DATOS ---
 	let loadingUserInfo = $state(true);
-	let errorInLoadingProfile = $state('');
 	let user = $state({} as User);
-	let faucetTarget = $state<{ wallet_id: string; ticker: string } | null>(null);
-	let transferTarget = $state<{ sender_wallet_id: string; ticker: string } | null>(null);
-	let openFaucetModal = $state(false);
-	let openTransferModal = $state(false);
 	let openTxHistory = $state(false);
-	let openCreateWalletModal = $state(false);
 	let copiedAddress = $state<string | null>(null);
+
+	let loadingWalletsInfo = $state(true);
+	let walletsArray = $state([] as WalletInfo[]);
 
 	let loadingTransactions = $state(true);
 	let transactionsArray = $state([] as Transaction[]);
 
+	// --- ESTADOS DE MODALES ---
+	let faucetTarget = $state<{ wallet_id: string; ticker: string } | null>(null);
+	let transferTarget = $state<{ sender_wallet_id: string; ticker: string } | null>(null);
+	let openCreateWalletModal = $state(false);
+
+	// --- ESTADO DERIVADO ---
+	let totalBalance = $derived(
+		walletsArray.reduce((acc, group) => {
+			const groupSum = group.currencies.reduce((sum, curr) => sum + Number(curr.balance || 0), 0);
+			return acc + groupSum;
+		}, 0)
+	);
+
+	// --- CARGA DE DATOS ---
 	async function loadUserProfile() {
-		let result: SuccessResponse<User> | FailedResponse = await me();
-		if (!isSuccess(result)) {
-			errorInLoadingProfile = 'No se pudo cargar el perfil';
-			loadingUserInfo = false;
-			return;
+		const result = await me();
+		if (isSuccess(result)) {
+			user = result.body;
 		}
 		loadingUserInfo = false;
-		user = result.body;
 	}
 
-	let loadingWalletsInfo = $state(true);
-	let errorInLoadingWallets = $state('');
-	let walletsArray = $state([] as WalletInfo[]);
-
 	async function loadWallets() {
-		let result = await getAllMyWallets();
+		const result = await getAllMyWallets();
 		if (!isSuccess(result)) {
-			errorInLoadingWallets = 'Error al cargar wallets';
 			loadingWalletsInfo = false;
 			return;
 		}
-		loadingWalletsInfo = false;
 		walletsArray = result.body;
+		loadingWalletsInfo = false;
 	}
 
 	async function loadTransactions() {
 		loadingTransactions = true;
-		let result = await listUserTransactions();
+		const result = await listUserTransactions();
 		if (isSuccess(result)) transactionsArray = result.body.reverse();
 		loadingTransactions = false;
 	}
@@ -93,15 +95,7 @@
 		}
 	}
 
-	const totalBalance = $derived(
-		walletsArray.reduce(
-			(sum, w) => sum + w.currencies.reduce((s, c) => s + Number(c.balance), 0),
-			0
-		)
-	);
-
 	const totalWallets = $derived(walletsArray.length);
-	const totalCurrencies = $derived(walletsArray.reduce((s, w) => s + w.currencies.length, 0));
 
 	const userInitials = $derived(
 		user.name
@@ -113,8 +107,6 @@
 					.toUpperCase()
 			: '?'
 	);
-
-	let hasInitializedTabEffect = $state(false);
 
 	// --- INIT ---
 	loadUserProfile();
@@ -153,7 +145,7 @@
 	onclose={() => (openTxHistory = false)}
 	onsuccess={() => (openTxHistory = false)}
 	{transactionsArray}
-	loadingTransactions={false}
+	{loadingTransactions}
 />
 
 <div class="min-h-screen bg-background text-foreground">
