@@ -58,10 +58,10 @@ function createAuthStore() {
 		},
 
 		// --- 🚪 Logout ---
-		logout() {
+		async logout() {
 			localStorage.removeItem('token');
 			token.set(null);
-			authActions.logout();
+			await authActions.logout();
 
 			set({
 				token: null,

@@ -1,7 +1,7 @@
 
 ### Get me
 GET {{host}}/user/me
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjZGJlN2ZkMC1jZjkwLTQzNGUtYmRlMi1hMTA0YjUzNGE2MWYiLCJleHAiOjE3NzkyMDY5NDN9.zK6QeFx3LlBdNcgRe_qTaejAoRhThapHN3YCg1ZYY2k
+Authorization: Bearer {{token}}
 
 ### Get User
 GET {{host}}/user/id/ab35ef0a-741c-4903-9fd7-353424bf81c9
