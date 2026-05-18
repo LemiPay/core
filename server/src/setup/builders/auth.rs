@@ -1,5 +1,4 @@
 use crate::application::auth::challenge::ChallengeUseCase;
-use crate::application::auth::traits::web3_auth::Web3AuthTrait;
 use crate::application::auth::verify_challenge::VerifyChallengeUseCase;
 use crate::infrastructure::auth::web_3_auth::Web3Auth;
 use crate::infrastructure::db::repositories::user_wallet_repo_impl::DieselUserWalletRepository;

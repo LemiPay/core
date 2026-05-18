@@ -6,6 +6,7 @@ use crate::infrastructure::db::{
     schema,
 };
 
+use crate::application::auth::new_user::NewUser;
 use crate::application::{
     auth::{stored_user::StoredUser, traits::repository::AuthRepository},
     common::repo_error::RepoError,
@@ -27,11 +28,17 @@ impl DieselAuthRepository {
 }
 
 impl AuthRepository for DieselAuthRepository {
-    fn save(&self, user: &NewUserModel) -> Result<StoredUser, RepoError> {
+    fn save(&self, user: &NewUser) -> Result<StoredUser, RepoError> {
         let mut conn = self.get_conn()?;
 
+        let new_user = NewUserModel {
+            email: user.email.clone(),
+            password: user.password.clone(),
+            name: user.name.clone(),
+        };
+
         let inserted_user: UserModel = diesel::insert_into(schema::user::table)
-            .values(user)
+            .values(new_user)
             .returning(UserModel::as_returning())
             .get_result(&mut conn)
             .map_err(|e| {

@@ -1,4 +1,4 @@
-use crate::application::auth::challenge::dto::{ChallengeInput, ChallengeOutput};
+use crate::application::auth::challenge::dto::ChallengeInput;
 use crate::interfaces::http::auth::dto::{ChallengeRequest, ChallengeResponse};
 use crate::interfaces::http::error::AppError;
 use crate::setup::state::SharedState;

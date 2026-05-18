@@ -63,5 +63,6 @@ export default {
 	login,
 	me,
 	request_challenge,
+	verify_signature,
 	userInfo
 };

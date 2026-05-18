@@ -3,8 +3,7 @@
 	import { signMessage } from '@wagmi/core';
 	import { wagmiAdapter } from '../wallet_auth.svelte';
 
-	//NUESTRAS API
-	import api, { verify_signature } from '$lib/api/auth';
+	import api from '$lib/api/auth';
 	import { authStore } from '$lib/stores/auth';
 	import { isSuccess } from '$lib/types/client.types';
 	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
@@ -93,7 +92,7 @@
 
 			console.log('Firma obtenida:', signature);
 
-			const res = await verify_signature(
+			const res = await api.verify_signature(
 				walletAuthState.email,
 				walletAuthState.address,
 				nonce,

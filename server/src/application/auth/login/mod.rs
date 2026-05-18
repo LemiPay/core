@@ -10,8 +10,6 @@ use crate::application::{
 };
 
 use crate::domain::user::{Email, UserId};
-use crate::infrastructure::db::schema::user::password;
-
 pub mod dto;
 
 #[derive(Clone)]
@@ -32,7 +30,7 @@ impl LoginUseCase {
             .map_err(|_| AuthError::InternalError)?
             .ok_or(AuthError::InvalidCredentials)?;
 
-        if (user.password.is_none()) {
+        if user.password.is_none() {
             return Err(AuthError::InvalidCredentials);
         }
 

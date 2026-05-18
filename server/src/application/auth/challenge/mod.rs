@@ -3,10 +3,8 @@ pub mod dto;
 use crate::application::auth::challenge::dto::{ChallengeInput, ChallengeOutput};
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
 use crate::interfaces::http::error::AppError;
-use chrono::Local;
 use moka::sync::Cache;
 use std::sync::Arc;
-use std::time::Duration;
 
 pub struct ChallengeUseCase {
     pub web3_service: Arc<dyn Web3AuthTrait>,

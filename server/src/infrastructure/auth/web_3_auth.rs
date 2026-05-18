@@ -1,22 +1,18 @@
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
-use alloy::primitives::{Address, Bytes, Signature, address, bytes, eip191_hash_message};
+use alloy::primitives::{Address, Bytes, Signature, eip191_hash_message};
 use alloy::providers::ProviderBuilder;
 use alloy::sol;
 use async_trait::async_trait;
-use erc6492::{Verification, verify_signature};
+use erc6492::verify_signature;
 use std::env;
 use std::str::FromStr;
 use uuid::Uuid;
-// 1. Definimos la interfaz del Smart Contract para EIP-1271
 sol! {
     #[sol(rpc)]
     interface IERC1271 {
         function isValidSignature(bytes32 hash, bytes signature) external view returns (bytes4 magicValue);
     }
 }
-
-// Valor mágico que devuelve el contrato si la firma es correcta
-const EIP1271_MAGIC_VALUE: [u8; 4] = [0x16, 0x26, 0xba, 0x7e];
 
 pub struct Web3Auth {}
 

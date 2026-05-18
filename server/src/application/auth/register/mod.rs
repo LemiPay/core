@@ -1,16 +1,13 @@
 use std::sync::Arc;
 
+use crate::application::auth::new_user::NewUser;
 use crate::application::auth::{
     error::AuthError,
     register::dto::{RegisterInput, RegisterOutput},
-    stored_user::StoredUser,
     traits::{password_hasher::PasswordHasher, repository::AuthRepository},
 };
-
 use crate::application::users::traits::repository::UserRepository;
-use crate::domain::user::{Email, User, UserId, UserName};
-use crate::infrastructure::db::models::user::NewUserModel;
-use crate::interfaces::http::error::AppError;
+use crate::domain::user::{Email, UserName};
 
 pub mod dto;
 
@@ -44,7 +41,7 @@ impl RegisterUseCase {
             .hash(&input.password)
             .map_err(|_| AuthError::InternalError)?;
 
-        let auth_user = NewUserModel {
+        let auth_user = NewUser {
             email: email.to_string(),
             password: Some(password_hash),
             name: name.to_string(),

@@ -1,3 +1,4 @@
+use crate::application::auth::new_user::NewUser;
 use crate::application::auth::traits::repository::AuthRepository;
 use crate::application::auth::traits::token_service::TokenService;
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
@@ -7,7 +8,6 @@ use crate::application::users::traits::repository::UserRepository;
 use crate::domain::treasury::{CurrencyId, Money, UserWallet, UserWalletId};
 use crate::domain::user::{Email, UserId};
 use crate::infrastructure::auth::jwt_service::JwtService;
-use crate::infrastructure::db::models::user::NewUserModel;
 use crate::interfaces::http::error::AppError;
 use moka::sync::Cache;
 use std::str::FromStr;
@@ -86,7 +86,7 @@ impl VerifyChallengeUseCase {
         let id = match find_user {
             Some(user) => {
                 let user_id = UserId(user.id.clone());
-                self.handle_known_user(user_id.clone(), mail, input.address);
+                _ = self.handle_known_user(user_id.clone(), mail, input.address);
                 user_id
             }
             None => self.handle_new_user(mail, input.address)?,
@@ -95,7 +95,7 @@ impl VerifyChallengeUseCase {
         let token = self
             .jwt_service
             .generate(id.clone())
-            .map_err(|e| AppError::Internal)?;
+            .map_err(|_| AppError::Internal)?;
 
         Ok(VerificationOutput {
             token: token.0,
@@ -104,7 +104,7 @@ impl VerifyChallengeUseCase {
     }
 
     fn handle_new_user(&self, mail: Email, addr: String) -> Result<UserId, AppError> {
-        let new_user = NewUserModel {
+        let new_user = NewUser {
             email: mail.0,
             password: None,
             name: addr.to_string(),
@@ -113,7 +113,7 @@ impl VerifyChallengeUseCase {
         let saved_user = self
             .auth_repository
             .save(&new_user)
-            .map_err(|e| AppError::Internal)?;
+            .map_err(|_| AppError::Internal)?;
 
         let real_user_id = saved_user.user.id;
 
@@ -132,7 +132,7 @@ impl VerifyChallengeUseCase {
 
         self.user_wallet_repository
             .save(&user_wallet)
-            .map_err(|e| AppError::Internal)?;
+            .map_err(|_| AppError::Internal)?;
 
         Ok(real_user_id)
     }
@@ -140,17 +140,17 @@ impl VerifyChallengeUseCase {
     fn handle_known_user(
         &self,
         user_id: UserId,
-        mail: Email,
+        _mail: Email,
         addr: String,
     ) -> Result<UserId, AppError> {
         let usdc_currency = CurrencyId(
             Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d")
-                .map_err(|e| AppError::Internal)?,
+                .map_err(|_| AppError::Internal)?,
         );
         let user_wallet = self
             .user_wallet_repository
             .find_by_address_and_currency(&addr, usdc_currency.clone())
-            .map_err(|e| AppError::Internal)?;
+            .map_err(|_| AppError::Internal)?;
 
         if user_wallet.is_some() {
             return Ok(user_id);
@@ -164,14 +164,14 @@ impl VerifyChallengeUseCase {
                 amount: Default::default(),
                 currency: CurrencyId(
                     Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d")
-                        .map_err(|e| AppError::Internal)?,
+                        .map_err(|_| AppError::Internal)?,
                 ),
             },
         };
 
         self.user_wallet_repository
             .save(&wallet)
-            .map_err(|e| AppError::Internal)?;
+            .map_err(|_| AppError::Internal)?;
 
         Ok(user_id)
     }
