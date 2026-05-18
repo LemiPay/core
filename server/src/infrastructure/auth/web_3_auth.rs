@@ -66,20 +66,22 @@ impl Web3AuthTrait for Web3Auth {
     ) -> bool {
         let email = email.trim().to_lowercase();
         let nonce = nonce.trim();
-        let address_trim = address
-            .trim()
-            .parse::<Address>()
-            .expect("Formato de address inválido");
-        let signature_trim = signature_hex
-            .trim()
-            .parse::<Bytes>()
-            .expect("Formato de Bytes inválido");
+
+        let address_trim = match address.trim().parse::<Address>() {
+            Ok(a) => a,
+            Err(_) => return false,
+        };
+
+        let signature_trim = match signature_hex.trim().parse::<Bytes>() {
+            Ok(s) => s,
+            Err(_) => return false,
+        };
 
         let message = eip191_hash_message(format!(
             "Bienvenido a LemiPay.\n\n\
-            Al firmar este mensaje, confirmas que eres el dueño de esta cuenta.\n\n\
-            Email: {}\n\
-            Nonce: {}",
+        Al firmar este mensaje, confirmas que eres el dueño de esta cuenta.\n\n\
+        Email: {}\n\
+        Nonce: {}",
             email, nonce
         ));
 
@@ -95,9 +97,9 @@ impl Web3AuthTrait for Web3Auth {
 
         let provider = ProviderBuilder::new().connect_http(rpc_url);
 
-        let verification = verify_signature(signature_trim, address_trim, message, &provider)
-            .await
-            .unwrap();
-        verification.is_valid()
+        match verify_signature(signature_trim, address_trim, message, &provider).await {
+            Ok(verification) => verification.is_valid(),
+            Err(_) => false,
+        }
     }
 }
