@@ -1,17 +1,10 @@
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
 use alloy::primitives::{Address, Bytes, eip191_hash_message};
 use alloy::providers::ProviderBuilder;
-use alloy::sol;
 use async_trait::async_trait;
 use erc6492::verify_signature;
 use std::env;
 use uuid::Uuid;
-sol! {
-    #[sol(rpc)]
-    interface IERC1271 {
-        function isValidSignature(bytes32 hash, bytes signature) external view returns (bytes4 magicValue);
-    }
-}
 
 pub struct Web3Auth {}
 
