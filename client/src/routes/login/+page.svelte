@@ -8,6 +8,7 @@
 	import { isSuccess } from '$lib/types/client.types';
 	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	let mounted = $state(false);
 
@@ -71,10 +72,8 @@
 	async function request_challenge() {
 		error = '';
 		status = true;
-		console.log('voy a pedir un challenge');
 
 		const response = await api.request_challenge(walletAuthState.email, walletAuthState.address);
-		console.log('ya lo recibí');
 
 		if (!isSuccess(response)) {
 			error = response.message;
@@ -83,14 +82,11 @@
 		}
 
 		const { nonce, message } = response.body;
-		console.log(message);
 
 		try {
 			const signature = await signMessage(wagmiAdapter.wagmiConfig, {
 				message: message
 			});
-
-			console.log('Firma obtenida:', signature);
 
 			const res = await api.verify_signature(
 				walletAuthState.email,
@@ -136,8 +132,6 @@
 			walletAuthState.email &&
 			walletAuthState.address !== lastHandledAddress
 		) {
-			console.log('Gatillando login de wallet para:', walletAuthState.email);
-
 			// Anotamos el address ANTES de llamar, así evitamos loops infinitos si da error
 			lastHandledAddress = walletAuthState.address;
 
@@ -196,10 +190,10 @@
 		<!-- Separador visual si vas a mantener el form de password abajo -->
 		<div class="relative my-6">
 			<div class="absolute inset-0 flex items-center">
-				<span class="w-full border-t border-gray-300"></span>
+				<span class="w-full border-t border-muted"></span>
 			</div>
 			<div class="relative flex justify-center text-xs uppercase">
-				<span class="bg-white px-2 text-gray-500">O usar contraseña</span>
+				<span class="bg-card px-2 text-primary">O usar contraseña</span>
 			</div>
 		</div>
 	{/if}
@@ -207,15 +201,17 @@
 	<form onsubmit={login_user} onchange={() => (status = false)} class="flex flex-col space-y-6">
 		{#if status === null && !error}
 			<div
-				class="rounded-lg border border-green-300 bg-green-100 p-3 text-sm font-medium text-green-700"
+				class="rounded-lg border border-green-300 bg-green-100 p-3 text-sm font-medium text-green-700 dark:border-green-700 dark:bg-green-900 dark:text-green-200"
 			>
 				Login successful! Redirecting...
 			</div>
 		{/if}
 
 		<!-- Error Message -->
-		{#if status === false && error}
-			<div class="rounded-lg border border-red-300 bg-red-100 p-3 text-sm font-medium text-red-700">
+		{#if status === null && error}
+			<div
+				class="rounded-lg border border-red-300 bg-red-100 p-3 text-sm font-medium text-red-700 dark:border-red-700 dark:bg-red-900 dark:text-red-200"
+			>
 				{error}
 			</div>
 		{/if}
@@ -230,7 +226,7 @@
 					type="email"
 					required
 					placeholder="name@example.com"
-					class="rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-black focus:outline-none"
+					class="rounded-md border border-input bg-background p-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
 				/>
 			</div>
 
@@ -243,7 +239,7 @@
 					type="password"
 					required
 					placeholder="••••••••"
-					class="rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-black focus:outline-none"
+					class="rounded-md border border-input bg-background p-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
 				/>
 			</div>
 		</div>
@@ -251,13 +247,13 @@
 		<button
 			type="submit"
 			disabled={status === true}
-			class="w-full rounded-md bg-black px-4 py-2 font-medium text-white transition hover:bg-gray-800 disabled:bg-gray-400"
+			class="w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
 		>
 			{status === true ? 'Logging in...' : 'Log in'}
 		</button>
 		<a
-			href="/register"
-			class="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-center font-medium text-black transition hover:bg-gray-50"
+			href={resolve('/register')}
+			class="w-full rounded-md border border-input bg-background px-4 py-2 text-center font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
 		>
 			Create account
 		</a>

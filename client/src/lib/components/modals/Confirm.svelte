@@ -56,7 +56,7 @@
 >
 	{#snippet children()}
 		{#if message}
-			<p class="text-sm text-gray-600">{message}</p>
+			<p class="text-sm text-muted-foreground">{message}</p>
 		{/if}
 	{/snippet}
 

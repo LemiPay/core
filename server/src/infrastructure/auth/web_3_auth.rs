@@ -6,11 +6,16 @@ use erc6492::verify_signature;
 use std::env;
 use uuid::Uuid;
 
-pub struct Web3Auth {}
+pub struct Web3Auth {
+    rpc_url: String,
+}
 
 impl Web3Auth {
     pub fn new() -> Self {
-        Self {}
+        match env::var("ALCHEMY_RPC_URL") {
+            Ok(url) => Self { rpc_url: url },
+            Err(_) => panic!("ALCHEMY_RPC_URL environment variable not set"),
+        }
     }
 }
 #[async_trait]
@@ -51,12 +56,7 @@ impl Web3AuthTrait for Web3Auth {
 
         let message = eip191_hash_message(self.generate_message(email, nonce.to_string()));
 
-        let rpc_url = match env::var("ALCHEMY_RPC_URL") {
-            Ok(url) => url,
-            Err(_) => return false,
-        };
-
-        let rpc_url = match rpc_url.parse() {
+        let rpc_url = match self.rpc_url.parse() {
             Ok(url) => url,
             Err(_) => return false,
         };

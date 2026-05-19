@@ -42,7 +42,7 @@
 		<!-- Success Message -->
 		{#if status === null && !error}
 			<div
-				class="rounded-lg border border-green-300 bg-green-100 p-3 text-sm font-medium text-green-700"
+				class="rounded-lg border border-green-300 bg-green-100 p-3 text-sm font-medium text-green-700 dark:border-green-700 dark:bg-green-900 dark:text-green-200"
 			>
 				User created successfully! Redirecting...
 			</div>
@@ -50,7 +50,9 @@
 
 		<!-- Error Message -->
 		{#if status === null && error}
-			<div class="rounded-lg border border-red-300 bg-red-100 p-3 text-sm font-medium text-red-700">
+			<div
+				class="rounded-lg border border-red-300 bg-red-100 p-3 text-sm font-medium text-red-700 dark:border-red-700 dark:bg-red-900 dark:text-red-200"
+			>
 				{error}
 			</div>
 		{/if}
@@ -64,7 +66,7 @@
 				type="text"
 				required
 				placeholder="Your full name"
-				class="rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-black focus:outline-none"
+				class="rounded-md border border-input bg-background p-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
 			/>
 		</div>
 
@@ -77,7 +79,7 @@
 				type="email"
 				required
 				placeholder="name@example.com"
-				class="rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-black focus:outline-none"
+				class="rounded-md border border-input bg-background p-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
 			/>
 		</div>
 
@@ -90,7 +92,7 @@
 				type="password"
 				required
 				placeholder="••••••••"
-				class="rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-black focus:outline-none"
+				class="rounded-md border border-input bg-background p-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
 			/>
 		</div>
 
@@ -98,7 +100,7 @@
 		<button
 			type="submit"
 			disabled={status === true}
-			class="w-full rounded-md bg-black px-4 py-2 font-medium text-white transition hover:bg-gray-800 disabled:bg-gray-400"
+			class="w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
 		>
 			{status === true ? 'Registering...' : 'Sign up'}
 		</button>

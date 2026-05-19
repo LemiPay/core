@@ -51,11 +51,6 @@ const syncWallet = () => {
 
 	// Si hay address, para nosotros está conectado
 	walletAuthState.isConnected = !!address;
-
-	console.log('Sincronizado:', {
-		email: walletAuthState.email,
-		address: walletAuthState.address
-	});
 };
 
 // Suscripción a cambios

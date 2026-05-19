@@ -21,7 +21,7 @@
 	}
 </script>
 
-<section class="animate-in fade-in flex flex-col gap-6 duration-300">
+<section class="flex animate-in flex-col gap-6 duration-300 fade-in">
 	<div class="flex items-center justify-between">
 		<h2 class="text-lg font-bold text-black">Actividad Reciente</h2>
 	</div>
