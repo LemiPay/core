@@ -28,9 +28,41 @@ export async function userInfo(id: string): ApiResponse<User> {
 	});
 }
 
+export async function request_challenge(
+	email: any,
+	address: any
+): ApiResponse<{ nonce: string; message: string }> {
+	return authedApiFetch('/auth/request-challenge', {
+		method: 'POST',
+		body: JSON.stringify({
+			email,
+			address
+		})
+	});
+}
+
+export async function verify_signature(
+	email: any,
+	address: any,
+	nonce: string,
+	signature: string
+): ApiResponse<{ token: string; user_id: string }> {
+	return authedApiFetch('/auth/verify-challenge', {
+		method: 'POST',
+		body: JSON.stringify({
+			email,
+			address,
+			signature,
+			nonce
+		})
+	});
+}
+
 export default {
 	register,
 	login,
 	me,
+	request_challenge,
+	verify_signature,
 	userInfo
 };

@@ -164,7 +164,7 @@ diesel::table! {
     user (id) {
         id -> Uuid,
         email -> Text,
-        password -> Text,
+        password -> Nullable<Text>,
         name -> Text,
     }
 }

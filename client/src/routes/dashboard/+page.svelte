@@ -318,9 +318,12 @@
 
 							<div>
 								<h1
-									class="max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl"
+									class="flex max-w-lg items-baseline text-4xl font-semibold tracking-tight text-balance sm:text-5xl"
 								>
-									Hola, {userName} 👋
+									Hola, <span
+										class="mx-2 inline-block max-w-sm overflow-hidden font-semibold tracking-tight text-balance text-ellipsis whitespace-nowrap sm:text-5xl"
+										>{userName}</span
+									> 👋
 								</h1>
 								<p class="mt-3 max-w-2xl text-base text-muted-foreground sm:text-lg">
 									Gestioná tesorerías, gastos grupales y decisiones compartidas desde un solo lugar.

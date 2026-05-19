@@ -4,6 +4,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import { formatAmount, getInitials } from '$lib/utils/format_utils';
 	import type { GroupState } from '../group.svelte';
+	import { shortenAddress } from '$lib/utils/address_utils';
 
 	let { groupState, onInviteClick, onGoToBalances } = $props<{
 		groupState: GroupState;
@@ -48,11 +49,13 @@
 								? 'border-primary bg-primary text-primary-foreground'
 								: 'border-border bg-muted text-muted-foreground'} transition group-hover:border-foreground"
 						>
-							{initials}
+							{member.name.slice(0, 2) === '0x' ? '0x' : initials}
 						</div>
 						<div class="min-w-0 flex-1 space-y-0.5">
 							<p class="truncate text-sm font-medium text-foreground group-hover:underline">
-								{member.name}
+								{member.name && member.name.slice(0, 2) === '0x'
+									? shortenAddress(member.name)
+									: member.name}
 							</p>
 							<p class="text-[11px] text-muted-foreground">{isAdmin ? 'Admin' : 'Miembro'}</p>
 						</div>

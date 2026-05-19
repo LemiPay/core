@@ -219,7 +219,9 @@
 						<div class="flex items-center gap-5">
 							<div>
 								<h1 class="text-4xl font-semibold tracking-tight sm:text-5xl">
-									{user.name}
+									{user.name && user.name.slice(0, 2) == '0x'
+										? shortenAddress(user.name)
+										: user.name}
 								</h1>
 
 								<div class="mt-2 flex items-center gap-1 text-muted-foreground">
