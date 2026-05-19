@@ -1,11 +1,10 @@
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
-use alloy::primitives::{Address, Bytes, Signature, eip191_hash_message};
+use alloy::primitives::{Address, Bytes, eip191_hash_message};
 use alloy::providers::ProviderBuilder;
 use alloy::sol;
 use async_trait::async_trait;
 use erc6492::verify_signature;
 use std::env;
-use std::str::FromStr;
 use uuid::Uuid;
 sol! {
     #[sol(rpc)]
@@ -27,34 +26,14 @@ impl Web3AuthTrait for Web3Auth {
         Uuid::new_v4().to_string()
     }
 
-    fn validate_signature(
-        &self,
-        email: String,
-        address: String,
-        signature: String,
-        nonce: String,
-    ) -> bool {
-        let message = format!(
+    fn generate_message(&self, email: String, nonce: String) -> String {
+        format!(
             "Bienvenido a LemiPay.\n\n\
-            Al firmar este mensaje, confirmas que eres el dueño de esta cuenta.\n\n\
-            Email: {}\n\
-            Nonce: {}",
+        Al firmar este mensaje, confirmas que eres el dueño de esta cuenta.\n\n\
+        Email: {}\n\
+        Nonce: {}",
             email, nonce
-        );
-        let sig = match Signature::from_str(&signature) {
-            Ok(s) => s,
-            Err(_) => return false,
-        };
-
-        let expected_addr = match Address::from_str(&address) {
-            Ok(a) => a,
-            Err(_) => return false,
-        };
-
-        match sig.recover_address_from_msg(message) {
-            Ok(recovered_addr) => recovered_addr == expected_addr,
-            Err(_) => false,
-        }
+        )
     }
 
     async fn validate_signature_rpc(
@@ -77,13 +56,7 @@ impl Web3AuthTrait for Web3Auth {
             Err(_) => return false,
         };
 
-        let message = eip191_hash_message(format!(
-            "Bienvenido a LemiPay.\n\n\
-        Al firmar este mensaje, confirmas que eres el dueño de esta cuenta.\n\n\
-        Email: {}\n\
-        Nonce: {}",
-            email, nonce
-        ));
+        let message = eip191_hash_message(self.generate_message(email, nonce.to_string()));
 
         let rpc_url = match env::var("ALCHEMY_RPC_URL") {
             Ok(url) => url,

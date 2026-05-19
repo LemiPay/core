@@ -4,13 +4,7 @@ use async_trait::async_trait;
 pub trait Web3AuthTrait: Send + Sync {
     fn generate_nonce(&self) -> String;
 
-    fn validate_signature(
-        &self,
-        email: String,
-        address: String,
-        signature: String,
-        nonce: String,
-    ) -> bool;
+    fn generate_message(&self, email: String, nonce: String) -> String;
 
     async fn validate_signature_rpc(
         &self,

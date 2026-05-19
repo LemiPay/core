@@ -125,7 +125,7 @@ impl VerifyChallengeUseCase {
                 amount: Default::default(),
                 currency: CurrencyId(
                     Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d")
-                        .map_err(|e| AppError::Internal)?,
+                        .map_err(|_| AppError::Internal)?,
                 ),
             },
         };
