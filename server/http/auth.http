@@ -18,3 +18,24 @@ Content-Type: application/json
   "email": "{{email}}",
   "password": "{{password}}"
 }
+
+### Request Challenge
+POST {{host}}/auth/request-challenge
+Content-type: application/json
+
+{
+  "email": "{{email2}}",
+  "address": "0x20CE10728D63C82661bAa2aF8F9B76B81146c713"
+}
+
+
+### Verify Challenge
+POST {{host}}/auth/verify-challenge
+Content-type: application/json
+
+{
+  "email": "{{email2}}",
+  "address": "0x20CE10728D63C82661bAa2aF8F9B76B81146c713",
+  "signature": "0x0b1aa5ff965a49bcf786c71d2a98bc64d73ab83871367d37d273546e5186c89971c7a48a8101bbdec1f4a07b7402e5096eeac03140ceac88bda83f20c1475b361b",
+  "nonce": "9fa08329-f050-4143-8b34-10681cf235e6"
+}

@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
+use crate::application::auth::new_user::NewUser;
 use crate::application::auth::{
     error::AuthError,
     register::dto::{RegisterInput, RegisterOutput},
-    stored_user::StoredUser,
     traits::{password_hasher::PasswordHasher, repository::AuthRepository},
 };
-
 use crate::application::users::traits::repository::UserRepository;
-use crate::domain::user::{Email, User, UserId, UserName};
+use crate::domain::user::{Email, UserName};
 
 pub mod dto;
 
@@ -22,7 +21,6 @@ pub struct RegisterUseCase {
 impl RegisterUseCase {
     pub fn execute(&self, input: RegisterInput) -> Result<RegisterOutput, AuthError> {
         let email = Email::new(input.email).map_err(|_| AuthError::InvalidEmail)?;
-
         let name = UserName::new(input.name).map_err(|_| AuthError::InvalidName)?;
 
         if self
@@ -34,27 +32,28 @@ impl RegisterUseCase {
             return Err(AuthError::EmailAlreadyExists);
         }
 
-        // 3. crear user
-        let user = User {
-            id: UserId(uuid::Uuid::new_v4()),
-            name,
-            email,
-        };
+        if input.password.is_empty() {
+            return Err(AuthError::InvalidCredentials);
+        }
 
         let password_hash = self
             .hash_service
             .hash(&input.password)
             .map_err(|_| AuthError::InternalError)?;
 
-        let auth_user = StoredUser {
-            user: user.clone(),
-            password_hash,
+        let auth_user = NewUser {
+            email: email.to_string(),
+            password: Some(password_hash),
+            name: name.to_string(),
         };
 
-        self.auth_repo
+        let saved_user = self
+            .auth_repo
             .save(&auth_user)
             .map_err(|_| AuthError::InternalError)?;
 
-        Ok(RegisterOutput { user_id: user.id })
+        Ok(RegisterOutput {
+            user_id: saved_user.user.id,
+        })
     }
 }
