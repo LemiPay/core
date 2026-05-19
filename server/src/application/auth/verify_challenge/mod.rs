@@ -179,9 +179,6 @@ impl VerifyChallengeUseCase {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::application::auth::verify_challenge;
-    use crate::infrastructure::auth::web_3_auth::Web3Auth;
     use alloy::signers::SignerSync;
     use alloy::signers::local::PrivateKeySigner;
 
