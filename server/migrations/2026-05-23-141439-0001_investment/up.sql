@@ -1,0 +1,14 @@
+CREATE TYPE investment_status AS ENUM ('active', 'matured', 'withdrawn');
+
+CREATE TABLE investment (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    proposal_id UUID NOT NULL REFERENCES investment_proposal(proposal_id) ON DELETE RESTRICT,
+    amount NUMERIC NOT NULL CHECK (amount > 0),
+    current_value NUMERIC NOT NULL,
+    actual_return NUMERIC,
+    status investment_status NOT NULL DEFAULT 'active',
+    started_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    matures_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
