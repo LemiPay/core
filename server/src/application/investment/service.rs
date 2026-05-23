@@ -1,0 +1,198 @@
+use std::{str::FromStr, sync::Arc};
+
+use bigdecimal::BigDecimal;
+use chrono::Utc;
+use uuid::Uuid;
+
+use crate::application::{
+    common::repo_error::RepoError,
+    group::traits::repository::GroupRepository,
+    investment::{
+        dto::{InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto},
+        error::InvestmentError,
+        traits::repository::InvestmentRepository,
+    },
+    treasury::traits::group_wallet_repo::GroupWalletRepository,
+};
+use crate::domain::{
+    group::GroupId,
+    investment::{Investment, InvestmentPolicy},
+    treasury::CurrencyId,
+};
+
+#[derive(Clone)]
+pub struct InvestmentService {
+    pub investment_repo: Arc<dyn InvestmentRepository>,
+    pub group_repo: Arc<dyn GroupRepository>,
+    pub group_wallet_repo: Arc<dyn GroupWalletRepository>,
+}
+
+impl InvestmentService {
+    fn parse_amount(raw: &str) -> Result<BigDecimal, InvestmentError> {
+        BigDecimal::from_str(raw).map_err(|_| InvestmentError::InvalidAmount)
+    }
+
+    fn map_repo<T>(result: Result<T, RepoError>) -> Result<T, InvestmentError> {
+        result.map_err(InvestmentError::from)
+    }
+
+    // ── Strategies ──
+
+    pub fn list_strategies(&self) -> Result<Vec<InvestmentStrategyDto>, InvestmentError> {
+        Self::map_repo(self.investment_repo.list_strategies())
+    }
+
+    // ── Investment Proposals ──
+
+    pub fn create_investment_proposal(
+        &self,
+        created_by: Uuid,
+        group_id: Uuid,
+        amount: String,
+        strategy_id: Uuid,
+        currency_id: Uuid,
+    ) -> Result<InvestmentProposalDetails, InvestmentError> {
+        let amount = Self::parse_amount(&amount)?;
+        InvestmentPolicy::ensure_positive_amount(&amount)?;
+
+        Self::map_repo(self.investment_repo.find_strategy(strategy_id))?
+            .ok_or(InvestmentError::StrategyNotFound)?;
+
+        Self::map_repo(self.investment_repo.create_investment_proposal(
+            created_by,
+            group_id,
+            amount,
+            strategy_id,
+            currency_id,
+        ))
+    }
+
+    // ── Execute Investment ──
+
+    pub fn execute_investment_proposal(
+        &self,
+        user_id: Uuid,
+        group_id: Uuid,
+        proposal_id: Uuid,
+    ) -> Result<InvestmentDetails, InvestmentError> {
+        let proposal = Self::map_repo(self.investment_repo.find_investment_proposal(proposal_id))?
+            .ok_or(InvestmentError::ProposalNotFound)?;
+
+        if proposal.group_id != group_id {
+            return Err(InvestmentError::NotFound);
+        }
+
+        let strategy = Self::map_repo(self.investment_repo.find_strategy(proposal.strategy_id))?
+            .ok_or(InvestmentError::StrategyNotFound)?;
+
+        let expected_return = Investment::calculate_expected_return(
+            &proposal.amount,
+            &strategy.expected_return_percentage,
+        );
+        let matures_at =
+            Investment::calculate_matures_at(Utc::now().naive_utc(), strategy.duration_days);
+
+        Self::map_repo(self.investment_repo.execute_investment(
+            proposal_id,
+            group_id,
+            user_id,
+            proposal.amount,
+            proposal.strategy_id,
+            proposal.currency_id,
+            expected_return,
+            matures_at,
+        ))
+    }
+
+    // ── Mature Investment ──
+
+    pub fn mature_investment(
+        &self,
+        investment_id: Uuid,
+    ) -> Result<InvestmentDetails, InvestmentError> {
+        let stored = Self::map_repo(self.investment_repo.find_investment(investment_id))?
+            .ok_or(InvestmentError::NotFound)?;
+
+        let domain = Investment::rehydrate(
+            crate::domain::investment::InvestmentId(stored.id),
+            GroupId(stored.group_id),
+            crate::domain::governance::ProposalId(stored.proposal_id),
+            crate::domain::investment::InvestmentStrategyId(stored.strategy_id),
+            CurrencyId(stored.currency_id),
+            stored.amount.clone(),
+            stored.expected_return.clone(),
+            stored.actual_return.clone(),
+            stored.status,
+            stored.started_at,
+            stored.matures_at,
+            stored.created_at,
+            stored.updated_at,
+        );
+
+        InvestmentPolicy::ensure_can_mature(&domain)?;
+
+        let actual_return = domain.expected_return.clone();
+
+        Self::map_repo(
+            self.investment_repo
+                .mature_investment(investment_id, actual_return),
+        )
+    }
+
+    // ── Withdraw Investment ──
+
+    pub fn withdraw_investment(
+        &self,
+        user_id: Uuid,
+        group_id: Uuid,
+        investment_id: Uuid,
+    ) -> Result<InvestmentDetails, InvestmentError> {
+        let stored = Self::map_repo(self.investment_repo.find_investment(investment_id))?
+            .ok_or(InvestmentError::NotFound)?;
+
+        if stored.group_id != group_id {
+            return Err(InvestmentError::NotFound);
+        }
+
+        let domain = Investment::rehydrate(
+            crate::domain::investment::InvestmentId(stored.id),
+            GroupId(stored.group_id),
+            crate::domain::governance::ProposalId(stored.proposal_id),
+            crate::domain::investment::InvestmentStrategyId(stored.strategy_id),
+            CurrencyId(stored.currency_id),
+            stored.amount.clone(),
+            stored.expected_return.clone(),
+            stored.actual_return.clone(),
+            stored.status,
+            stored.started_at,
+            stored.matures_at,
+            stored.created_at,
+            stored.updated_at,
+        );
+
+        InvestmentPolicy::ensure_can_withdraw(&domain)?;
+
+        Self::map_repo(
+            self.investment_repo
+                .withdraw_investment(investment_id, group_id, user_id),
+        )
+    }
+
+    // ── List ──
+
+    pub fn list_group_investments(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Vec<InvestmentDetails>, InvestmentError> {
+        Self::map_repo(self.investment_repo.list_group_investments(group_id))
+    }
+
+    // ── Maturation job ──
+
+    pub fn list_maturable_investments(&self) -> Result<Vec<InvestmentDetails>, InvestmentError> {
+        Self::map_repo(
+            self.investment_repo
+                .list_maturable_investments(Utc::now().naive_utc()),
+        )
+    }
+}
