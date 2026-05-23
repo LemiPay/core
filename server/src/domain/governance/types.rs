@@ -21,4 +21,5 @@ pub enum ProposalKind {
     NewMember,
     Withdraw,
     FundRound,
+    Investment,
 }

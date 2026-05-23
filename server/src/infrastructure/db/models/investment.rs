@@ -5,6 +5,7 @@ use diesel_derive_enum::DbEnum;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::domain::investment::InvestmentStatus;
 use crate::infrastructure::db::schema;
 
 #[derive(Debug, DbEnum, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -13,6 +14,26 @@ pub enum InvestmentStatusModel {
     Active,
     Matured,
     Withdrawn,
+}
+
+impl From<InvestmentStatusModel> for InvestmentStatus {
+    fn from(value: InvestmentStatusModel) -> Self {
+        match value {
+            InvestmentStatusModel::Active => InvestmentStatus::Active,
+            InvestmentStatusModel::Matured => InvestmentStatus::Matured,
+            InvestmentStatusModel::Withdrawn => InvestmentStatus::Withdrawn,
+        }
+    }
+}
+
+impl From<InvestmentStatus> for InvestmentStatusModel {
+    fn from(value: InvestmentStatus) -> Self {
+        match value {
+            InvestmentStatus::Active => InvestmentStatusModel::Active,
+            InvestmentStatus::Matured => InvestmentStatusModel::Matured,
+            InvestmentStatus::Withdrawn => InvestmentStatusModel::Withdrawn,
+        }
+    }
 }
 
 // Strategy
