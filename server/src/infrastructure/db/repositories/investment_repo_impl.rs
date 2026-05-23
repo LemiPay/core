@@ -56,7 +56,7 @@ impl DieselInvestmentRepository {
             strategy_id,
             currency_id,
             amount: inv.amount,
-            expected_return: inv.expected_return,
+            current_value: inv.current_value,
             actual_return: inv.actual_return,
             status: inv.status.into(),
             started_at: inv.started_at,
@@ -201,7 +201,6 @@ impl InvestmentRepository for DieselInvestmentRepository {
         amount: BigDecimal,
         strategy_id: Uuid,
         currency_id: Uuid,
-        expected_return: BigDecimal,
         matures_at: NaiveDateTime,
     ) -> Result<InvestmentDetails, RepoError> {
         let mut conn = self.get_conn()?;
@@ -252,7 +251,7 @@ impl InvestmentRepository for DieselInvestmentRepository {
                     id: Uuid::new_v4(),
                     proposal_id,
                     amount: amount.clone(),
-                    expected_return,
+                    current_value: amount.clone(),
                     status: InvestmentStatusModel::Active,
                     started_at: now,
                     matures_at,

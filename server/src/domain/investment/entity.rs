@@ -15,7 +15,7 @@ pub struct Investment {
     pub strategy_id: InvestmentStrategyId,
     pub currency_id: CurrencyId,
     pub amount: BigDecimal,
-    pub expected_return: BigDecimal,
+    pub current_value: BigDecimal,
     pub actual_return: Option<BigDecimal>,
     pub status: InvestmentStatus,
     pub started_at: NaiveDateTime,
@@ -32,7 +32,7 @@ impl Investment {
         strategy_id: InvestmentStrategyId,
         currency_id: CurrencyId,
         amount: BigDecimal,
-        expected_return: BigDecimal,
+        current_value: BigDecimal,
         actual_return: Option<BigDecimal>,
         status: InvestmentStatus,
         started_at: NaiveDateTime,
@@ -47,7 +47,7 @@ impl Investment {
             strategy_id,
             currency_id,
             amount,
-            expected_return,
+            current_value,
             actual_return,
             status,
             started_at,
@@ -59,9 +59,5 @@ impl Investment {
 
     pub fn calculate_matures_at(started_at: NaiveDateTime, duration_days: i32) -> NaiveDateTime {
         started_at + TimeDelta::days(duration_days as i64)
-    }
-
-    pub fn calculate_expected_return(amount: &BigDecimal, return_pct: &BigDecimal) -> BigDecimal {
-        amount * return_pct / BigDecimal::from(100)
     }
 }

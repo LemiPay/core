@@ -4,5 +4,3 @@ pub mod group;
 pub mod investment;
 pub mod treasury;
 pub mod user;
-
-pub mod investment;
