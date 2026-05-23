@@ -1,0 +1,81 @@
+use axum::{
+    Json,
+    extract::{Path, State},
+};
+use uuid::Uuid;
+
+use crate::interfaces::http::{
+    auth::extractor::AuthUser,
+    error::AppError,
+    investment::dto::{
+        CreateInvestmentProposalRequest, ExecuteInvestmentRequest, InvestmentProposalResponse,
+        InvestmentResponse, InvestmentStrategyResponse, WithdrawInvestmentRequest,
+    },
+};
+use crate::setup::state::SharedState;
+
+pub async fn list_strategies(
+    State(state): State<SharedState>,
+) -> Result<Json<Vec<InvestmentStrategyResponse>>, AppError> {
+    let items = state
+        .investment_service
+        .list_strategies()
+        .map_err(AppError::from)?;
+    Ok(Json(items.into_iter().map(Into::into).collect()))
+}
+
+pub async fn create_investment_proposal(
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+    user: AuthUser,
+    Json(payload): Json<CreateInvestmentProposalRequest>,
+) -> Result<Json<InvestmentProposalResponse>, AppError> {
+    let item = state
+        .investment_service
+        .create_investment_proposal(
+            user.user_id.0,
+            group_id,
+            payload.amount,
+            payload.strategy_id,
+            payload.currency_id,
+        )
+        .map_err(AppError::from)?;
+    Ok(Json(item.into()))
+}
+
+pub async fn execute_investment_proposal(
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+    user: AuthUser,
+    Json(payload): Json<ExecuteInvestmentRequest>,
+) -> Result<Json<InvestmentResponse>, AppError> {
+    let item = state
+        .investment_service
+        .execute_investment_proposal(user.user_id.0, group_id, payload.proposal_id)
+        .map_err(AppError::from)?;
+    Ok(Json(item.into()))
+}
+
+pub async fn withdraw_investment(
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+    user: AuthUser,
+    Json(payload): Json<WithdrawInvestmentRequest>,
+) -> Result<Json<InvestmentResponse>, AppError> {
+    let item = state
+        .investment_service
+        .withdraw_investment(user.user_id.0, group_id, payload.investment_id)
+        .map_err(AppError::from)?;
+    Ok(Json(item.into()))
+}
+
+pub async fn list_group_investments(
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Vec<InvestmentResponse>>, AppError> {
+    let items = state
+        .investment_service
+        .list_group_investments(group_id)
+        .map_err(AppError::from)?;
+    Ok(Json(items.into_iter().map(Into::into).collect()))
+}

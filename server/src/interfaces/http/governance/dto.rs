@@ -77,6 +77,7 @@ pub enum ProposalKindResponse {
     NewMember,
     Withdraw,
     FundRound,
+    Investment,
 }
 
 impl From<ProposalKind> for ProposalKindResponse {
@@ -85,6 +86,7 @@ impl From<ProposalKind> for ProposalKindResponse {
             ProposalKind::NewMember => Self::NewMember,
             ProposalKind::Withdraw => Self::Withdraw,
             ProposalKind::FundRound => Self::FundRound,
+            ProposalKind::Investment => Self::Investment,
         }
     }
 }
