@@ -83,11 +83,20 @@ pub struct NewInvestmentModel {
 
 // Investment Value Snapshot
 
-#[derive(Queryable, Selectable, Debug, Insertable)]
+#[derive(Queryable, Selectable, Debug)]
 #[diesel(table_name = schema::investment_value_snapshot)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct InvestmentValueSnapshotModel {
     pub id: Uuid,
+    pub investment_id: Uuid,
+    pub value: BigDecimal,
+    pub snapshot_date: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::investment_value_snapshot)]
+pub struct NewInvestmentValueSnapshotModel {
     pub investment_id: Uuid,
     pub value: BigDecimal,
     pub snapshot_date: NaiveDateTime,
