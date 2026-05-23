@@ -5,7 +5,6 @@ use diesel_derive_enum::DbEnum;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::domain::investment::InvestmentStatus;
 use crate::infrastructure::db::schema;
 
 #[derive(Debug, DbEnum, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -14,26 +13,6 @@ pub enum InvestmentStatusModel {
     Active,
     Matured,
     Withdrawn,
-}
-
-impl From<InvestmentStatusModel> for InvestmentStatus {
-    fn from(value: InvestmentStatusModel) -> Self {
-        match value {
-            InvestmentStatusModel::Active => InvestmentStatus::Active,
-            InvestmentStatusModel::Matured => InvestmentStatus::Matured,
-            InvestmentStatusModel::Withdrawn => InvestmentStatus::Withdrawn,
-        }
-    }
-}
-
-impl From<InvestmentStatus> for InvestmentStatusModel {
-    fn from(value: InvestmentStatus) -> Self {
-        match value {
-            InvestmentStatus::Active => InvestmentStatusModel::Active,
-            InvestmentStatus::Matured => InvestmentStatusModel::Matured,
-            InvestmentStatus::Withdrawn => InvestmentStatusModel::Withdrawn,
-        }
-    }
 }
 
 // Strategy
@@ -79,10 +58,7 @@ pub struct NewInvestmentProposalModel {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct InvestmentModel {
     pub id: Uuid,
-    pub group_id: Uuid,
     pub proposal_id: Uuid,
-    pub strategy_id: Uuid,
-    pub currency_id: Uuid,
     pub amount: BigDecimal,
     pub expected_return: BigDecimal,
     pub actual_return: Option<BigDecimal>,
@@ -97,10 +73,7 @@ pub struct InvestmentModel {
 #[diesel(table_name = schema::investment)]
 pub struct NewInvestmentModel {
     pub id: Uuid,
-    pub group_id: Uuid,
     pub proposal_id: Uuid,
-    pub strategy_id: Uuid,
-    pub currency_id: Uuid,
     pub amount: BigDecimal,
     pub expected_return: BigDecimal,
     pub status: InvestmentStatusModel,

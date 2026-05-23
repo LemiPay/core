@@ -18,6 +18,10 @@ pub mod sql_types {
     pub struct GroupStatus;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "investment_status"))]
+    pub struct InvestmentStatus;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "proposal_status"))]
     pub struct ProposalStatus;
 
@@ -107,6 +111,45 @@ diesel::table! {
         balance -> Numeric,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::InvestmentStatus;
+
+    investment (id) {
+        id -> Uuid,
+        proposal_id -> Uuid,
+        amount -> Numeric,
+        expected_return -> Numeric,
+        actual_return -> Nullable<Numeric>,
+        status -> InvestmentStatus,
+        started_at -> Timestamp,
+        matures_at -> Timestamp,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    investment_proposal (proposal_id) {
+        proposal_id -> Uuid,
+        amount -> Numeric,
+        strategy_id -> Uuid,
+        currency_id -> Uuid,
+    }
+}
+
+diesel::table! {
+    investment_strategy (id) {
+        id -> Uuid,
+        name -> Text,
+        description -> Text,
+        risk_level -> Text,
+        expected_return_percentage -> Numeric,
+        duration_days -> Int4,
+        created_at -> Timestamp,
     }
 }
 
@@ -228,6 +271,10 @@ diesel::joinable!(fund_round_proposal -> currency (currency_id));
 diesel::joinable!(fund_round_proposal -> proposal (proposal_id));
 diesel::joinable!(group_wallet -> currency (currency_id));
 diesel::joinable!(group_wallet -> group (group_id));
+diesel::joinable!(investment -> proposal (proposal_id));
+diesel::joinable!(investment_proposal -> currency (currency_id));
+diesel::joinable!(investment_proposal -> investment_strategy (strategy_id));
+diesel::joinable!(investment_proposal -> proposal (proposal_id));
 diesel::joinable!(new_member_proposal -> proposal (proposal_id));
 diesel::joinable!(new_member_proposal -> user (new_member_id));
 diesel::joinable!(proposal -> group (group_id));
@@ -254,6 +301,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     fund_round_proposal,
     group,
     group_wallet,
+    investment,
+    investment_proposal,
+    investment_strategy,
     new_member_proposal,
     proposal,
     transaction,
