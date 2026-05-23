@@ -122,7 +122,7 @@ diesel::table! {
         id -> Uuid,
         proposal_id -> Uuid,
         amount -> Numeric,
-        expected_return -> Numeric,
+        current_value -> Numeric,
         actual_return -> Nullable<Numeric>,
         status -> InvestmentStatus,
         started_at -> Timestamp,
@@ -149,6 +149,16 @@ diesel::table! {
         risk_level -> Text,
         expected_return_percentage -> Numeric,
         duration_days -> Int4,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    investment_value_snapshot (id) {
+        id -> Uuid,
+        investment_id -> Uuid,
+        value -> Numeric,
+        snapshot_date -> Timestamp,
         created_at -> Timestamp,
     }
 }
@@ -275,6 +285,7 @@ diesel::joinable!(investment -> investment_proposal (proposal_id));
 diesel::joinable!(investment_proposal -> currency (currency_id));
 diesel::joinable!(investment_proposal -> investment_strategy (strategy_id));
 diesel::joinable!(investment_proposal -> proposal (proposal_id));
+diesel::joinable!(investment_value_snapshot -> investment (investment_id));
 diesel::joinable!(new_member_proposal -> proposal (proposal_id));
 diesel::joinable!(new_member_proposal -> user (new_member_id));
 diesel::joinable!(proposal -> group (group_id));
@@ -304,6 +315,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     investment,
     investment_proposal,
     investment_strategy,
+    investment_value_snapshot,
     new_member_proposal,
     proposal,
     transaction,

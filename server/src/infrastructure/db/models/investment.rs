@@ -81,7 +81,7 @@ pub struct InvestmentModel {
     pub id: Uuid,
     pub proposal_id: Uuid,
     pub amount: BigDecimal,
-    pub expected_return: BigDecimal,
+    pub current_value: BigDecimal,
     pub actual_return: Option<BigDecimal>,
     pub status: InvestmentStatusModel,
     pub started_at: NaiveDateTime,
@@ -96,8 +96,29 @@ pub struct NewInvestmentModel {
     pub id: Uuid,
     pub proposal_id: Uuid,
     pub amount: BigDecimal,
-    pub expected_return: BigDecimal,
+    pub current_value: BigDecimal,
     pub status: InvestmentStatusModel,
     pub started_at: NaiveDateTime,
     pub matures_at: NaiveDateTime,
+}
+
+// Investment Value Snapshot
+
+#[derive(Queryable, Selectable, Debug)]
+#[diesel(table_name = schema::investment_value_snapshot)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct InvestmentValueSnapshotModel {
+    pub id: Uuid,
+    pub investment_id: Uuid,
+    pub value: BigDecimal,
+    pub snapshot_date: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::investment_value_snapshot)]
+pub struct NewInvestmentValueSnapshotModel {
+    pub investment_id: Uuid,
+    pub value: BigDecimal,
+    pub snapshot_date: NaiveDateTime,
 }
