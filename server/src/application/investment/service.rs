@@ -17,7 +17,7 @@ use crate::application::{
 use crate::domain::{
     group::GroupId,
     investment::{Investment, InvestmentPolicy},
-    treasury::CurrencyId,
+    treasury::{CurrencyId, Money},
 };
 
 #[derive(Clone)]
@@ -57,6 +57,24 @@ impl InvestmentService {
 
         Self::map_repo(self.investment_repo.find_strategy(strategy_id))?
             .ok_or(InvestmentError::StrategyNotFound)?;
+
+        let wallet = Self::map_repo(
+            self.group_wallet_repo
+                .find_by_group_and_currency(GroupId(group_id), CurrencyId(currency_id)),
+        )?
+        .ok_or(InvestmentError::GroupWalletNotFound)?;
+
+        let amount_money = Money::positive(amount.clone(), CurrencyId(currency_id))
+            .map_err(|_| InvestmentError::InvalidAmount)?;
+
+        let has_enough = wallet
+            .balance
+            .has_enough(&amount_money)
+            .map_err(|_| InvestmentError::Internal)?;
+
+        if !has_enough {
+            return Err(InvestmentError::InsufficientGroupFunds);
+        }
 
         Self::map_repo(self.investment_repo.create_investment_proposal(
             created_by,
