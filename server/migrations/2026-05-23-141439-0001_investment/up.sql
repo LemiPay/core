@@ -2,7 +2,7 @@ CREATE TYPE investment_status AS ENUM ('active', 'matured', 'withdrawn');
 
 CREATE TABLE investment (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    proposal_id UUID NOT NULL REFERENCES proposal(id) ON DELETE RESTRICT,
+    proposal_id UUID NOT NULL REFERENCES investment_proposal(proposal_id) ON DELETE RESTRICT,
     amount NUMERIC NOT NULL CHECK (amount > 0),
     expected_return NUMERIC NOT NULL CHECK (expected_return >= 0),
     actual_return NUMERIC,

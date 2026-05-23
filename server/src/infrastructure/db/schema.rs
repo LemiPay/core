@@ -271,7 +271,7 @@ diesel::joinable!(fund_round_proposal -> currency (currency_id));
 diesel::joinable!(fund_round_proposal -> proposal (proposal_id));
 diesel::joinable!(group_wallet -> currency (currency_id));
 diesel::joinable!(group_wallet -> group (group_id));
-diesel::joinable!(investment -> proposal (proposal_id));
+diesel::joinable!(investment -> investment_proposal (proposal_id));
 diesel::joinable!(investment_proposal -> currency (currency_id));
 diesel::joinable!(investment_proposal -> investment_strategy (strategy_id));
 diesel::joinable!(investment_proposal -> proposal (proposal_id));
