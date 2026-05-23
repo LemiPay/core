@@ -34,7 +34,6 @@ pub trait InvestmentRepository: Send + Sync {
         amount: BigDecimal,
         strategy_id: Uuid,
         currency_id: Uuid,
-        expected_return: BigDecimal,
         matures_at: chrono::NaiveDateTime,
     ) -> Result<InvestmentDetails, RepoError>;
     fn find_investment(&self, investment_id: Uuid) -> Result<Option<InvestmentDetails>, RepoError>;

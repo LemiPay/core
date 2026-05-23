@@ -85,10 +85,6 @@ impl InvestmentService {
         let strategy = Self::map_repo(self.investment_repo.find_strategy(proposal.strategy_id))?
             .ok_or(InvestmentError::StrategyNotFound)?;
 
-        let expected_return = Investment::calculate_expected_return(
-            &proposal.amount,
-            &strategy.expected_return_percentage,
-        );
         let matures_at =
             Investment::calculate_matures_at(Utc::now().naive_utc(), strategy.duration_days);
 
@@ -99,7 +95,6 @@ impl InvestmentService {
             proposal.amount,
             proposal.strategy_id,
             proposal.currency_id,
-            expected_return,
             matures_at,
         ))
     }
@@ -120,7 +115,7 @@ impl InvestmentService {
             crate::domain::investment::InvestmentStrategyId(stored.strategy_id),
             CurrencyId(stored.currency_id),
             stored.amount.clone(),
-            stored.expected_return.clone(),
+            stored.current_value.clone(),
             stored.actual_return.clone(),
             stored.status,
             stored.started_at,
@@ -131,7 +126,7 @@ impl InvestmentService {
 
         InvestmentPolicy::ensure_can_mature(&domain)?;
 
-        let actual_return = domain.expected_return.clone();
+        let actual_return = domain.current_value.clone();
 
         Self::map_repo(
             self.investment_repo
@@ -161,7 +156,7 @@ impl InvestmentService {
             crate::domain::investment::InvestmentStrategyId(stored.strategy_id),
             CurrencyId(stored.currency_id),
             stored.amount.clone(),
-            stored.expected_return.clone(),
+            stored.current_value.clone(),
             stored.actual_return.clone(),
             stored.status,
             stored.started_at,

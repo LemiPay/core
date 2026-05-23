@@ -33,7 +33,7 @@ pub struct InvestmentDetails {
     pub strategy_id: Uuid,
     pub currency_id: Uuid,
     pub amount: BigDecimal,
-    pub expected_return: BigDecimal,
+    pub current_value: BigDecimal,
     pub actual_return: Option<BigDecimal>,
     pub status: InvestmentStatus,
     pub started_at: NaiveDateTime,
