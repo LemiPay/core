@@ -1,0 +1,38 @@
+### GET STRATEGIES
+GET {{host}}/investment/strategies
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+### CREATE INVESTMENT PROPOSAL
+POST {{host}}/investment/proposal/{{group_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "amount": "100",
+  "strategy_id": "e3f21026-7923-4efa-a917-6801558a00b2",
+  "currency_id": "33de6c7c-62a2-4182-813a-9005183be70d"
+}
+
+### EXECUTE INVESTMENT PROPOSAL
+POST {{host}}/investment/execute/{{group_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "proposal_id": "f666b1dc-48fb-47c0-bc86-eef87a75de82"
+}
+
+### GET INVESTMENTS
+GET {{host}}/investment/{{group_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+### WITHDRAW INVESTMENT
+POST {{host}}/investment/withdraw/{{group_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "investment_id": "7d6c44fa-b8b8-4d09-a03b-1b31664ef8ff"
+}
