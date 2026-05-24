@@ -38,7 +38,7 @@
 	{@const target = Number(status.target_amount)}
 	{@const raised = Number(status.total_contributed)}
 	{@const progress = target > 0 ? Math.min(100, Math.round((raised / target) * 100)) : 0}
-	{@const currencyId = status.fund_round.fund_round_proposal.currency_id}
+	{@const currencyId = status.fund_round.fund_round_proposal?.currency_id}
 	{@const ticker = groupState.getTickerForCurrency(currencyId)}
 	{@const compatibleWallets = groupState.getCompatibleUserWallets(currencyId)}
 	{@const isOpen = expandedFundRoundId === proposalId}
