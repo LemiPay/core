@@ -4,6 +4,5 @@ pub struct ChallengeOutput {
 }
 
 pub struct ChallengeInput {
-    pub email: String,
     pub address: String,
 }

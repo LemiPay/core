@@ -32,7 +32,6 @@ pub struct LoginResponse {
 
 #[derive(Deserialize)]
 pub struct ChallengeRequest {
-    pub email: String,
     pub address: String,
 }
 

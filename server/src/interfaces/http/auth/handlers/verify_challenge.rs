@@ -9,16 +9,18 @@ pub async fn verify_challenge(
     Json(verification_request): Json<VerificationRequest>,
 ) -> Result<Json<VerificationResponse>, AppError> {
     let input = VerificationInput {
-        email: verification_request.email,
         address: verification_request.address.clone(),
         nonce: verification_request.nonce.clone(),
         signature: verification_request.signature.clone(),
+        email: verification_request.email.clone(),
     };
+
     let res = state
         .auth_service
         .verify_challenge
         .verify_challenge(input)
         .await?;
+
     Ok(Json(VerificationResponse {
         token: res.token,
         user_id: res.user_id,

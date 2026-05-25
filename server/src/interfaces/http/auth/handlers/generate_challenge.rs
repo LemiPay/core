@@ -9,10 +9,11 @@ pub async fn generate_challenge(
     Json(req): Json<ChallengeRequest>,
 ) -> Result<Json<ChallengeResponse>, AppError> {
     let input = ChallengeInput {
-        email: req.email,
         address: req.address,
     };
+
     let res = state.auth_service.challenge.generate_challenge(input)?;
+
     Ok(Json(ChallengeResponse {
         nonce: res.nonce,
         message: res.message,
