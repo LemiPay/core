@@ -11,7 +11,9 @@ use crate::application::{
     investment::traits::repository::InvestmentRepository,
 };
 use crate::domain::investment::InvestmentStatus;
+use crate::domain::investment::member::NewInvestmentMember;
 use crate::domain::treasury::TransactionType;
+use crate::infrastructure::db::models::investment::NewInvestmentMemberModel;
 use crate::infrastructure::db::{
     models::{
         governance::{
@@ -202,6 +204,7 @@ impl InvestmentRepository for DieselInvestmentRepository {
         strategy_id: Uuid,
         currency_id: Uuid,
         matures_at: NaiveDateTime,
+        partipants: Vec<NewInvestmentMember>,
     ) -> Result<InvestmentDetails, RepoError> {
         let mut conn = self.get_conn()?;
         conn.transaction::<InvestmentDetails, diesel::result::Error, _>(|tx| {
@@ -267,6 +270,23 @@ impl InvestmentRepository for DieselInvestmentRepository {
                     schema::investment_strategy::expected_return_percentage,
                 ))
                 .first::<(String, String, BigDecimal)>(tx)?;
+
+            let member_models: Vec<NewInvestmentMemberModel> = partipants
+                .into_iter()
+                .map(|p| NewInvestmentMemberModel {
+                    investment_id: investment.id,
+                    user_id: p.user_id.0,
+                    balance_at_investment: p.balance_at_investment,
+                    participation_pct: p.participation_pct,
+                    invested_amount: p.invested_amount,
+                    returned_amount: p.returned_amount,
+                    withdrawn_at: p.withdrawn_at,
+                })
+                .collect();
+
+            diesel::insert_into(schema::investment_member::table)
+                .values(&member_models)
+                .execute(tx)?;
 
             Ok(Self::to_investment_details(
                 investment,

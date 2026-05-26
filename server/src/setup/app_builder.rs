@@ -98,9 +98,14 @@ pub fn build_app() -> Router {
         user_wallet_repo,
     );
     let expense_service = build_expense_service(expense_repo.clone());
-    let investment_service =
-        build_investment_service(investment_repo, group_repo.clone(), group_wallet_repo);
-    let balances_service = build_balances_service(transaction_repo, group_repo, expense_repo);
+    let balances_service =
+        build_balances_service(transaction_repo, group_repo.clone(), expense_repo);
+    let investment_service = build_investment_service(
+        investment_repo,
+        group_repo.clone(),
+        group_wallet_repo,
+        balances_service.clone(),
+    );
 
     // -------------------------
     // 5. State

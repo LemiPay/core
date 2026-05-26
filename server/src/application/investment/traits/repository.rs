@@ -5,6 +5,7 @@ use crate::application::common::repo_error::RepoError;
 use crate::application::investment::dto::{
     InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto,
 };
+use crate::domain::investment::member::NewInvestmentMember;
 
 pub trait InvestmentRepository: Send + Sync {
     // Strategies
@@ -35,6 +36,7 @@ pub trait InvestmentRepository: Send + Sync {
         strategy_id: Uuid,
         currency_id: Uuid,
         matures_at: chrono::NaiveDateTime,
+        participants: Vec<NewInvestmentMember>,
     ) -> Result<InvestmentDetails, RepoError>;
     fn find_investment(&self, investment_id: Uuid) -> Result<Option<InvestmentDetails>, RepoError>;
     fn list_group_investments(&self, group_id: Uuid) -> Result<Vec<InvestmentDetails>, RepoError>;

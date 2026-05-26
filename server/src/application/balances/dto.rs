@@ -1,6 +1,5 @@
 use bigdecimal::BigDecimal;
 use uuid::Uuid;
-
 pub struct UserBalanceDetails {
     pub user_name: String,
     pub user_id: Uuid,

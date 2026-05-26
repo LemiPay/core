@@ -1,9 +1,11 @@
 use std::{str::FromStr, sync::Arc};
 
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, Zero};
 use chrono::Utc;
 use uuid::Uuid;
 
+use crate::application::balances::BalancesService;
+use crate::application::balances::dto::UserBalanceDetails;
 use crate::application::{
     common::repo_error::RepoError,
     group::traits::repository::GroupRepository,
@@ -14,6 +16,8 @@ use crate::application::{
     },
     treasury::traits::group_wallet_repo::GroupWalletRepository,
 };
+use crate::domain::investment::member::NewInvestmentMember;
+use crate::domain::user::UserId;
 use crate::domain::{
     group::GroupId,
     investment::{Investment, InvestmentPolicy},
@@ -25,6 +29,7 @@ pub struct InvestmentService {
     pub investment_repo: Arc<dyn InvestmentRepository>,
     pub group_repo: Arc<dyn GroupRepository>,
     pub group_wallet_repo: Arc<dyn GroupWalletRepository>,
+    pub balances_service: BalancesService,
 }
 
 impl InvestmentService {
@@ -106,6 +111,38 @@ impl InvestmentService {
         let matures_at =
             Investment::calculate_matures_at(Utc::now().naive_utc(), strategy.duration_days);
 
+        let balances = self
+            .balances_service
+            .get_balances(group_id)
+            .map_err(|_| InvestmentError::Internal)?;
+
+        let positive_balances: Vec<UserBalanceDetails> = balances
+            .balances
+            .into_iter()
+            .filter(|b| b.balance > BigDecimal::zero())
+            .collect();
+        let sum = positive_balances
+            .iter()
+            .map(|b| &b.balance)
+            .sum::<BigDecimal>();
+
+        let participants = positive_balances
+            .iter()
+            .map(|b| {
+                let pct = (&b.balance / &sum) * BigDecimal::from(100);
+                let invested_amount = &proposal.amount * &pct / BigDecimal::from(100);
+
+                NewInvestmentMember {
+                    user_id: UserId(b.user_id),
+                    balance_at_investment: b.balance.clone(),
+                    participation_pct: pct,
+                    invested_amount,
+                    returned_amount: None,
+                    withdrawn_at: None,
+                }
+            })
+            .collect();
+
         Self::map_repo(self.investment_repo.execute_investment(
             proposal_id,
             group_id,
@@ -114,6 +151,7 @@ impl InvestmentService {
             proposal.strategy_id,
             proposal.currency_id,
             matures_at,
+            participants,
         ))
     }
 

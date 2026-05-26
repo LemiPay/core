@@ -1,5 +1,6 @@
 pub mod entity;
 pub mod error;
+pub mod member;
 pub mod policy;
 pub mod status;
 pub mod strategy;

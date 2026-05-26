@@ -10,7 +10,7 @@ Authorization: Bearer {{token}}
 
 {
   "amount": "100",
-  "strategy_id": "e3f21026-7923-4efa-a917-6801558a00b2",
+  "strategy_id": "2a38acb1-d9fe-42f0-aad5-10226d06f752",
   "currency_id": "33de6c7c-62a2-4182-813a-9005183be70d"
 }
 
@@ -20,7 +20,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "proposal_id": "f666b1dc-48fb-47c0-bc86-eef87a75de82"
+  "proposal_id": "34bf387f-a41a-4283-ad15-509bd80e570d"
 }
 
 ### GET INVESTMENTS

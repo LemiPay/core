@@ -102,6 +102,35 @@ pub struct NewInvestmentModel {
     pub matures_at: NaiveDateTime,
 }
 
+// Investment Member
+
+#[derive(Queryable, Selectable, Debug)]
+#[diesel(table_name = schema::investment_member)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct InvestmentMemberModel {
+    pub id: Uuid,
+    pub investment_id: Uuid,
+    pub user_id: Uuid,
+    pub balance_at_investment: BigDecimal,
+    pub participation_pct: BigDecimal,
+    pub invested_amount: BigDecimal,
+    pub returned_amount: Option<BigDecimal>,
+    pub withdrawn_at: Option<NaiveDateTime>,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::investment_member)]
+pub struct NewInvestmentMemberModel {
+    pub investment_id: Uuid,
+    pub user_id: Uuid,
+    pub balance_at_investment: BigDecimal,
+    pub participation_pct: BigDecimal,
+    pub invested_amount: BigDecimal,
+    pub returned_amount: Option<BigDecimal>,
+    pub withdrawn_at: Option<NaiveDateTime>,
+}
+
 // Investment Value Snapshot
 
 #[derive(Queryable, Selectable, Debug)]
