@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { walletAuthState, authActions } from '../wallet_auth.svelte';
+	import { walletAuthState, authActions, onWalletAuthChange } from '../wallet_auth.svelte';
 	import { signMessage } from '@wagmi/core';
 	import { wagmiAdapter } from '../wallet_auth.svelte';
 
@@ -7,9 +7,13 @@
 	import { authStore } from '$lib/stores/auth';
 	import { isSuccess } from '$lib/types/client.types';
 	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
+	import Modal from '$lib/components/modals/Modal.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import FormField from '$lib/components/input_fields/FormField.svelte';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
+	import { wallet } from 'viem/tempo/actions';
 	let mounted = $state(false);
 
 	let data = $state({
@@ -20,6 +24,17 @@
 	// false: idle | true: loading | null: end
 	let status: boolean | null = $state(false);
 	let error = $state('');
+
+	let socialModalOpen = $state(false);
+	let socialEmail = $state('');
+	let socialName = $state('');
+	let socialAttempted = $state(false);
+
+	const socialEmailTrimmed = $derived(socialEmail.trim());
+	const socialEmailValid = $derived(
+		socialEmailTrimmed.length >= 4 && socialEmailTrimmed.length <= 30
+	);
+	const socialFormValid = $derived(socialEmailValid);
 
 	// NUEVO: Memoria para saber si ya le pedimos la firma a esta address
 	let lastHandledAddress = $state('' as string | undefined);
@@ -75,6 +90,7 @@
 
 		const response = await api.request_challenge(walletAuthState.email, walletAuthState.address);
 
+		console.log('Challenge: ', response);
 		if (!isSuccess(response)) {
 			error = response.message;
 			status = false; // Permitimos reintentar si el challenge falla
@@ -116,31 +132,120 @@
 		}
 	}
 
-	onMount(() => {
-		mounted = true;
-	});
+	function openSocialModal() {
+		socialEmail = walletAuthState.email ?? '';
+		socialName = walletAuthState.name ?? '';
+		socialAttempted = false;
+		socialModalOpen = true;
+	}
 
-	$effect(() => {
+	function handleSocialClose() {
+		socialModalOpen = false;
+		socialEmail = '';
+		socialName = '';
+		socialAttempted = false;
+		void authActions.logout();
+	}
+
+	function handleSocialSubmit(e: SubmitEvent) {
+		e.preventDefault();
+		socialAttempted = true;
+		if (!socialFormValid) return;
+
+		walletAuthState.email = socialEmailTrimmed;
+		walletAuthState.name = socialName.trim() ? socialName.trim() : undefined;
+		lastHandledAddress = walletAuthState.address;
+		socialModalOpen = false;
+
+		request_challenge();
+	}
+
+	function handleWalletAuthChange() {
 		// 1. Si el usuario se desconecta, limpiamos la memoria
 		if (!walletAuthState.isConnected) {
 			lastHandledAddress = '';
 		}
 
 		// 2. Evaluamos si hay que disparar el challenge
+		if (!walletAuthState.isConnected) return;
+
+		if (walletAuthState.isSocial && walletAuthState.address !== lastHandledAddress) {
+			// SOCIAL LOGIN !
+			console.log('Social Login!');
+			lastHandledAddress = walletAuthState.address;
+			request_challenge();
+			return;
+		}
+
+		if (!walletAuthState.isSocial && walletAuthState.email == undefined) {
+			// WALLET LOGIN !
+			console.log('Wallet Login!');
+			if (!socialModalOpen) {
+				openSocialModal();
+			}
+			return;
+		}
+
 		if (
-			walletAuthState.isConnected &&
+			!walletAuthState.isSocial &&
 			walletAuthState.email &&
 			walletAuthState.address !== lastHandledAddress
 		) {
-			// Anotamos el address ANTES de llamar, así evitamos loops infinitos si da error
 			lastHandledAddress = walletAuthState.address;
-
 			request_challenge();
 		}
+	}
+
+	onMount(() => {
+		mounted = true;
+		const unsubscribe = onWalletAuthChange(handleWalletAuthChange);
+		handleWalletAuthChange();
+		return () => {
+			unsubscribe();
+		};
 	});
 </script>
 
 <AuthLayout title="Log in to your account" description="Enter your details to access the platform.">
+	<Modal
+		open={socialModalOpen}
+		title="Asociar cuenta"
+		description="Ingresá un mail para asociar la cuenta y un nombre opcional."
+		onclose={handleSocialClose}
+	>
+		<form id="social-auth-form" onsubmit={handleSocialSubmit} class="space-y-4">
+			<FormField
+				id="social-email"
+				label="Email"
+				type="email"
+				placeholder="name@example.com"
+				minLength={4}
+				maxLength={30}
+				bind:value={socialEmail}
+				attempted={socialAttempted}
+			/>
+
+			<div>
+				<label for="social-name" class="mb-1.5 block text-sm font-medium text-foreground">
+					Nombre (opcional)
+				</label>
+				<input
+					id="social-name"
+					type="text"
+					placeholder="Tu nombre"
+					maxlength="50"
+					bind:value={socialName}
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition placeholder:text-muted-foreground focus:border-ring focus:ring-0 focus:outline-none"
+				/>
+			</div>
+		</form>
+
+		{#snippet footer()}
+			<Button label="Cancelar" variant="secondary" onclick={handleSocialClose} />
+			<Button label="Continuar" type="submit" form="social-auth-form" disabled={!socialFormValid} />
+		{/snippet}
+	</Modal>
+
 	{#if mounted}
 		<div class="mb-6 flex w-full flex-col items-center gap-4">
 			{#if walletAuthState.isConnected}
