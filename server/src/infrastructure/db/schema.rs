@@ -133,6 +133,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    investment_member (id) {
+        id -> Uuid,
+        investment_id -> Uuid,
+        user_id -> Uuid,
+        balance_at_investment -> Numeric,
+        participation_pct -> Numeric,
+        invested_amount -> Numeric,
+        returned_amount -> Nullable<Numeric>,
+        withdrawn_at -> Nullable<Timestamp>,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     investment_proposal (proposal_id) {
         proposal_id -> Uuid,
         amount -> Numeric,
@@ -282,6 +296,8 @@ diesel::joinable!(fund_round_proposal -> proposal (proposal_id));
 diesel::joinable!(group_wallet -> currency (currency_id));
 diesel::joinable!(group_wallet -> group (group_id));
 diesel::joinable!(investment -> investment_proposal (proposal_id));
+diesel::joinable!(investment_member -> investment (investment_id));
+diesel::joinable!(investment_member -> user (user_id));
 diesel::joinable!(investment_proposal -> currency (currency_id));
 diesel::joinable!(investment_proposal -> investment_strategy (strategy_id));
 diesel::joinable!(investment_proposal -> proposal (proposal_id));
@@ -313,6 +329,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     group,
     group_wallet,
     investment,
+    investment_member,
     investment_proposal,
     investment_strategy,
     investment_value_snapshot,
