@@ -13,15 +13,15 @@ use crate::application::{
 use crate::domain::investment::InvestmentStatus;
 use crate::domain::investment::member::NewInvestmentMember;
 use crate::domain::treasury::TransactionType;
-use crate::infrastructure::db::models::investment::NewInvestmentMemberModel;
 use crate::infrastructure::db::{
     models::{
         governance::{
             NewProposalModel, ProposalModel, ProposalStatusModel, ProposalStatusUpdateModel,
         },
         investment::{
-            InvestmentModel, InvestmentProposalModel, InvestmentStatusModel,
-            InvestmentStrategyModel, NewInvestmentModel, NewInvestmentProposalModel,
+            InvestmentMemberModel, InvestmentModel, InvestmentProposalModel, InvestmentStatusModel,
+            InvestmentStrategyModel, NewInvestmentMemberModel, NewInvestmentModel,
+            NewInvestmentProposalModel,
         },
         treasury::{NewTransactionModel, TransactionTypeModel},
     },
@@ -199,7 +199,7 @@ impl InvestmentRepository for DieselInvestmentRepository {
         &self,
         proposal_id: Uuid,
         group_id: Uuid,
-        user_id: Uuid,
+        _user_id: Uuid,
         amount: BigDecimal,
         strategy_id: Uuid,
         currency_id: Uuid,
@@ -228,19 +228,6 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 .filter(schema::group_wallet::currency_id.eq(currency_id))
                 .select((schema::group_wallet::id, schema::group_wallet::address))
                 .first::<(Uuid, String)>(tx)?;
-
-            diesel::insert_into(schema::transaction::table)
-                .values(&NewTransactionModel {
-                    tx_hash: None,
-                    amount: amount.clone(),
-                    user_id,
-                    group_id,
-                    currency_id,
-                    address: wallet.1,
-                    description: Some("Investment execution".into()),
-                    tx_type: TransactionTypeModel::from(TransactionType::Investment),
-                })
-                .execute(tx)?;
 
             diesel::update(schema::proposal::table.filter(schema::proposal::id.eq(proposal_id)))
                 .set(ProposalStatusUpdateModel {
@@ -272,14 +259,14 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 .first::<(String, String, BigDecimal)>(tx)?;
 
             let member_models: Vec<NewInvestmentMemberModel> = partipants
-                .into_iter()
+                .iter()
                 .map(|p| NewInvestmentMemberModel {
                     investment_id: investment.id,
                     user_id: p.user_id.0,
-                    balance_at_investment: p.balance_at_investment,
-                    participation_pct: p.participation_pct,
-                    invested_amount: p.invested_amount,
-                    returned_amount: p.returned_amount,
+                    balance_at_investment: p.balance_at_investment.clone(),
+                    participation_pct: p.participation_pct.clone(),
+                    invested_amount: p.invested_amount.clone(),
+                    returned_amount: p.returned_amount.clone(),
                     withdrawn_at: p.withdrawn_at,
                 })
                 .collect();
@@ -287,6 +274,21 @@ impl InvestmentRepository for DieselInvestmentRepository {
             diesel::insert_into(schema::investment_member::table)
                 .values(&member_models)
                 .execute(tx)?;
+
+            for p in &partipants {
+                diesel::insert_into(schema::transaction::table)
+                    .values(&NewTransactionModel {
+                        tx_hash: None,
+                        amount: p.invested_amount.clone(),
+                        user_id: p.user_id.0,
+                        group_id,
+                        currency_id,
+                        address: wallet.1.clone(),
+                        description: Some("Investment execution".into()),
+                        tx_type: TransactionTypeModel::from(TransactionType::Investment),
+                    })
+                    .execute(tx)?;
+            }
 
             Ok(Self::to_investment_details(
                 investment,
@@ -406,7 +408,7 @@ impl InvestmentRepository for DieselInvestmentRepository {
         &self,
         investment_id: Uuid,
         group_id: Uuid,
-        user_id: Uuid,
+        _user_id: Uuid,
     ) -> Result<InvestmentDetails, RepoError> {
         let mut conn = self.get_conn()?;
         conn.transaction::<InvestmentDetails, diesel::result::Error, _>(|tx| {
@@ -427,6 +429,7 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 .first::<InvestmentProposalModel>(tx)?;
 
             let total_return = inv.amount.clone() + inv.actual_return.clone().unwrap_or_default();
+            let hundred = BigDecimal::from(100);
 
             diesel::update(
                 schema::group_wallet::table
@@ -439,26 +442,65 @@ impl InvestmentRepository for DieselInvestmentRepository {
             ))
             .execute(tx)?;
 
-            let wallet = schema::group_wallet::table
+            let group_wallet_address = schema::group_wallet::table
                 .filter(schema::group_wallet::group_id.eq(proposal.group_id))
                 .filter(schema::group_wallet::currency_id.eq(ip.currency_id))
                 .select(schema::group_wallet::address)
                 .first::<String>(tx)?;
 
-            diesel::insert_into(schema::transaction::table)
-                .values(&NewTransactionModel {
-                    tx_hash: None,
-                    amount: total_return,
-                    user_id,
-                    group_id: proposal.group_id,
-                    currency_id: ip.currency_id,
-                    address: wallet,
-                    description: Some("Investment withdrawal".into()),
-                    tx_type: TransactionTypeModel::from(TransactionType::Investment),
-                })
-                .execute(tx)?;
+            let members = schema::investment_member::table
+                .filter(schema::investment_member::investment_id.eq(investment_id))
+                .select(InvestmentMemberModel::as_select())
+                .load::<InvestmentMemberModel>(tx)?;
 
             let now = chrono::Utc::now().naive_utc();
+
+            for member in &members {
+                let member_return = total_return.clone() * &member.participation_pct / &hundred;
+
+                let user_address = schema::user_wallet::table
+                    .filter(schema::user_wallet::user_id.eq(member.user_id))
+                    .filter(schema::user_wallet::currency_id.eq(ip.currency_id))
+                    .select(schema::user_wallet::address)
+                    .first::<String>(tx)
+                    .optional()?
+                    .unwrap_or_else(|| group_wallet_address.clone());
+
+                diesel::update(
+                    schema::user_wallet::table
+                        .filter(schema::user_wallet::user_id.eq(member.user_id))
+                        .filter(schema::user_wallet::currency_id.eq(ip.currency_id)),
+                )
+                .set((
+                    schema::user_wallet::balance.eq(schema::user_wallet::balance + &member_return),
+                    schema::user_wallet::updated_at.eq(now),
+                ))
+                .execute(tx)?;
+
+                diesel::insert_into(schema::transaction::table)
+                    .values(&NewTransactionModel {
+                        tx_hash: None,
+                        amount: member_return.clone(),
+                        user_id: member.user_id,
+                        group_id: proposal.group_id,
+                        currency_id: ip.currency_id,
+                        address: user_address,
+                        description: Some("Investment return".into()),
+                        tx_type: TransactionTypeModel::from(TransactionType::Deposit),
+                    })
+                    .execute(tx)?;
+
+                diesel::update(
+                    schema::investment_member::table
+                        .filter(schema::investment_member::id.eq(member.id)),
+                )
+                .set((
+                    schema::investment_member::returned_amount.eq(&member_return),
+                    schema::investment_member::withdrawn_at.eq(now),
+                ))
+                .execute(tx)?;
+            }
+
             diesel::update(
                 schema::investment::table.filter(schema::investment::id.eq(investment_id)),
             )
