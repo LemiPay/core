@@ -62,12 +62,19 @@ const syncWallet = () => {
 	const account = modal.getAccount();
 
 	const userEmail = account?.embeddedWalletInfo?.user?.email;
+	const userName = account?.embeddedWalletInfo?.user?.username;
 	const address = account?.address;
 	const isSocial = !!account?.embeddedWalletInfo;
+	const wasSocial = walletAuthState.isSocial;
 
 	walletAuthState.address = address;
 	walletAuthState.email = userEmail;
 	walletAuthState.isSocial = isSocial;
+	if (isSocial) {
+		walletAuthState.name = userName;
+	} else if (!address || wasSocial) {
+		walletAuthState.name = undefined;
+	}
 
 	// Si hay address, para nosotros está conectado
 	walletAuthState.isConnected = !!address;
@@ -95,5 +102,6 @@ export const authActions = {
 	},
 	openLogin: async () => {
 		await modal.open();
+		syncWallet();
 	}
 };

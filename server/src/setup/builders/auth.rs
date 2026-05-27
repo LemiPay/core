@@ -33,7 +33,7 @@ pub fn build_auth_service(
             user_repo: user_repo.clone(),
             hash_service,
         },
-        challenge: ChallengeUseCase::new(web3_service.clone()),
+        challenge: ChallengeUseCase::new(web3_service.clone(), user_wallet_repository.clone()),
         verify_challenge: VerifyChallengeUseCase::new(
             web3_service.clone(),
             user_repo.clone(),

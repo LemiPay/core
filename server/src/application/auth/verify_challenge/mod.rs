@@ -73,20 +73,79 @@ impl VerifyChallengeUseCase {
 
         self.web3_service.cache_remove(&input.address);
 
-        let mail = Email(input.email.clone());
+        let address = input.address.clone();
+        let email = input
+            .email
+            .as_ref()
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+            .map(|value| Email(value.to_string()));
 
-        let find_user = self
-            .user_repository
-            .find_by_email(&mail)
-            .map_err(|_| AppError::Internal)?;
+        let name = input
+            .name
+            .as_ref()
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string());
 
-        let id = match find_user {
-            Some(user) => {
-                let user_id = UserId(user.id.clone());
-                _ = self.handle_known_user(user_id.clone(), mail, input.address);
-                user_id
+        let id = match email {
+            Some(mail) => {
+                let find_user = self
+                    .user_repository
+                    .find_by_email(&mail)
+                    .map_err(|_| AppError::Internal)?;
+
+                match find_user {
+                    Some(user) => {
+                        let user_id = UserId(user.id.clone());
+                        let owner = self
+                            .user_wallet_repository
+                            .find_owner_of_address(&address)
+                            .map_err(|_| AppError::Internal)?;
+
+                        match owner {
+                            Some(owner_id) if owner_id == user_id => {
+                                _ = self.handle_known_user(user_id.clone(), address);
+                                user_id
+                            }
+                            Some(_) => {
+                                return Err(AppError::BadRequest(
+                                    "Email ya está asociado a una cuenta".into(),
+                                ));
+                            }
+                            None => {
+                                if input.allow_linking {
+                                    _ = self.handle_known_user(user_id.clone(), address);
+                                    user_id
+                                } else {
+                                    return Err(AppError::BadRequest(
+                                        "Email ya está asociado a una cuenta".into(),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    None => self.handle_new_user(mail, address, name)?,
+                }
             }
-            None => self.handle_new_user(mail, input.address)?,
+            None => {
+                let owner = self
+                    .user_wallet_repository
+                    .find_owner_of_address(&address)
+                    .map_err(|_| AppError::Internal)?;
+
+                match owner {
+                    Some(user_id) => {
+                        _ = self.handle_known_user(user_id.clone(), address);
+                        user_id
+                    }
+                    None => {
+                        return Err(AppError::BadRequest(
+                            "Email requerido para asociar la wallet".into(),
+                        ));
+                    }
+                }
+            }
         };
 
         let token = self
@@ -100,11 +159,17 @@ impl VerifyChallengeUseCase {
         })
     }
 
-    fn handle_new_user(&self, mail: Email, addr: String) -> Result<UserId, AppError> {
+    fn handle_new_user(
+        &self,
+        mail: Email,
+        addr: String,
+        name: Option<String>,
+    ) -> Result<UserId, AppError> {
+        let resolved_name = name.unwrap_or_else(|| addr.clone());
         let new_user = NewUser {
             email: mail.0,
             password: None,
-            name: addr.to_string(),
+            name: resolved_name,
         };
 
         let saved_user = self
@@ -134,12 +199,7 @@ impl VerifyChallengeUseCase {
         Ok(real_user_id)
     }
 
-    fn handle_known_user(
-        &self,
-        user_id: UserId,
-        _mail: Email,
-        addr: String,
-    ) -> Result<UserId, AppError> {
+    fn handle_known_user(&self, user_id: UserId, addr: String) -> Result<UserId, AppError> {
         let usdc_currency = CurrencyId(
             Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d")
                 .map_err(|_| AppError::Internal)?,

@@ -17,5 +17,6 @@ pub async fn generate_challenge(
     Ok(Json(ChallengeResponse {
         nonce: res.nonce,
         message: res.message,
+        is_linked: res.is_linked,
     }))
 }

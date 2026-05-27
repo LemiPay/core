@@ -29,31 +29,33 @@ export async function userInfo(id: string): ApiResponse<User> {
 }
 
 export async function request_challenge(
-	email: any,
-	address: any
-): ApiResponse<{ nonce: string; message: string }> {
+	address: string
+): ApiResponse<{ nonce: string; message: string; is_linked: boolean }> {
 	return authedApiFetch('/auth/request-challenge', {
 		method: 'POST',
 		body: JSON.stringify({
-			email,
 			address
 		})
 	});
 }
 
 export async function verify_signature(
-	email: any,
-	address: any,
+	email: string | null,
+	name: string | null,
+	address: string,
 	nonce: string,
-	signature: string
+	signature: string,
+	allow_linking: boolean = false
 ): ApiResponse<{ token: string; user_id: string }> {
 	return authedApiFetch('/auth/verify-challenge', {
 		method: 'POST',
 		body: JSON.stringify({
 			email,
+			name,
 			address,
 			signature,
-			nonce
+			nonce,
+			allow_linking
 		})
 	});
 }

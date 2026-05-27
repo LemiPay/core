@@ -4,6 +4,7 @@ use alloy::primitives::Address;
 use std::sync::Arc;
 
 use crate::application::auth::challenge::dto::{ChallengeInput, ChallengeOutput};
+use crate::application::treasury::traits::user_wallet_repo::UserWalletRepository;
 use crate::interfaces::http::error::AppError;
 
 use crate::application::auth::traits::challenge_cache::Web3AuthCacheTrait;
@@ -11,11 +12,18 @@ use crate::infrastructure::auth::web_3_auth::ChallengeData;
 
 pub struct ChallengeUseCase {
     pub web3_service: Arc<dyn Web3AuthCacheTrait>,
+    pub user_wallet_repository: Arc<dyn UserWalletRepository>,
 }
 
 impl ChallengeUseCase {
-    pub fn new(web3_service: Arc<dyn Web3AuthCacheTrait>) -> Self {
-        Self { web3_service }
+    pub fn new(
+        web3_service: Arc<dyn Web3AuthCacheTrait>,
+        user_wallet_repository: Arc<dyn UserWalletRepository>,
+    ) -> Self {
+        Self {
+            web3_service,
+            user_wallet_repository,
+        }
     }
 
     pub fn generate_challenge(&self, input: ChallengeInput) -> Result<ChallengeOutput, AppError> {
@@ -40,7 +48,17 @@ impl ChallengeUseCase {
             },
         );
 
-        Ok(ChallengeOutput { nonce, message })
+        let is_linked = self
+            .user_wallet_repository
+            .find_owner_of_address(&input.address)
+            .map_err(|_| AppError::Internal)?
+            .is_some();
+
+        Ok(ChallengeOutput {
+            nonce,
+            message,
+            is_linked,
+        })
     }
 }
 

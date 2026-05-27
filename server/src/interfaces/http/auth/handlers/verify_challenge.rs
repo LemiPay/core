@@ -13,6 +13,8 @@ pub async fn verify_challenge(
         nonce: verification_request.nonce.clone(),
         signature: verification_request.signature.clone(),
         email: verification_request.email.clone(),
+        name: verification_request.name.clone(),
+        allow_linking: verification_request.allow_linking.unwrap_or(false),
     };
 
     let res = state

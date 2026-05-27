@@ -25,6 +25,7 @@ pub const ADDRESS: &str = "0x000000000000000000000000000000000000dead";
 pub const NONCE: &str = "nonce-123";
 pub const ISSUED_AT: &str = "2024-01-01T00:00:00Z";
 pub const SIGNATURE: &str = "sig";
+pub const NAME: &str = "Test User";
 
 pub fn usdc_currency() -> CurrencyId {
     CurrencyId(Uuid::parse_str("33de6c7c-62a2-4182-813a-9005183be70d").expect("valid currency id"))
@@ -431,7 +432,9 @@ impl TestContext {
 
     pub async fn verify(&self) -> Result<super::super::dto::VerificationOutput, AppError> {
         self.verify_with(VerificationInput {
-            email: EMAIL.to_string(),
+            email: Some(EMAIL.to_string()),
+            name: Some(NAME.to_string()),
+            allow_linking: false,
             address: ADDRESS.to_string(),
             nonce: NONCE.to_string(),
             signature: SIGNATURE.to_string(),

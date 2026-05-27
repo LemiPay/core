@@ -1,6 +1,11 @@
 use super::super::{ChallengeUseCase, dto::ChallengeInput};
 use crate::application::auth::traits::challenge_cache::{ChallengeCacheTrait, Web3AuthCacheTrait};
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
+use crate::application::common::repo_error::RepoError;
+use crate::application::treasury::dto::{UserWalletDetails, UserWalletWithTickerDetails};
+use crate::application::treasury::traits::user_wallet_repo::UserWalletRepository;
+use crate::domain::treasury::{CurrencyId, Money, UserWallet, UserWalletId};
+use crate::domain::user::UserId;
 use crate::infrastructure::auth::web_3_auth::ChallengeData;
 use crate::interfaces::http::error::AppError;
 use alloy::primitives::Address;
@@ -108,6 +113,85 @@ impl ChallengeCacheTrait for FakeWeb3Auth {
 
 impl Web3AuthCacheTrait for FakeWeb3Auth {}
 
+#[derive(Default)]
+pub struct FakeWalletRepo {
+    wallets_by_id: Mutex<HashMap<UserWalletId, UserWallet>>,
+    wallets_by_address_currency: Mutex<HashMap<(String, CurrencyId), UserWallet>>,
+    owners_by_address: Mutex<HashMap<String, UserId>>,
+}
+
+impl UserWalletRepository for FakeWalletRepo {
+    fn save(&self, wallet: &UserWallet) -> Result<(), RepoError> {
+        self.wallets_by_id
+            .lock()
+            .expect("wallets_by_id mutex poisoned")
+            .insert(wallet.id, wallet.clone());
+        self.wallets_by_address_currency
+            .lock()
+            .expect("wallets_by_address_currency mutex poisoned")
+            .insert(
+                (wallet.address.clone(), wallet.balance.currency),
+                wallet.clone(),
+            );
+        self.owners_by_address
+            .lock()
+            .expect("owners_by_address mutex poisoned")
+            .insert(wallet.address.clone(), wallet.user_id);
+        Ok(())
+    }
+
+    fn find_by_id(&self, id: UserWalletId) -> Result<Option<UserWallet>, RepoError> {
+        Ok(self
+            .wallets_by_id
+            .lock()
+            .expect("wallets_by_id mutex poisoned")
+            .get(&id)
+            .cloned())
+    }
+
+    fn find_by_address_and_currency(
+        &self,
+        address: &str,
+        currency: CurrencyId,
+    ) -> Result<Option<UserWallet>, RepoError> {
+        Ok(self
+            .wallets_by_address_currency
+            .lock()
+            .expect("wallets_by_address_currency mutex poisoned")
+            .get(&(address.to_string(), currency))
+            .cloned())
+    }
+
+    fn find_owner_of_address(&self, address: &str) -> Result<Option<UserId>, RepoError> {
+        Ok(self
+            .owners_by_address
+            .lock()
+            .expect("owners_by_address mutex poisoned")
+            .get(address)
+            .cloned())
+    }
+
+    fn transfer(
+        &self,
+        _sender: UserWalletId,
+        _receiver: UserWalletId,
+        _amount: &Money,
+    ) -> Result<(), RepoError> {
+        Ok(())
+    }
+
+    fn get_details(&self, _id: UserWalletId) -> Result<Option<UserWalletDetails>, RepoError> {
+        Ok(None)
+    }
+
+    fn list_with_ticker_by_user(
+        &self,
+        _user_id: UserId,
+    ) -> Result<Vec<UserWalletWithTickerDetails>, RepoError> {
+        Ok(Vec::new())
+    }
+}
+
 pub struct TestContext {
     pub use_case: ChallengeUseCase,
     pub web3: Arc<FakeWeb3Auth>,
@@ -116,7 +200,8 @@ pub struct TestContext {
 impl TestContext {
     pub fn new() -> Self {
         let web3 = Arc::new(FakeWeb3Auth::new());
-        let use_case = ChallengeUseCase::new(web3.clone());
+        let wallet_repo = Arc::new(FakeWalletRepo::default());
+        let use_case = ChallengeUseCase::new(web3.clone(), wallet_repo);
 
         Self { use_case, web3 }
     }

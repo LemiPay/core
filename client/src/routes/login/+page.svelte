@@ -36,8 +36,21 @@
 	);
 	const socialFormValid = $derived(socialEmailValid);
 
+	type PendingChallenge = {
+		nonce: string;
+		message: string;
+		is_linked: boolean;
+		address: string;
+	};
+
 	// NUEVO: Memoria para saber si ya le pedimos la firma a esta address
 	let lastHandledAddress = $state('' as string | undefined);
+	let pendingChallenge = $state(null as PendingChallenge | null);
+	let walletNotice = $state('');
+	let challengeInFlight = $state(false);
+	let challengeInFlightAddress = $state('' as string | undefined);
+	let signingInFlight = $state(false);
+	let signingAddress = $state('' as string | undefined);
 
 	function getSafeRedirectPath(redirectTo: string | null): string {
 		if (!redirectTo) return '/dashboard';
@@ -84,20 +97,46 @@
 		}, 1000);
 	}
 
-	async function request_challenge() {
+	async function fetch_challenge(address: string) {
+		if (challengeInFlight && challengeInFlightAddress === address) return;
+		const requestedAddress = address;
+		challengeInFlight = true;
+		challengeInFlightAddress = requestedAddress;
+		walletNotice = '';
 		error = '';
 		status = true;
 
-		const response = await api.request_challenge(walletAuthState.email, walletAuthState.address);
+		try {
+			const response = await api.request_challenge(address);
+			console.log('Challenge: ', response);
+			if (!isSuccess(response)) {
+				error = response.message;
+				status = false; // Permitimos reintentar si el challenge falla
+				return;
+			}
+			return response.body;
+		} finally {
+			if (challengeInFlightAddress === requestedAddress) {
+				challengeInFlight = false;
+				challengeInFlightAddress = '';
+			}
+		}
+	}
 
-		console.log('Challenge: ', response);
-		if (!isSuccess(response)) {
-			error = response.message;
-			status = false; // Permitimos reintentar si el challenge falla
+	async function complete_challenge(nonce: string, message: string) {
+		error = '';
+		status = true;
+
+		const address = walletAuthState.address;
+		if (!address) {
+			error = 'Wallet no conectada.';
+			status = false;
 			return;
 		}
-
-		const { nonce, message } = response.body;
+		if (signingInFlight && signingAddress === address) return;
+		const signingFor = address;
+		signingInFlight = true;
+		signingAddress = signingFor;
 
 		try {
 			const signature = await signMessage(wagmiAdapter.wagmiConfig, {
@@ -105,10 +144,12 @@
 			});
 
 			const res = await api.verify_signature(
-				walletAuthState.email,
-				walletAuthState.address,
+				walletAuthState.email ?? null,
+				walletAuthState.name ?? null,
+				address,
 				nonce,
-				signature
+				signature,
+				walletAuthState.isSocial
 			);
 
 			if (!isSuccess(res)) {
@@ -119,6 +160,8 @@
 
 			await authStore.login(res.body.token);
 			status = null;
+			lastHandledAddress = signingFor;
+			walletNotice = '';
 
 			const redirectTo = getSafeRedirectPath(page.url.searchParams.get('redirectTo'));
 
@@ -129,7 +172,23 @@
 			error = 'Firma rechazada por el usuario.';
 			status = false;
 			console.error('Error al firmar:', err);
+		} finally {
+			if (signingAddress === signingFor) {
+				signingInFlight = false;
+				signingAddress = '';
+			}
 		}
+	}
+
+	async function request_and_complete_challenge(address: string | undefined) {
+		if (!address) {
+			error = 'Wallet no conectada.';
+			status = false;
+			return;
+		}
+		const challenge = await fetch_challenge(address);
+		if (!challenge) return;
+		await complete_challenge(challenge.nonce, challenge.message);
 	}
 
 	function openSocialModal() {
@@ -139,11 +198,26 @@
 		socialModalOpen = true;
 	}
 
-	function handleSocialClose() {
+	function cancelWalletLoginModal() {
+		if (!socialModalOpen && !pendingChallenge) return;
 		socialModalOpen = false;
 		socialEmail = '';
 		socialName = '';
 		socialAttempted = false;
+		pendingChallenge = null;
+		walletNotice = '';
+		if (challengeInFlight) {
+			challengeInFlight = false;
+			challengeInFlightAddress = '';
+		}
+	}
+
+	function handleSocialClose() {
+		cancelWalletLoginModal();
+		challengeInFlight = false;
+		challengeInFlightAddress = '';
+		signingInFlight = false;
+		signingAddress = '';
 		void authActions.logout();
 	}
 
@@ -155,33 +229,73 @@
 		walletAuthState.email = socialEmailTrimmed;
 		walletAuthState.name = socialName.trim() ? socialName.trim() : undefined;
 		lastHandledAddress = walletAuthState.address;
+		const cachedChallenge = pendingChallenge;
+		pendingChallenge = null;
 		socialModalOpen = false;
 
-		request_challenge();
+		if (cachedChallenge && cachedChallenge.address === walletAuthState.address) {
+			complete_challenge(cachedChallenge.nonce, cachedChallenge.message);
+			return;
+		}
+
+		if (walletAuthState.address) {
+			request_and_complete_challenge(walletAuthState.address);
+		}
 	}
 
 	function handleWalletAuthChange() {
 		// 1. Si el usuario se desconecta, limpiamos la memoria
 		if (!walletAuthState.isConnected) {
 			lastHandledAddress = '';
+			pendingChallenge = null;
+			walletNotice = '';
+			challengeInFlight = false;
+			challengeInFlightAddress = '';
+			signingInFlight = false;
+			signingAddress = '';
 		}
 
 		// 2. Evaluamos si hay que disparar el challenge
 		if (!walletAuthState.isConnected) return;
+		if (signingInFlight) return;
+
+		if (walletAuthState.isSocial) {
+			cancelWalletLoginModal();
+		}
 
 		if (walletAuthState.isSocial && walletAuthState.address !== lastHandledAddress) {
 			// SOCIAL LOGIN !
 			console.log('Social Login!');
 			lastHandledAddress = walletAuthState.address;
-			request_challenge();
+			pendingChallenge = null;
+			request_and_complete_challenge(walletAuthState.address);
 			return;
+		}
+
+		if (pendingChallenge && pendingChallenge.address !== walletAuthState.address) {
+			pendingChallenge = null;
 		}
 
 		if (!walletAuthState.isSocial && walletAuthState.email == undefined) {
 			// WALLET LOGIN !
 			console.log('Wallet Login!');
-			if (!socialModalOpen) {
-				openSocialModal();
+			if (socialModalOpen || pendingChallenge) return;
+			if (walletAuthState.address) {
+				fetch_challenge(walletAuthState.address).then((challenge) => {
+					if (!challenge || !walletAuthState.address) return;
+					if (challenge.is_linked) {
+						walletNotice = 'Wallet ya vinculada. Firmá para iniciar sesión.';
+						pendingChallenge = null;
+						complete_challenge(challenge.nonce, challenge.message);
+						return;
+					}
+					walletNotice = '';
+					pendingChallenge = { ...challenge, address: walletAuthState.address };
+					status = false;
+					if (!socialModalOpen) {
+						openSocialModal();
+					}
+				});
 			}
 			return;
 		}
@@ -192,7 +306,8 @@
 			walletAuthState.address !== lastHandledAddress
 		) {
 			lastHandledAddress = walletAuthState.address;
-			request_challenge();
+			pendingChallenge = null;
+			request_and_complete_challenge(walletAuthState.address);
 		}
 	}
 
@@ -248,6 +363,11 @@
 
 	{#if mounted}
 		<div class="mb-6 flex w-full flex-col items-center gap-4">
+			{#if walletNotice}
+				<div class="w-full rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-700">
+					{walletNotice}
+				</div>
+			{/if}
 			{#if walletAuthState.isConnected}
 				<!-- Estado: Conectado -->
 				<div class="w-full rounded-lg border border-green-200 bg-green-50 p-4">
@@ -313,7 +433,7 @@
 		{/if}
 
 		<!-- Error Message -->
-		{#if status === null && error}
+		{#if error && status !== true}
 			<div
 				class="rounded-lg border border-red-300 bg-red-100 p-3 text-sm font-medium text-red-700 dark:border-red-700 dark:bg-red-900 dark:text-red-200"
 			>

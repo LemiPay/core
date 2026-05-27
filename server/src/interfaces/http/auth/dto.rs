@@ -39,11 +39,14 @@ pub struct ChallengeRequest {
 pub struct ChallengeResponse {
     pub nonce: String,
     pub message: String,
+    pub is_linked: bool,
 }
 
 #[derive(Deserialize)]
 pub struct VerificationRequest {
-    pub email: String,
+    pub email: Option<String>,
+    pub name: Option<String>,
+    pub allow_linking: Option<bool>,
     pub address: String,
     pub nonce: String,
     pub signature: String,
