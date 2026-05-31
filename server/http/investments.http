@@ -9,8 +9,8 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "amount": "100",
-  "strategy_id": "5f267d25-4370-4402-9f1d-93695147e484",
+  "amount": "50",
+  "strategy_id": "e3f21026-7923-4efa-a917-6801558a00b2",
   "currency_id": "33de6c7c-62a2-4182-813a-9005183be70d"
 }
 
@@ -20,7 +20,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "proposal_id": "cdd85569-08f7-4726-9890-cd8023444982"
+  "proposal_id": "40ab35cc-713b-49d8-bec4-11cacb7fb0ca"
 }
 
 ### GET INVESTMENTS
@@ -34,5 +34,5 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "investment_id": "f2ce796b-0212-4cfe-a911-394a17020096"
+  "investment_id": "97f7da58-f522-4a0c-8207-2e0b42efb9b5"
 }

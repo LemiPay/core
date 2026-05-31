@@ -1,5 +1,6 @@
 pub mod dto;
 pub mod error;
+pub mod pulse;
 pub mod service;
 pub mod traits;
 

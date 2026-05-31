@@ -38,7 +38,7 @@ use crate::{
     setup::config::AppConfig,
 };
 
-pub fn build_app() -> Router {
+pub fn build_app() -> (Router, DbPool) {
     // -------------------------
     // 1. Config
     // -------------------------
@@ -125,7 +125,7 @@ pub fn build_app() -> Router {
     });
 
     // -------------------------
-    // 6. Router
+    // 6. Router + Pool
     // -------------------------
-    create_router(state)
+    (create_router(state), pool)
 }
