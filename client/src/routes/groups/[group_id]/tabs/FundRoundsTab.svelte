@@ -108,7 +108,7 @@
 						{shortenAddress}
 						onToggleAccordion={toggleFundRoundAccordion}
 						onContribute={handleContribute}
-						onCancelRound={(id) => groupState.openCancelFundRoundModal(id)}
+						onCancelRound={(id) => onCancelFundRound(id)}
 					/>
 				{/each}
 			{:else}
