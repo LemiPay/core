@@ -19,7 +19,7 @@
 	import type { FundRoundStatusResponse } from '$lib/types/endpoints/fund_rounds.types';
 	import FundRoundCard from '$lib/components/pages/fundRound/FundRoundCard.svelte';
 
-	let { groupState, onCreateFundRound, onCancelFundRound } = $props<{
+	let { groupState, onCreateFundRound } = $props<{
 		groupState: GroupState;
 		onCreateFundRound: () => void;
 		onCancelFundRound: (id: string) => void;
@@ -27,7 +27,6 @@
 
 	let currentUserId = () => groupState.currentUserId;
 
-	// Estado local UI
 	let expandedFundRoundId = $state<string | null>(null);
 	let selectedContribWalletId = $state('');
 	let showPastFundRounds = $state(false);
@@ -92,7 +91,7 @@
 					<FundRoundCard
 						{status}
 						{expandedFundRoundId}
-						{selectedContribWalletId}
+						bind:selectedContribWalletId
 						recommended={groupState.recommendedAmount(status.target_amount)}
 						myContribution={Number(
 							groupState.myContributions[status.fund_round.proposal.id] ?? '0'
@@ -108,7 +107,7 @@
 						{shortenAddress}
 						onToggleAccordion={toggleFundRoundAccordion}
 						onContribute={handleContribute}
-						onCancelRound={(id) => onCancelFundRound(id)}
+						onCancelRound={(id) => groupState.openCancelFundRoundModal(id)}
 					/>
 				{/each}
 			{:else}
@@ -149,7 +148,7 @@
 							<FundRoundCard
 								{status}
 								{expandedFundRoundId}
-								{selectedContribWalletId}
+								bind:selectedContribWalletId
 								recommended={groupState.recommendedAmount(status.target_amount)}
 								myContribution={Number(
 									groupState.myContributions[status.fund_round.proposal.id] ?? '0'

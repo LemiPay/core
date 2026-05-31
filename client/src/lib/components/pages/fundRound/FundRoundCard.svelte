@@ -15,7 +15,7 @@
 	let {
 		status,
 		expandedFundRoundId,
-		selectedContribWalletId,
+		selectedContribWalletId = $bindable(),
 		recommended,
 		myContribution,
 		ticker,
