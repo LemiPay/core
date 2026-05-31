@@ -81,6 +81,7 @@ export class GroupState {
 	}
 
 	get activeFundRounds() {
+		console.log(this.fundRounds);
 		return this.fundRounds.filter(
 			(r) =>
 				r.fund_round.proposal.status === 'Pending' || r.fund_round.proposal.status === 'Approved'

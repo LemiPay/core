@@ -15,10 +15,17 @@ export type FundRoundProposalExpanded = {
 };
 
 export type FundRoundStatusResponse = {
-	fund_round: FundRoundProposalExpanded;
+	fund_round: FundRoundProposalResponse;
 	total_contributed: string;
 	target_amount: string;
 	is_completed: boolean;
+};
+
+export type FundRoundProposalResponse = {
+	proposal: Proposal;
+	target_amount: string;
+	currency_id: string;
+	kind: ProposalType;
 };
 
 export type FundRoundContribution = {

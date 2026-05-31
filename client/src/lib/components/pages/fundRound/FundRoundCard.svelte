@@ -12,32 +12,21 @@
 	} from 'lucide-svelte';
 
 	import type { FundRoundCardProps } from '$lib/components/pages/fundRound/FundRoundCard.types';
-
 	let {
 		status,
-
 		expandedFundRoundId,
 		selectedContribWalletId,
-
 		recommended,
 		myContribution,
-
 		ticker,
-
 		compatibleWallets,
-
 		contribLoading,
 		contribError,
-
 		memberCount,
-
 		currentUserId,
-
 		formatAmount,
 		shortenAddress,
-
 		statusDisplay,
-
 		onToggleAccordion,
 		onContribute,
 		onCancelRound
