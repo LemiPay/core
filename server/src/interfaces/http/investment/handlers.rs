@@ -9,7 +9,8 @@ use crate::interfaces::http::{
     error::AppError,
     investment::dto::{
         CreateInvestmentProposalRequest, ExecuteInvestmentRequest, InvestmentProposalResponse,
-        InvestmentResponse, InvestmentStrategyResponse, WithdrawInvestmentRequest,
+        InvestmentResponse, InvestmentStrategyResponse, SnapshotResponse,
+        WithdrawInvestmentRequest,
     },
 };
 use crate::setup::state::SharedState;
@@ -76,6 +77,17 @@ pub async fn list_group_investments(
     let items = state
         .investment_service
         .list_group_investments(group_id)
+        .map_err(AppError::from)?;
+    Ok(Json(items.into_iter().map(Into::into).collect()))
+}
+
+pub async fn get_investment_snapshots(
+    State(state): State<SharedState>,
+    Path(investment_id): Path<Uuid>,
+) -> Result<Json<Vec<SnapshotResponse>>, AppError> {
+    let items = state
+        .investment_service
+        .list_snapshots(investment_id)
         .map_err(AppError::from)?;
     Ok(Json(items.into_iter().map(Into::into).collect()))
 }

@@ -26,6 +26,13 @@ pub struct InvestmentProposalDetails {
     pub currency_id: Uuid,
 }
 
+pub struct SnapshotDto {
+    pub investment_id: Uuid,
+    pub value: BigDecimal,
+    pub snapshot_date: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+}
+
 pub struct InvestmentDetails {
     pub id: Uuid,
     pub group_id: Uuid,

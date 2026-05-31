@@ -36,3 +36,8 @@ Authorization: Bearer {{token}}
 {
   "investment_id": "97f7da58-f522-4a0c-8207-2e0b42efb9b5"
 }
+
+### GET SNAPSHOTS
+GET {{host}}/investment/97f7da58-f522-4a0c-8207-2e0b42efb9b5/snapshots
+Content-Type: application/json
+Authorization: Bearer {{token}}

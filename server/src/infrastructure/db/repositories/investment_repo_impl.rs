@@ -7,7 +7,9 @@ use uuid::Uuid;
 
 use crate::application::{
     common::repo_error::RepoError,
-    investment::dto::{InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto},
+    investment::dto::{
+        InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto, SnapshotDto,
+    },
     investment::traits::repository::InvestmentRepository,
 };
 use crate::domain::investment::InvestmentStatus;
@@ -574,6 +576,27 @@ impl InvestmentRepository for DieselInvestmentRepository {
             .into_iter()
             .map(|(inv, currency_id, sid, gid, name, risk, pct)| {
                 Self::to_investment_details(inv, gid, sid, currency_id, name, risk, pct)
+            })
+            .collect())
+    }
+
+    fn list_snapshots(&self, investment_id: Uuid) -> Result<Vec<SnapshotDto>, RepoError> {
+        use crate::infrastructure::db::models::investment::InvestmentValueSnapshotModel;
+
+        let mut conn = self.get_conn()?;
+        let rows = schema::investment_value_snapshot::table
+            .filter(schema::investment_value_snapshot::investment_id.eq(investment_id))
+            .order_by(schema::investment_value_snapshot::snapshot_date.asc())
+            .select(InvestmentValueSnapshotModel::as_select())
+            .load::<InvestmentValueSnapshotModel>(&mut conn)
+            .map_err(|_| RepoError::Query)?;
+        Ok(rows
+            .into_iter()
+            .map(|s| SnapshotDto {
+                investment_id: s.investment_id,
+                value: s.value,
+                snapshot_date: s.snapshot_date,
+                created_at: s.created_at,
             })
             .collect())
     }

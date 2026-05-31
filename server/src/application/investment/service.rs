@@ -10,7 +10,7 @@ use crate::application::{
     common::repo_error::RepoError,
     group::traits::repository::GroupRepository,
     investment::{
-        dto::{InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto},
+        dto::{InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto, SnapshotDto},
         error::InvestmentError,
         traits::repository::InvestmentRepository,
     },
@@ -236,6 +236,12 @@ impl InvestmentService {
         group_id: Uuid,
     ) -> Result<Vec<InvestmentDetails>, InvestmentError> {
         Self::map_repo(self.investment_repo.list_group_investments(group_id))
+    }
+
+    // ── Snapshots ──
+
+    pub fn list_snapshots(&self, investment_id: Uuid) -> Result<Vec<SnapshotDto>, InvestmentError> {
+        Self::map_repo(self.investment_repo.list_snapshots(investment_id))
     }
 
     // ── Maturation job ──

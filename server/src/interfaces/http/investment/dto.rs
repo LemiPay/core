@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::application::investment::dto::{
-    InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto,
+    InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto, SnapshotDto,
 };
 use crate::domain::investment::InvestmentStatus;
 
@@ -136,6 +136,25 @@ impl From<InvestmentDetails> for InvestmentResponse {
             strategy_name: value.strategy_name,
             risk_level: value.risk_level,
             expected_return_percentage: value.expected_return_percentage,
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct SnapshotResponse {
+    pub investment_id: Uuid,
+    pub value: BigDecimal,
+    pub snapshot_date: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+}
+
+impl From<SnapshotDto> for SnapshotResponse {
+    fn from(value: SnapshotDto) -> Self {
+        Self {
+            investment_id: value.investment_id,
+            value: value.value,
+            snapshot_date: value.snapshot_date,
+            created_at: value.created_at,
         }
     }
 }

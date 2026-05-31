@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::application::common::repo_error::RepoError;
 use crate::application::investment::dto::{
-    InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto,
+    InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto, SnapshotDto,
 };
 use crate::domain::investment::member::NewInvestmentMember;
 
@@ -55,4 +55,7 @@ pub trait InvestmentRepository: Send + Sync {
         &self,
         now: chrono::NaiveDateTime,
     ) -> Result<Vec<InvestmentDetails>, RepoError>;
+
+    // Snapshots
+    fn list_snapshots(&self, investment_id: Uuid) -> Result<Vec<SnapshotDto>, RepoError>;
 }
