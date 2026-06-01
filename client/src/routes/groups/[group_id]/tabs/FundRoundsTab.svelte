@@ -19,7 +19,7 @@
 	import type { FundRoundStatusResponse } from '$lib/types/endpoints/fund_rounds.types';
 	import FundRoundCard from '$lib/components/pages/fundRound/FundRoundCard.svelte';
 
-	let { groupState, onCreateFundRound } = $props<{
+	let { groupState, onCreateFundRound, onCancelFundRound } = $props<{
 		groupState: GroupState;
 		onCreateFundRound: () => void;
 		onCancelFundRound: (id: string) => void;
@@ -107,7 +107,7 @@
 						{shortenAddress}
 						onToggleAccordion={toggleFundRoundAccordion}
 						onContribute={handleContribute}
-						onCancelRound={(id) => groupState.openCancelFundRoundModal(id)}
+						onCancelRound={(id) => onCancelFundRound(id)}
 					/>
 				{/each}
 			{:else}
@@ -122,14 +122,16 @@
 
 			{#if groupState.pastFundRounds.length > 0}
 				<div class="flex items-center gap-3 pt-4 pb-1">
-					<div class="h-px flex-1 bg-gray-200"></div>
+					<div class="h-px flex-1 bg-border"></div>
 					<button
 						type="button"
 						onclick={() => (showPastFundRounds = !showPastFundRounds)}
-						class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-[11px] font-medium text-gray-600 transition hover:border-gray-300 hover:text-black"
+						class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground transition hover:border-input hover:text-foreground"
 					>
 						{showPastFundRounds ? 'Ocultar' : 'Ver'} rondas pasadas
-						<span class="rounded-full bg-gray-100 px-1.5 text-[10px] font-semibold text-gray-600">
+						<span
+							class="rounded-full bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground"
+						>
 							{groupState.pastFundRounds.length}
 						</span>
 						<ChevronDown
@@ -139,7 +141,7 @@
 							].join(' ')}
 						/>
 					</button>
-					<div class="h-px flex-1 bg-gray-200"></div>
+					<div class="h-px flex-1 bg-border"></div>
 				</div>
 
 				{#if showPastFundRounds}
@@ -166,7 +168,7 @@
 								{shortenAddress}
 								onToggleAccordion={toggleFundRoundAccordion}
 								onContribute={handleContribute}
-								onCancelRound={(id) => groupState.openCancelFundRoundModal(id)}
+								onCancelRound={(id) => onCancelFundRound(id)}
 							/>
 						{/each}
 					</div>
