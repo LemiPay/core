@@ -45,7 +45,9 @@ impl VerifyChallengeUseCase {
         &self,
         input: VerificationInput,
     ) -> Result<VerificationOutput, AppError> {
-        let stored_data = self.web3_service.cache_get(&input.address);
+        let stored_data = self
+            .web3_service
+            .cache_get(&input.address.trim().to_string());
 
         let Some(data) = stored_data else {
             return Err(AppError::Forbidden(
@@ -71,15 +73,17 @@ impl VerifyChallengeUseCase {
             return Err(AppError::Forbidden("Firma criptográfica inválida".into()));
         }
 
-        self.web3_service.cache_remove(&input.address);
+        self.web3_service
+            .cache_remove(&input.address.trim().to_string());
 
-        let address = input.address.clone();
+        let address = input.address.trim().to_string();
+
         let email = input
             .email
             .as_ref()
             .map(|value| value.trim())
             .filter(|value| !value.is_empty())
-            .map(|value| Email(value.to_string()));
+            .map(|value| Email(value.to_lowercase()));
 
         let name = input
             .name
@@ -110,7 +114,7 @@ impl VerifyChallengeUseCase {
                             }
                             Some(_) => {
                                 return Err(AppError::BadRequest(
-                                    "Email ya está asociado a una cuenta".into(),
+                                    "La wallet ya está asociada a otra cuenta".into(),
                                 ));
                             }
                             None => {

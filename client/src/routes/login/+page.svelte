@@ -1,7 +1,11 @@
 <script lang="ts">
-	import { walletAuthState, authActions, onWalletAuthChange } from '../wallet_auth.svelte';
+	import {
+		authActions,
+		onWalletAuthChange,
+		wagmiAdapter,
+		walletAuthState
+	} from '../wallet_auth.svelte';
 	import { signMessage } from '@wagmi/core';
-	import { wagmiAdapter } from '../wallet_auth.svelte';
 
 	import api from '$lib/api/auth';
 	import { authStore } from '$lib/stores/auth';
@@ -13,7 +17,7 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
-	import { wallet } from 'viem/tempo/actions';
+
 	let mounted = $state(false);
 
 	let data = $state({
@@ -108,7 +112,6 @@
 
 		try {
 			const response = await api.request_challenge(address);
-			console.log('Challenge: ', response);
 			if (!isSuccess(response)) {
 				error = response.message;
 				status = false; // Permitimos reintentar si el challenge falla
@@ -265,7 +268,6 @@
 
 		if (walletAuthState.isSocial && walletAuthState.address !== lastHandledAddress) {
 			// SOCIAL LOGIN !
-			console.log('Social Login!');
 			lastHandledAddress = walletAuthState.address;
 			pendingChallenge = null;
 			request_and_complete_challenge(walletAuthState.address);
@@ -278,7 +280,6 @@
 
 		if (!walletAuthState.isSocial && walletAuthState.email == undefined) {
 			// WALLET LOGIN !
-			console.log('Wallet Login!');
 			if (socialModalOpen || pendingChallenge) return;
 			if (walletAuthState.address) {
 				fetch_challenge(walletAuthState.address).then((challenge) => {
@@ -321,36 +322,36 @@
 	});
 </script>
 
-<AuthLayout title="Log in to your account" description="Enter your details to access the platform.">
+<AuthLayout description="Enter your details to access the platform." title="Log in to your account">
 	<Modal
-		open={socialModalOpen}
-		title="Asociar cuenta"
 		description="Ingresá un mail para asociar la cuenta y un nombre opcional."
 		onclose={handleSocialClose}
+		open={socialModalOpen}
+		title="Asociar cuenta"
 	>
-		<form id="social-auth-form" onsubmit={handleSocialSubmit} class="space-y-4">
+		<form class="space-y-4" id="social-auth-form" onsubmit={handleSocialSubmit}>
 			<FormField
+				attempted={socialAttempted}
+				bind:value={socialEmail}
 				id="social-email"
 				label="Email"
-				type="email"
-				placeholder="name@example.com"
-				minLength={4}
 				maxLength={30}
-				bind:value={socialEmail}
-				attempted={socialAttempted}
+				minLength={4}
+				placeholder="name@example.com"
+				type="email"
 			/>
 
 			<div>
-				<label for="social-name" class="mb-1.5 block text-sm font-medium text-foreground">
+				<label class="mb-1.5 block text-sm font-medium text-foreground" for="social-name">
 					Nombre (opcional)
 				</label>
 				<input
-					id="social-name"
-					type="text"
-					placeholder="Tu nombre"
-					maxlength="50"
 					bind:value={socialName}
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition placeholder:text-muted-foreground focus:border-ring focus:ring-0 focus:outline-none"
+					id="social-name"
+					maxlength="50"
+					placeholder="Tu nombre"
+					type="text"
 				/>
 			</div>
 		</form>
@@ -423,7 +424,7 @@
 		</div>
 	{/if}
 
-	<form onsubmit={login_user} onchange={() => (status = false)} class="flex flex-col space-y-6">
+	<form class="flex flex-col space-y-6" onchange={() => (status = false)} onsubmit={login_user}>
 		{#if status === null && !error}
 			<div
 				class="rounded-lg border border-green-300 bg-green-100 p-3 text-sm font-medium text-green-700 dark:border-green-700 dark:bg-green-900 dark:text-green-200"
@@ -444,41 +445,41 @@
 		<div class="space-y-4">
 			<!-- Email -->
 			<div class="flex flex-col gap-1.5">
-				<label for="email" class="text-sm font-medium">Email</label>
+				<label class="text-sm font-medium" for="email">Email</label>
 				<input
-					id="email"
 					bind:value={data.email}
-					type="email"
-					required
-					placeholder="name@example.com"
 					class="rounded-md border border-input bg-background p-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+					id="email"
+					placeholder="name@example.com"
+					required
+					type="email"
 				/>
 			</div>
 
 			<!-- Password -->
 			<div class="flex flex-col gap-1.5">
-				<label for="password" class="text-sm font-medium">Password</label>
+				<label class="text-sm font-medium" for="password">Password</label>
 				<input
-					id="password"
 					bind:value={data.password}
-					type="password"
-					required
-					placeholder="••••••••"
 					class="rounded-md border border-input bg-background p-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+					id="password"
+					placeholder="••••••••"
+					required
+					type="password"
 				/>
 			</div>
 		</div>
 
 		<button
-			type="submit"
-			disabled={status === true}
 			class="w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+			disabled={status === true}
+			type="submit"
 		>
 			{status === true ? 'Logging in...' : 'Log in'}
 		</button>
 		<a
-			href={resolve('/register')}
 			class="w-full rounded-md border border-input bg-background px-4 py-2 text-center font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
+			href={resolve('/register')}
 		>
 			Create account
 		</a>
