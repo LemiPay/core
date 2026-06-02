@@ -648,7 +648,7 @@
 												</p>
 											</div>
 										</div>
-
+										<!--
 										<div class="mt-5 grid grid-cols-4 gap-2 text-center text-xs">
 											<div class="rounded-2xl border border-border/80 p-2">
 												<p class="text-muted-foreground">🧾</p>
@@ -667,30 +667,7 @@
 												<p class="mt-1 truncate font-semibold">{grupo.meta.activityLabel}</p>
 											</div>
 										</div>
-
-										<div
-											class="mt-5 flex items-center justify-between border-t border-border/70 pt-4"
-										>
-											<div>
-												<p class="text-xs text-muted-foreground">Balance personal</p>
-												<p
-													class={grupo.meta.balance >= 0
-														? 'text-sm font-semibold text-emerald-600 dark:text-emerald-300'
-														: 'text-sm font-semibold text-rose-600 dark:text-rose-300'}
-												>
-													{grupo.meta.balance >= 0 ? 'Te deben ' : 'Debés '}{formatMoney(
-														Math.abs(grupo.meta.balance),
-														grupo.meta.currency
-													)}
-												</p>
-											</div>
-											<span
-												class="inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground transition group-hover:text-foreground"
-											>
-												Abrir
-												<ArrowUpRight class="size-4" />
-											</span>
-										</div>
+										-->
 									</a>
 								{/each}
 							</div>
