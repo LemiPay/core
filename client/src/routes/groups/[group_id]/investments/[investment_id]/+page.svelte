@@ -30,6 +30,19 @@
 		},
 		high: { color: 'text-rose-700', bg: 'bg-rose-50 border-rose-200', label: 'Alto' }
 	};
+	function makeChartCoords(values: number[], baseline: number) {
+		const W = 600,
+			H = 200,
+			padX = 8,
+			padY = 12;
+		const maxAbove = Math.max(...values.map((v) => v - baseline), 0) || 1;
+		const maxBelow = Math.max(...values.map((v) => baseline - v), 0);
+		const totalRange = maxAbove + maxBelow || 1;
+		const baselineY = padY + (maxAbove / totalRange) * (H - padY * 2);
+		const toX = (i: number) => padX + (i / (values.length - 1)) * (W - padX * 2);
+		const toY = (v: number) => padY + ((maxAbove - (v - baseline)) / totalRange) * (H - padY * 2);
+		return { W, H, padX, padY, baselineY, toX, toY };
+	}
 </script>
 
 <svelte:head>
@@ -145,10 +158,16 @@
 
 			{#if detailState.chartData.length > 1}
 				{@const values = detailState.chartData.map((d) => d.value)}
-				{@const minVal = Math.min(...values)}
-				{@const maxVal = Math.max(...values)}
-				{@const range = maxVal - minVal || 1}
 				{@const baseline = detailState.investedAmount}
+				{@const { W, H, padX, padY, baselineY, toX, toY } = makeChartCoords(values, baseline)}
+				{@const points = detailState.chartData.map((d, i) => ({
+					x: toX(i),
+					y: toY(d.value),
+					value: d.value,
+					label: d.label
+				}))}
+				{@const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')}
+				{@const areaPath = `${linePath} L ${points[points.length - 1].x} ${baselineY} L ${points[0].x} ${baselineY} Z`}
 
 				<section class="space-y-4">
 					<h2 class="flex items-center gap-2 text-sm font-medium text-black">
@@ -157,53 +176,78 @@
 					</h2>
 
 					<div class="rounded-xl border border-gray-200 bg-white p-6">
-						<div class="flex items-end justify-between gap-0.5" style="height: 200px">
-							{#each detailState.chartData as point}
-								{@const pct = ((point.value - minVal) / range) * 100}
-								{@const isAboveBaseline = point.value >= baseline}
-								<div class="flex h-full flex-1 flex-col items-center justify-end">
-									<div
-										class="w-full rounded-t-sm transition-all duration-500 {isAboveBaseline
-											? 'bg-emerald-500'
-											: 'bg-rose-400'}"
-										style="height: {Math.max(pct, 2)}%"
-										title="{point.label}: ${formatAmount(point.value)}"
-									></div>
-								</div>
-							{/each}
-						</div>
-
-						<div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-							<div class="space-y-0.5 text-xs text-gray-500">
-								<p class="font-medium text-black">${formatAmount(minVal)}</p>
-							</div>
-							<div class="flex gap-4 text-[10px] text-gray-400">
-								<span class="flex items-center gap-1">
-									<span class="h-2 w-2 rounded-sm bg-emerald-500"></span> Sobre la inversión
-								</span>
-								<span class="flex items-center gap-1">
-									<span class="h-2 w-2 rounded-sm bg-rose-400"></span> Bajo la inversión
-								</span>
-							</div>
-							<div class="space-y-0.5 text-right text-xs text-gray-500">
-								<p class="font-medium text-black">${formatAmount(maxVal)}</p>
-							</div>
-						</div>
-					</div>
-
-					<div class="flex flex-wrap gap-2">
-						{#each detailState.chartData.slice(-7) as point}
-							<div class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-center text-xs">
-								<p class="text-gray-400">{point.label}</p>
-								<p
-									class="font-semibold tabular-nums {point.value >= baseline
-										? 'text-emerald-700'
-										: 'text-rose-700'}"
+						<svg
+							viewBox="0 0 {W} {H}"
+							class="w-full"
+							style="height: 200px"
+							preserveAspectRatio="none"
+						>
+							<defs>
+								<linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+									<stop offset="0%" stop-color="#10b981" stop-opacity="0.25" />
+									<stop offset="100%" stop-color="#10b981" stop-opacity="0.03" />
+								</linearGradient>
+								<linearGradient
+									id="lineGradient"
+									x1="0"
+									y1="0"
+									x2="0"
+									y2={H}
+									gradientUnits="userSpaceOnUse"
 								>
-									${formatAmount(point.value)}
-								</p>
-							</div>
-						{/each}
+									<stop offset="{(baselineY / H) * 100}%" stop-color="#10b981" />
+									<stop offset="{(baselineY / H) * 100}%" stop-color="#fb7185" />
+								</linearGradient>
+								<clipPath id="aboveBaseline">
+									<rect x="0" y="0" width={W} height={baselineY} />
+								</clipPath>
+								<clipPath id="belowBaseline">
+									<rect x="0" y={baselineY} width={W} height={H - baselineY} />
+								</clipPath>
+							</defs>
+
+							<!-- Área sobre baseline (ganancia) -->
+							<path d={areaPath} fill="url(#areaGradient)" clip-path="url(#aboveBaseline)" />
+							<!-- Área bajo baseline (pérdida) -->
+							<path
+								d={areaPath}
+								fill="#fb7185"
+								fill-opacity="0.15"
+								clip-path="url(#belowBaseline)"
+							/>
+
+							<!-- Línea baseline -->
+							<line
+								x1={padX}
+								y1={baselineY}
+								x2={W - padX}
+								y2={baselineY}
+								stroke="#d1d5db"
+								stroke-width="1"
+								stroke-dasharray="4 3"
+							/>
+
+							<!-- Línea del valor -->
+							<path
+								d={linePath}
+								fill="none"
+								stroke="url(#lineGradient)"
+								stroke-width="2"
+								stroke-linejoin="round"
+								stroke-linecap="round"
+							/>
+						</svg>
+
+						<div class="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
+							<p class="text-xs text-gray-500">
+								Base: <span class="font-medium text-black">${formatAmount(baseline)}</span>
+							</p>
+							<p class="text-xs text-gray-500">
+								Actual: <span class="font-medium text-black"
+									>${formatAmount(detailState.currentValue)}</span
+								>
+							</p>
+						</div>
 					</div>
 				</section>
 			{/if}
@@ -216,10 +260,6 @@
 				<div
 					class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white"
 				>
-					<div class="flex items-center justify-between px-4 py-3 text-sm">
-						<span class="text-gray-500">ID de inversión</span>
-						<span class="font-mono text-xs text-black">{inv.id}</span>
-					</div>
 					<div class="flex items-center justify-between px-4 py-3 text-sm">
 						<span class="text-gray-500">Estrategia</span>
 						<span class="font-medium text-black">{inv.strategy_name}</span>
