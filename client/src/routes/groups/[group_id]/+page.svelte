@@ -72,7 +72,7 @@
 
 	const GROUP_TABS: { key: Tab; label: string }[] = [
 		{ key: 'general', label: 'General' },
-		{ key: 'wallets', label: 'Billeteras' },
+		{ key: 'wallets', label: 'Billetera' },
 		{ key: 'fund_rounds', label: 'Rondas de Fondeo' },
 		{ key: 'balances', label: 'Balances' },
 		{ key: 'expenses', label: 'División de Gastos' }

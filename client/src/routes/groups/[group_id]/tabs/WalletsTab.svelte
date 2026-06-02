@@ -14,12 +14,14 @@
 </script>
 
 <div class="animate-in space-y-4 duration-300 fade-in slide-in-from-bottom-2">
-	<div class="flex items-center justify-between">
-		<h2 class="text-sm font-medium text-foreground">Billeteras del Grupo</h2>
-		<Button label="Nueva Wallet" variant="primary" onclick={onCreateWallet}>
-			{#snippet icon()}<Wallet class="h-4 w-4" />{/snippet}
-		</Button>
-	</div>
+	{#if groupState.wallets.length === 0}
+		<div class="flex items-center justify-between">
+			<h2 class="text-sm font-medium text-foreground">Billetera del Grupo</h2>
+			<Button label="Nueva Billetera" variant="primary" onclick={onCreateWallet}>
+				{#snippet icon()}<Wallet class="h-4 w-4" />{/snippet}
+			</Button>
+		</div>
+	{/if}
 
 	{#if groupState.loadingWallets}
 		<div class="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-foreground"></div>
