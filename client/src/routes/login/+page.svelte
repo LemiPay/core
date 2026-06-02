@@ -1,15 +1,23 @@
 <script lang="ts">
-	import { walletAuthState, authActions } from '../wallet_auth.svelte';
+	import {
+		authActions,
+		onWalletAuthChange,
+		wagmiAdapter,
+		walletAuthState
+	} from '../wallet_auth.svelte';
 	import { signMessage } from '@wagmi/core';
-	import { wagmiAdapter } from '../wallet_auth.svelte';
 
 	import api from '$lib/api/auth';
 	import { authStore } from '$lib/stores/auth';
 	import { isSuccess } from '$lib/types/client.types';
 	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
+	import Modal from '$lib/components/modals/Modal.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import FormField from '$lib/components/input_fields/FormField.svelte';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
+
 	let mounted = $state(false);
 
 	let data = $state({
@@ -21,8 +29,32 @@
 	let status: boolean | null = $state(false);
 	let error = $state('');
 
+	let socialModalOpen = $state(false);
+	let socialEmail = $state('');
+	let socialName = $state('');
+	let socialAttempted = $state(false);
+
+	const socialEmailTrimmed = $derived(socialEmail.trim());
+	const socialEmailValid = $derived(
+		socialEmailTrimmed.length >= 4 && socialEmailTrimmed.length <= 30
+	);
+	const socialFormValid = $derived(socialEmailValid);
+
+	type PendingChallenge = {
+		nonce: string;
+		message: string;
+		is_linked: boolean;
+		address: string;
+	};
+
 	// NUEVO: Memoria para saber si ya le pedimos la firma a esta address
 	let lastHandledAddress = $state('' as string | undefined);
+	let pendingChallenge = $state(null as PendingChallenge | null);
+	let walletNotice = $state('');
+	let challengeInFlight = $state(false);
+	let challengeInFlightAddress = $state('' as string | undefined);
+	let signingInFlight = $state(false);
+	let signingAddress = $state('' as string | undefined);
 
 	function getSafeRedirectPath(redirectTo: string | null): string {
 		if (!redirectTo) return '/dashboard';
@@ -69,19 +101,45 @@
 		}, 1000);
 	}
 
-	async function request_challenge() {
+	async function fetch_challenge(address: string) {
+		if (challengeInFlight && challengeInFlightAddress === address) return;
+		const requestedAddress = address;
+		challengeInFlight = true;
+		challengeInFlightAddress = requestedAddress;
+		walletNotice = '';
 		error = '';
 		status = true;
 
-		const response = await api.request_challenge(walletAuthState.email, walletAuthState.address);
+		try {
+			const response = await api.request_challenge(address);
+			if (!isSuccess(response)) {
+				error = response.message;
+				status = false; // Permitimos reintentar si el challenge falla
+				return;
+			}
+			return response.body;
+		} finally {
+			if (challengeInFlightAddress === requestedAddress) {
+				challengeInFlight = false;
+				challengeInFlightAddress = '';
+			}
+		}
+	}
 
-		if (!isSuccess(response)) {
-			error = response.message;
-			status = false; // Permitimos reintentar si el challenge falla
+	async function complete_challenge(nonce: string, message: string) {
+		error = '';
+		status = true;
+
+		const address = walletAuthState.address;
+		if (!address) {
+			error = 'Wallet no conectada.';
+			status = false;
 			return;
 		}
-
-		const { nonce, message } = response.body;
+		if (signingInFlight && signingAddress === address) return;
+		const signingFor = address;
+		signingInFlight = true;
+		signingAddress = signingFor;
 
 		try {
 			const signature = await signMessage(wagmiAdapter.wagmiConfig, {
@@ -89,10 +147,12 @@
 			});
 
 			const res = await api.verify_signature(
-				walletAuthState.email,
-				walletAuthState.address,
+				walletAuthState.email ?? null,
+				walletAuthState.name ?? null,
+				address,
 				nonce,
-				signature
+				signature,
+				walletAuthState.isSocial
 			);
 
 			if (!isSuccess(res)) {
@@ -103,6 +163,8 @@
 
 			await authStore.login(res.body.token);
 			status = null;
+			lastHandledAddress = signingFor;
+			walletNotice = '';
 
 			const redirectTo = getSafeRedirectPath(page.url.searchParams.get('redirectTo'));
 
@@ -113,36 +175,200 @@
 			error = 'Firma rechazada por el usuario.';
 			status = false;
 			console.error('Error al firmar:', err);
+		} finally {
+			if (signingAddress === signingFor) {
+				signingInFlight = false;
+				signingAddress = '';
+			}
+		}
+	}
+
+	async function request_and_complete_challenge(address: string | undefined) {
+		if (!address) {
+			error = 'Wallet no conectada.';
+			status = false;
+			return;
+		}
+		const challenge = await fetch_challenge(address);
+		if (!challenge) return;
+		await complete_challenge(challenge.nonce, challenge.message);
+	}
+
+	function openSocialModal() {
+		socialEmail = walletAuthState.email ?? '';
+		socialName = walletAuthState.name ?? '';
+		socialAttempted = false;
+		socialModalOpen = true;
+	}
+
+	function cancelWalletLoginModal() {
+		if (!socialModalOpen && !pendingChallenge) return;
+		socialModalOpen = false;
+		socialEmail = '';
+		socialName = '';
+		socialAttempted = false;
+		pendingChallenge = null;
+		walletNotice = '';
+		if (challengeInFlight) {
+			challengeInFlight = false;
+			challengeInFlightAddress = '';
+		}
+	}
+
+	function handleSocialClose() {
+		cancelWalletLoginModal();
+		challengeInFlight = false;
+		challengeInFlightAddress = '';
+		signingInFlight = false;
+		signingAddress = '';
+		void authActions.logout();
+	}
+
+	function handleSocialSubmit(e: SubmitEvent) {
+		e.preventDefault();
+		socialAttempted = true;
+		if (!socialFormValid) return;
+
+		walletAuthState.email = socialEmailTrimmed;
+		walletAuthState.name = socialName.trim() ? socialName.trim() : undefined;
+		lastHandledAddress = walletAuthState.address;
+		const cachedChallenge = pendingChallenge;
+		pendingChallenge = null;
+		socialModalOpen = false;
+
+		if (cachedChallenge && cachedChallenge.address === walletAuthState.address) {
+			complete_challenge(cachedChallenge.nonce, cachedChallenge.message);
+			return;
+		}
+
+		if (walletAuthState.address) {
+			request_and_complete_challenge(walletAuthState.address);
+		}
+	}
+
+	function handleWalletAuthChange() {
+		// 1. Si el usuario se desconecta, limpiamos la memoria
+		if (!walletAuthState.isConnected) {
+			lastHandledAddress = '';
+			pendingChallenge = null;
+			walletNotice = '';
+			challengeInFlight = false;
+			challengeInFlightAddress = '';
+			signingInFlight = false;
+			signingAddress = '';
+		}
+
+		// 2. Evaluamos si hay que disparar el challenge
+		if (!walletAuthState.isConnected) return;
+		if (signingInFlight) return;
+
+		if (walletAuthState.isSocial) {
+			cancelWalletLoginModal();
+		}
+
+		if (walletAuthState.isSocial && walletAuthState.address !== lastHandledAddress) {
+			// SOCIAL LOGIN !
+			lastHandledAddress = walletAuthState.address;
+			pendingChallenge = null;
+			request_and_complete_challenge(walletAuthState.address);
+			return;
+		}
+
+		if (pendingChallenge && pendingChallenge.address !== walletAuthState.address) {
+			pendingChallenge = null;
+		}
+
+		if (!walletAuthState.isSocial && walletAuthState.email == undefined) {
+			// WALLET LOGIN !
+			if (socialModalOpen || pendingChallenge) return;
+			if (walletAuthState.address) {
+				fetch_challenge(walletAuthState.address).then((challenge) => {
+					if (!challenge || !walletAuthState.address) return;
+					if (challenge.is_linked) {
+						walletNotice = 'Wallet ya vinculada. Firmá para iniciar sesión.';
+						pendingChallenge = null;
+						complete_challenge(challenge.nonce, challenge.message);
+						return;
+					}
+					walletNotice = '';
+					pendingChallenge = { ...challenge, address: walletAuthState.address };
+					status = false;
+					if (!socialModalOpen) {
+						openSocialModal();
+					}
+				});
+			}
+			return;
+		}
+
+		if (
+			!walletAuthState.isSocial &&
+			walletAuthState.email &&
+			walletAuthState.address !== lastHandledAddress
+		) {
+			lastHandledAddress = walletAuthState.address;
+			pendingChallenge = null;
+			request_and_complete_challenge(walletAuthState.address);
 		}
 	}
 
 	onMount(() => {
 		mounted = true;
-	});
-
-	$effect(() => {
-		// 1. Si el usuario se desconecta, limpiamos la memoria
-		if (!walletAuthState.isConnected) {
-			lastHandledAddress = '';
-		}
-
-		// 2. Evaluamos si hay que disparar el challenge
-		if (
-			walletAuthState.isConnected &&
-			walletAuthState.email &&
-			walletAuthState.address !== lastHandledAddress
-		) {
-			// Anotamos el address ANTES de llamar, así evitamos loops infinitos si da error
-			lastHandledAddress = walletAuthState.address;
-
-			request_challenge();
-		}
+		const unsubscribe = onWalletAuthChange(handleWalletAuthChange);
+		handleWalletAuthChange();
+		return () => {
+			unsubscribe();
+		};
 	});
 </script>
 
-<AuthLayout title="Log in to your account" description="Enter your details to access the platform.">
+<AuthLayout description="Enter your details to access the platform." title="Log in to your account">
+	<Modal
+		description="Ingresá un mail para asociar la cuenta y un nombre opcional."
+		onclose={handleSocialClose}
+		open={socialModalOpen}
+		title="Asociar cuenta"
+	>
+		<form class="space-y-4" id="social-auth-form" onsubmit={handleSocialSubmit}>
+			<FormField
+				attempted={socialAttempted}
+				bind:value={socialEmail}
+				id="social-email"
+				label="Email"
+				maxLength={30}
+				minLength={4}
+				placeholder="name@example.com"
+				type="email"
+			/>
+
+			<div>
+				<label class="mb-1.5 block text-sm font-medium text-foreground" for="social-name">
+					Nombre (opcional)
+				</label>
+				<input
+					bind:value={socialName}
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition placeholder:text-muted-foreground focus:border-ring focus:ring-0 focus:outline-none"
+					id="social-name"
+					maxlength="50"
+					placeholder="Tu nombre"
+					type="text"
+				/>
+			</div>
+		</form>
+
+		{#snippet footer()}
+			<Button label="Cancelar" variant="secondary" onclick={handleSocialClose} />
+			<Button label="Continuar" type="submit" form="social-auth-form" disabled={!socialFormValid} />
+		{/snippet}
+	</Modal>
+
 	{#if mounted}
 		<div class="mb-6 flex w-full flex-col items-center gap-4">
+			{#if walletNotice}
+				<div class="w-full rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-700">
+					{walletNotice}
+				</div>
+			{/if}
 			{#if walletAuthState.isConnected}
 				<!-- Estado: Conectado -->
 				<div class="w-full rounded-lg border border-green-200 bg-green-50 p-4">
@@ -198,7 +424,7 @@
 		</div>
 	{/if}
 
-	<form onsubmit={login_user} onchange={() => (status = false)} class="flex flex-col space-y-6">
+	<form class="flex flex-col space-y-6" onchange={() => (status = false)} onsubmit={login_user}>
 		{#if status === null && !error}
 			<div
 				class="rounded-lg border border-green-300 bg-green-100 p-3 text-sm font-medium text-green-700 dark:border-green-700 dark:bg-green-900 dark:text-green-200"
@@ -208,7 +434,7 @@
 		{/if}
 
 		<!-- Error Message -->
-		{#if status === null && error}
+		{#if error && status !== true}
 			<div
 				class="rounded-lg border border-red-300 bg-red-100 p-3 text-sm font-medium text-red-700 dark:border-red-700 dark:bg-red-900 dark:text-red-200"
 			>
@@ -219,41 +445,41 @@
 		<div class="space-y-4">
 			<!-- Email -->
 			<div class="flex flex-col gap-1.5">
-				<label for="email" class="text-sm font-medium">Email</label>
+				<label class="text-sm font-medium" for="email">Email</label>
 				<input
-					id="email"
 					bind:value={data.email}
-					type="email"
-					required
-					placeholder="name@example.com"
 					class="rounded-md border border-input bg-background p-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+					id="email"
+					placeholder="name@example.com"
+					required
+					type="email"
 				/>
 			</div>
 
 			<!-- Password -->
 			<div class="flex flex-col gap-1.5">
-				<label for="password" class="text-sm font-medium">Password</label>
+				<label class="text-sm font-medium" for="password">Password</label>
 				<input
-					id="password"
 					bind:value={data.password}
-					type="password"
-					required
-					placeholder="••••••••"
 					class="rounded-md border border-input bg-background p-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+					id="password"
+					placeholder="••••••••"
+					required
+					type="password"
 				/>
 			</div>
 		</div>
 
 		<button
-			type="submit"
-			disabled={status === true}
 			class="w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+			disabled={status === true}
+			type="submit"
 		>
 			{status === true ? 'Logging in...' : 'Log in'}
 		</button>
 		<a
-			href={resolve('/register')}
 			class="w-full rounded-md border border-input bg-background px-4 py-2 text-center font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
+			href={resolve('/register')}
 		>
 			Create account
 		</a>

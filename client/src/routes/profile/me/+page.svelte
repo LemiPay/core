@@ -3,6 +3,8 @@
 		ArrowLeft,
 		ArrowDownToLine,
 		Copy,
+		Link2,
+		LogOut,
 		Plus,
 		Send,
 		Wallet,
@@ -14,10 +16,17 @@
 		ReceiptText
 	} from 'lucide-svelte';
 	import type { User } from '$lib/types/endpoints/auth.types';
-	import { me } from '$lib/api/auth';
+	import { me, request_challenge, verify_signature } from '$lib/api/auth';
 	import { isSuccess } from '$lib/types/client.types';
 	import type { WalletInfo } from '$lib/types/endpoints/user_wallet.types';
 	import { getAllMyWallets } from '$lib/api/endpoints/user_wallet';
+	import { signMessage } from '@wagmi/core';
+	import {
+		walletAuthState,
+		authActions,
+		onWalletAuthChange,
+		wagmiAdapter
+	} from '../../wallet_auth.svelte';
 
 	// Importar Modales
 	import FaucetModal from '$lib/components/modals/user/FaucetModal.svelte';
@@ -25,6 +34,7 @@
 	import CreateWalletModal from '$lib/components/modals/user/CreateWalletModal.svelte';
 	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
 	import { resolve } from '$app/paths';
+	import { onMount } from 'svelte';
 	import { fly, fade, scale } from 'svelte/transition';
 	import UserTransactionHistory from '$lib/components/UserTransactionHistory.svelte';
 	import type { Transaction } from '$lib/types/endpoints/transactions.types';
@@ -46,6 +56,10 @@
 	let faucetTarget = $state<{ wallet_id: string; ticker: string } | null>(null);
 	let transferTarget = $state<{ sender_wallet_id: string; ticker: string } | null>(null);
 	let openCreateWalletModal = $state(false);
+	let linkingRequested = $state(false);
+	let linkingInFlight = $state(false);
+	let linkingError = $state('');
+	let linkingAddress = $state('' as string | undefined);
 
 	// --- ESTADO DERIVADO ---
 	let totalBalance = $derived(
@@ -87,6 +101,86 @@
 		setTimeout(() => (copiedAddress = null), 2000);
 	}
 
+	async function linkConnectedWallet(address: string) {
+		if (linkingInFlight) return;
+		if (!user?.email) {
+			linkingError = 'No se pudo obtener el email del usuario.';
+			linkingRequested = false;
+			return;
+		}
+		linkingInFlight = true;
+		linkingRequested = false;
+		linkingAddress = address;
+		linkingError = '';
+
+		try {
+			const challenge = await request_challenge(address);
+			if (!isSuccess(challenge)) {
+				linkingError = challenge.message || 'No se pudo solicitar el challenge.';
+				return;
+			}
+
+			const signature = await signMessage(wagmiAdapter.wagmiConfig, {
+				message: challenge.body.message
+			});
+
+			const res = await verify_signature(
+				user.email,
+				user.name ?? null,
+				address,
+				challenge.body.nonce,
+				signature,
+				true
+			);
+
+			if (!isSuccess(res)) {
+				linkingError = res.message || 'No se pudo vincular la wallet.';
+				return;
+			}
+
+			await loadWallets();
+		} catch (err: any) {
+			linkingError = 'Firma rechazada por el usuario.';
+			console.error('Error al firmar:', err);
+		} finally {
+			linkingInFlight = false;
+			linkingAddress = '';
+		}
+	}
+
+	function handleLinkWallet() {
+		linkingError = '';
+		if (loadingUserInfo || !user?.email) {
+			linkingError = 'No se pudo obtener el email del usuario.';
+			return;
+		}
+		if (walletAuthState.isConnected && walletAuthState.address) {
+			void linkConnectedWallet(walletAuthState.address);
+			return;
+		}
+		linkingRequested = true;
+		void authActions.openLogin();
+	}
+
+	function handleOpenReown() {
+		linkingRequested = false;
+		linkingError = '';
+		void authActions.openLogin();
+	}
+
+	async function handleDisconnectReown() {
+		linkingRequested = false;
+		linkingError = '';
+		if (linkingInFlight) return;
+		await authActions.logout();
+	}
+
+	function handleWalletAuthChange() {
+		if (!linkingRequested || linkingInFlight) return;
+		if (!walletAuthState.isConnected || !walletAuthState.address) return;
+		void linkConnectedWallet(walletAuthState.address);
+	}
+
 	function goBack() {
 		if (typeof history !== 'undefined' && history.length > 1) {
 			history.back();
@@ -107,6 +201,13 @@
 					.toUpperCase()
 			: '?'
 	);
+
+	onMount(() => {
+		const unsubscribe = onWalletAuthChange(handleWalletAuthChange);
+		return () => {
+			unsubscribe();
+		};
+	});
 
 	// --- INIT ---
 	loadUserProfile();
@@ -294,14 +395,67 @@
 					<p class="text-sm font-medium text-muted-foreground">Workspace</p>
 					<h2 class="mt-0.5 text-2xl font-semibold tracking-tight">Mis billeteras</h2>
 				</div>
-				<button
-					onclick={() => (openCreateWalletModal = true)}
-					class="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-lime-300 hover:shadow-lg hover:shadow-lime-500/10"
-				>
-					<Plus class="size-4" />
-					Nueva dirección
-				</button>
+				<div class="flex items-center gap-2">
+					{#if walletAuthState.isConnected}
+						<button
+							onclick={handleOpenReown}
+							disabled={linkingInFlight}
+							class="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:-translate-y-0.5 hover:border-border/80 hover:text-foreground hover:shadow-lg hover:shadow-black/5 disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							<Wallet class="size-4" />
+						</button>
+						<button
+							onclick={handleDisconnectReown}
+							disabled={linkingInFlight}
+							aria-label="Desconectar"
+							title="Desconectar"
+							class="inline-flex items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							<LogOut class="size-4" />
+						</button>
+					{/if}
+					<button
+						onclick={handleLinkWallet}
+						disabled={linkingInFlight || loadingUserInfo}
+						class="inline-flex items-center gap-2 rounded-2xl border border-border bg-background px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-lime-300 hover:shadow-lg hover:shadow-lime-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+					>
+						{#if linkingInFlight}
+							<svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+								<circle
+									class="opacity-25"
+									cx="12"
+									cy="12"
+									r="10"
+									stroke="currentColor"
+									stroke-width="4"
+								/>
+								<path
+									class="opacity-75"
+									fill="currentColor"
+									d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+								/>
+							</svg>
+							Conectando...
+						{:else}
+							<Link2 class="size-4" />
+							Conectar wallet
+						{/if}
+					</button>
+					<button
+						onclick={() => (openCreateWalletModal = true)}
+						class="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-lime-300 hover:shadow-lg hover:shadow-lime-500/10"
+					>
+						<Plus class="size-4" />
+						Nueva dirección
+					</button>
+				</div>
 			</div>
+
+			{#if linkingError}
+				<div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+					{linkingError}
+				</div>
+			{/if}
 
 			{#if loadingWalletsInfo}
 				<!-- Skeleton loaders -->
