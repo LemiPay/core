@@ -97,6 +97,10 @@ function createAuthStore() {
 			return get(this).token;
 		},
 
+		getIsAuthed() {
+			return get(this).isAuthenticated;
+		},
+
 		getUserId() {
 			return get(this).user?.id;
 		}

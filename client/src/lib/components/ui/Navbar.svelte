@@ -131,23 +131,25 @@
 									class={cn(isScrolled && 'lg:hidden')}
 									onclick={() => goToProfile()}
 								>
-									Profile
+									Ver Perfil
 								</Button>
-								<Button size="sm" variant="ghost" onclick={() => handleLogout()}>Logout</Button>
+								<Button size="sm" variant="ghost" onclick={() => handleLogout()}
+									>Cerrar Sesión</Button
+								>
 							{:else}
+								<Button href="/register" size="sm" class={cn(isScrolled && 'lg:hidden')}
+									>Registrarse</Button
+								>
+								<Button size="sm" href="/" class={cn(isScrolled ? 'lg:inline-flex' : 'hidden')}>
+									Registrarse
+								</Button>
 								<Button
 									variant="outline"
 									size="sm"
 									class={cn(isScrolled && 'lg:hidden')}
 									href="/login"
 								>
-									Login
-								</Button>
-								<Button href="/register" size="sm" class={cn(isScrolled && 'lg:hidden')}
-									>Sign Up</Button
-								>
-								<Button size="sm" href="/" class={cn(isScrolled ? 'lg:inline-flex' : 'hidden')}>
-									Get Strated
+									Iniciar Sesión
 								</Button>
 							{/if}
 						</div>
