@@ -348,14 +348,17 @@
 								</a>
 							</div>
 						</div>
-
 						<div class="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-2">
+							<!--
 							<div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
 								<p class="text-xs font-medium text-muted-foreground">Total en grupos</p>
 								<p class="mt-2 text-2xl font-semibold">
 									{formatMoney(dashboardMetrics.totalTreasury)}
 								</p>
 							</div>
+							-->
+							<div></div>
+							<!--
 							<div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
 								<p class="text-xs font-medium text-muted-foreground">Balance total</p>
 								<p
@@ -366,16 +369,22 @@
 									{formatMoney(dashboardMetrics.totalBalance)}
 								</p>
 							</div>
-							<div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
+							-->
+							<div
+								class=" max-h-30 rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur"
+							>
 								<p class="text-xs font-medium text-muted-foreground">Grupos activos</p>
 								<p class="mt-2 text-2xl font-semibold">{dashboardMetrics.activeGroups}</p>
 							</div>
+							<!--
 							<div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
 								<p class="text-xs font-medium text-muted-foreground">Yield generado</p>
 								<p class="mt-2 text-2xl font-semibold text-lime-700 dark:text-lime-300">
 									+{dashboardMetrics.yieldGenerated.toFixed(1)}%
 								</p>
 							</div>
+							-->
+							<div></div>
 						</div>
 					</div>
 				</div>
