@@ -384,7 +384,6 @@
 		<section class="mt-6 space-y-4" in:fly={{ y: 14, duration: 450, delay: 80 }}>
 			<div class="flex items-center justify-between">
 				<div>
-					<p class="text-sm font-medium text-muted-foreground">Workspace</p>
 					<h2 class="mt-0.5 text-2xl font-semibold tracking-tight">Mis billeteras</h2>
 				</div>
 				<div class="flex items-center gap-2">
@@ -624,7 +623,7 @@
 					<p class="text-sm text-muted-foreground">2FA · contraseña · sesiones activas</p>
 				</div>
 				<a
-					href={resolve('/profile/me')}
+					href={resolve('/dashboard/settings')}
 					class="inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
 				>
 					Configurar

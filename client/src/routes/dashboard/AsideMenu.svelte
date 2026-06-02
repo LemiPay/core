@@ -24,7 +24,6 @@
 				</div>
 				<div>
 					<p class="text-sm font-semibold">Lemipay</p>
-					<p class="text-xs text-muted-foreground">Money coordination</p>
 				</div>
 			</div>
 		</div>

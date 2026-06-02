@@ -29,12 +29,13 @@
 	import FundRoundsTab from './tabs/FundRoundsTab.svelte';
 	import BalancesTab from './tabs/BalancesTab.svelte';
 	import ExpensesTab from './tabs/ExpensesTab.svelte';
+	import HistoryTab from './tabs/HistoryTab.svelte';
 
 	const groupId = page.params.group_id as string;
 	const groupState = new GroupState(groupId);
 
 	// UI States (Strictly UI Orchestration)
-	type Tab = 'general' | 'wallets' | 'fund_rounds' | 'balances' | 'expenses';
+	type Tab = 'general' | 'wallets' | 'fund_rounds' | 'balances' | 'expenses' | 'history';
 	let activeTab = $state<Tab>('general');
 
 	let showNewMemberModal = $state(false);
@@ -75,7 +76,8 @@
 		{ key: 'wallets', label: 'Billetera' },
 		{ key: 'fund_rounds', label: 'Rondas de Fondeo' },
 		{ key: 'balances', label: 'Balances' },
-		{ key: 'expenses', label: 'División de Gastos' }
+		{ key: 'expenses', label: 'Gastos' },
+		{ key: 'history', label: 'Historial' }
 	];
 
 	// Initial load
@@ -98,6 +100,11 @@
 	$effect(() => {
 		if (activeTab === 'balances') {
 			groupState.loadCoreBalances();
+			groupState.loadBalancesMovimientos();
+		}
+	});
+	$effect(() => {
+		if (activeTab === 'history') {
 			groupState.loadBalancesMovimientos();
 		}
 	});
@@ -259,6 +266,8 @@
 					<BalancesTab {groupState} />
 				{:else if activeTab === 'expenses'}
 					<ExpensesTab {groupState} onCreateExpense={() => (showCreateExpenseModal = true)} />
+				{:else if activeTab === 'history'}
+					<HistoryTab {groupState} />
 				{/if}
 			</div>
 		</div>

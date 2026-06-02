@@ -459,9 +459,8 @@
 				</section>
 
 				<section class="rounded-[2rem] border border-border bg-card p-5 shadow-sm">
-					<div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+					<div class="flex flex-col gap-4 sm:flex-col sm:justify-between">
 						<div>
-							<p class="text-sm font-medium text-muted-foreground">Workspace</p>
 							<h2 class="mt-1 text-2xl font-semibold tracking-tight">Mis grupos</h2>
 						</div>
 
