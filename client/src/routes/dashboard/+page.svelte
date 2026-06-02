@@ -40,6 +40,19 @@
 		health: 'healthy' | 'warning' | 'debt';
 	};
 	type EnrichedGroupSummary = GroupSummary & { meta: GroupMeta };
+	type InvestmentMock = {
+		id: string;
+		group_id: string;
+		strategy_name: string;
+		amount: number;
+		current_value: number;
+		actual_return: number | null;
+		status: 'Active' | 'Closed';
+		expected_return_percentage: number;
+		risk_level: 'Low' | 'Medium' | 'High';
+		currency: string;
+	};
+
 	type ActivityItem = {
 		title: string;
 		detail: string;
@@ -161,6 +174,22 @@
 		}));
 	});
 
+	const allInvestments = $derived.by(() => {
+		return gruposEnriquecidos.flatMap((group) =>
+			buildMockInvestments(group.group_id, group.meta.currency)
+		);
+	});
+
+	const investmentMetrics = $derived.by(() => {
+		const totalInvested = allInvestments.reduce((sum, inv) => sum + inv.amount, 0);
+		const totalCurrentValue = allInvestments.reduce((sum, inv) => sum + inv.current_value, 0);
+		const totalReturn = totalCurrentValue - totalInvested;
+		const returnPercentage = totalInvested > 0 ? (totalReturn / totalInvested) * 100 : 0;
+		const activeInvestments = allInvestments.filter((inv) => inv.status === 'Active').length;
+
+		return { totalInvested, totalCurrentValue, totalReturn, returnPercentage, activeInvestments };
+	});
+
 	function seedFromString(value: string) {
 		return value.split('').reduce((total, char) => total + char.charCodeAt(0), 0);
 	}
@@ -185,6 +214,42 @@
 			icon: ['✈️', '🏠', '🎉', '💸', '🚀', '☕', '🏝️', '🧾'][seed % 8],
 			health
 		};
+	}
+
+	function buildMockInvestments(group_id: string, group_currency: string): InvestmentMock[] {
+		const seed = seedFromString(group_id + 'inv');
+		const strategies = [
+			{ name: 'Fondo Común Lemipay', risk: 'Low' as const, expectedReturn: 3.0 },
+			{ name: 'Top 100 ARG', risk: 'Medium' as const, expectedReturn: 7.5 },
+			{ name: 'Fondo Común Lemipay', risk: 'Low' as const, expectedReturn: 3.0 },
+			{ name: 'Michael Saylor', risk: 'High' as const, expectedReturn: 15.0 },
+			{ name: 'Top 100 ARG', risk: 'Medium' as const, expectedReturn: 7.5 }
+		];
+
+		if (seed % 3 === 0) return [];
+
+		const count = 1 + ((seed * 7) % 2);
+
+		return Array.from({ length: count }, (_, i) => {
+			const strategy = strategies[(seed + i * 3) % strategies.length];
+			const amount = 200 + ((seed * 137 + i * 503) % 5000);
+			const currentValue =
+				Math.round(amount * (1 + (2 + ((seed * i + 17) % 15)) / 100) * 100) / 100;
+			const actualReturn = Math.round(((currentValue - amount) / amount) * 10000) / 100;
+
+			return {
+				id: `inv-${group_id}-${i}`,
+				group_id,
+				strategy_name: strategy.name,
+				amount,
+				current_value: currentValue,
+				actual_return: actualReturn,
+				status: seed % 7 === 0 ? 'Closed' : 'Active',
+				expected_return_percentage: strategy.expectedReturn,
+				risk_level: strategy.risk,
+				currency: group_currency
+			};
+		});
 	}
 
 	function formatMoney(value: number, currency = 'USD') {
@@ -450,7 +515,6 @@
 					<section class="rounded-[2rem] border border-border bg-card p-5 shadow-sm">
 						<div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
 							<div>
-								<p class="text-sm font-medium text-muted-foreground">Workspace</p>
 								<h2 class="mt-1 text-2xl font-semibold tracking-tight">Mis grupos</h2>
 							</div>
 
@@ -662,6 +726,7 @@
 				</div>
 
 				<aside class="space-y-6">
+					<!--
 					<section
 						class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
 						in:fly={{ x: 14, duration: 380 }}
@@ -703,7 +768,56 @@
 							{/each}
 						</div>
 					</section>
+-->
+					<!--
+					<section
+						class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
+						in:fly={{ x: 14, duration: 380 }}
+					>
 
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-sm font-medium text-muted-foreground">Resumen de inversiones</p>
+								<h2 class="mt-1 text-xl font-semibold">Portfolio</h2>
+							</div>
+							<div
+								class="flex size-10 items-center justify-center rounded-2xl bg-lime-400/15 text-lime-700 dark:text-lime-300"
+							>
+								<TrendingUp class="size-4" />
+							</div>
+						</div>
+
+
+						<div class="mt-5 space-y-3">
+							<div class="rounded-2xl bg-muted/60 p-3">
+								<p class="text-xs text-muted-foreground">Total invertido</p>
+								<p class="mt-1 font-semibold">{formatMoney(investmentMetrics.totalInvested)}</p>
+							</div>
+							<div class="rounded-2xl bg-muted/60 p-3">
+								<p class="text-xs text-muted-foreground">Valor actual</p>
+								<p class="mt-1 font-semibold">{formatMoney(investmentMetrics.totalCurrentValue)}</p>
+							</div>
+							<div class="rounded-2xl bg-muted/60 p-3">
+								<p class="text-xs text-muted-foreground">Retorno total</p>
+								<p
+									class={investmentMetrics.totalReturn >= 0
+										? 'mt-1 font-semibold text-emerald-600 dark:text-emerald-300'
+										: 'mt-1 font-semibold text-rose-600 dark:text-rose-300'}
+								>
+									{investmentMetrics.totalReturn >= 0 ? '+' : ''}
+									{formatMoney(investmentMetrics.totalReturn)}
+									({investmentMetrics.returnPercentage >= 0 ? '+' : ''}{investmentMetrics.returnPercentage.toFixed(1)}%)
+								</p>
+							</div>
+							<div class="flex items-center justify-between rounded-2xl bg-muted/60 p-3">
+								<span class="text-sm text-muted-foreground">Inversiones activas</span>
+								<span class="font-semibold">{investmentMetrics.activeInvestments}</span>
+							</div>
+						</div>
+					</section>
+					-->
+
+					<!--
 					<section
 						class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
 						in:fly={{ x: 14, duration: 420 }}
@@ -735,6 +849,76 @@
 									Ahora
 								</span>
 							</div>
+						</div>
+					</section>
+-->
+					<section
+						class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
+						in:fly={{ x: 14, duration: 420 }}
+					>
+						<div class="flex items-center gap-3">
+							<div
+								class="flex size-10 items-center justify-center rounded-2xl bg-violet-400/15 text-violet-700 dark:text-violet-300"
+							>
+								<Landmark class="size-4" />
+							</div>
+							<div>
+								<p class="font-semibold">Posiciones</p>
+								<p class="text-sm text-muted-foreground">Estrategias activas</p>
+							</div>
+						</div>
+						<div class="mt-5 space-y-3">
+							{#each allInvestments as inv (inv.id)}
+								<div
+									class="rounded-2xl border border-border/70 bg-background p-3 transition hover:bg-muted/60"
+								>
+									<div class="flex items-start justify-between gap-2">
+										<p class="text-sm font-semibold">{inv.strategy_name}</p>
+										<span
+											class={inv.actual_return != null && inv.actual_return >= 0
+												? 'shrink-0 text-xs font-semibold text-emerald-600 dark:text-emerald-300'
+												: 'shrink-0 text-xs font-semibold text-rose-600 dark:text-rose-300'}
+										>
+											{inv.actual_return != null
+												? (inv.actual_return >= 0 ? '+' : '') + inv.actual_return.toFixed(1) + '%'
+												: '—'}
+										</span>
+									</div>
+									<p class="mt-1 text-xs text-muted-foreground">
+										{formatMoney(inv.amount, inv.currency)} → {formatMoney(
+											inv.current_value,
+											inv.currency
+										)}
+									</p>
+									<div class="mt-2 flex items-center gap-2">
+										<span
+											class={inv.risk_level === 'Low'
+												? 'rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300'
+												: inv.risk_level === 'Medium'
+													? 'rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300'
+													: 'rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium text-rose-700 dark:text-rose-300'}
+										>
+											{inv.risk_level}
+										</span>
+										<span
+											class={inv.status === 'Active'
+												? 'rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300'
+												: 'rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground'}
+										>
+											{inv.status}
+										</span>
+									</div>
+								</div>
+							{:else}
+								<div
+									class="rounded-2xl border border-dashed border-border bg-background p-4 text-center"
+								>
+									<p class="text-sm text-muted-foreground">Sin inversiones activas</p>
+									<p class="mt-1 text-xs text-muted-foreground">
+										Las inversiones aparecerán aquí cuando algún grupo active una estrategia.
+									</p>
+								</div>
+							{/each}
 						</div>
 					</section>
 				</aside>
