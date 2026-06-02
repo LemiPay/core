@@ -1,5 +1,6 @@
 <script lang="ts">
 	import SideBar from './ui/SideBar.svelte';
+	import { roundBalance } from '$lib/utils/money_utils';
 
 	interface Props {
 		open: boolean;
@@ -52,7 +53,7 @@
 								</div>
 								<div class="flex flex-col items-end gap-0.5">
 									<span class="font-bold text-black">
-										{tx.tx_type === 'withdraw' ? '+' : '-'} ${tx.amount}
+										{tx.tx_type === 'withdraw' ? '+' : '-'} ${roundBalance(tx.amount)}
 									</span>
 									<span class="text-sm text-gray-500">{formatDate(tx.created_at)}</span>
 								</div>
