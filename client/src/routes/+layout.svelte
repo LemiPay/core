@@ -7,7 +7,6 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
-	import AuthLayout from '$lib/components/layouts/AuthLayout.svelte';
 	import Navbar from '$lib/components/ui/Navbar.svelte';
 	import FooterTwo from '$lib/components/blocks/footer/footer-two.svelte';
 
