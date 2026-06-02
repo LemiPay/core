@@ -55,7 +55,7 @@
 </script>
 
 <div>
-	<label for={id} class="mb-1.5 block text-sm font-medium text-black">{label}</label>
+	<label for={id} class="mb-1.5 block text-sm font-medium text-foreground">{label}</label>
 
 	<div class="relative">
 		{#if selectedLogo}
@@ -71,13 +71,13 @@
 			bind:value
 			onblur={() => (touched = true)}
 			disabled={loading || error !== ''}
-			class="w-full appearance-none rounded-md border py-2 pr-10 text-sm text-black transition focus:ring-0 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400
-             {selectedLogo ? 'pl-10' : 'pl-3'}
-             {showFeedback
+			class="w-full appearance-none rounded-md border bg-background py-2 pr-10 text-sm text-foreground transition focus:ring-0 focus:outline-none disabled:bg-muted disabled:text-muted-foreground
+			             {selectedLogo ? 'pl-10' : 'pl-3'}
+			             {showFeedback
 				? isValid
-					? 'border-green-400 focus:border-green-500'
-					: 'border-red-400 focus:border-red-500'
-				: 'border-gray-200 focus:border-gray-400'}"
+					? 'border-green-400 focus:border-green-500 dark:border-green-500/60 dark:focus:border-green-400'
+					: 'border-red-400 focus:border-red-500 dark:border-red-500/60 dark:focus:border-red-400'
+				: 'border-input focus:border-ring'}"
 		>
 			<option value="" disabled selected>
 				{loading ? 'Cargando monedas...' : error ? 'Error al cargar' : 'Elegí una moneda'}
@@ -90,10 +90,12 @@
 			{/each}
 		</select>
 
-		<div class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-400">
+		<div
+			class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground"
+		>
 			{#if loading}
 				<div
-					class="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-black"
+					class="h-4 w-4 animate-spin rounded-full border-2 border-muted border-t-foreground"
 				></div>
 			{:else}
 				<svg

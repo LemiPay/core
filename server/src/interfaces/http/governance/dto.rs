@@ -126,7 +126,7 @@ pub struct WithdrawProposalResponse {
 #[derive(Serialize)]
 pub struct FundRoundProposalResponse {
     pub proposal: ProposalResponse,
-    pub target_amount: BigDecimal,
+    pub target_amount: String,
     pub currency_id: Uuid,
     pub kind: ProposalKindResponse,
 }
@@ -205,7 +205,7 @@ impl From<FundRoundProposalDetails> for FundRoundProposalResponse {
     fn from(value: FundRoundProposalDetails) -> Self {
         Self {
             proposal: value.proposal.into(),
-            target_amount: value.target_amount,
+            target_amount: value.target_amount.to_string(),
             currency_id: value.currency_id,
             kind: value.kind.into(),
         }

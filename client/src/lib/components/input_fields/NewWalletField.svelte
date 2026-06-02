@@ -27,7 +27,7 @@
 	<button
 		type="button"
 		onclick={() => (value = generateRandomAddress())}
-		class="absolute top-0 right-0 flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium text-gray-400 transition hover:bg-gray-100 hover:text-black"
+		class="absolute top-0 right-0 flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
 	>
 		<Sparkles class="h-3 w-3" />
 		Generar aleatoria

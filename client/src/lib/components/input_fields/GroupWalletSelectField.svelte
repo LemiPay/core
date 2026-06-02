@@ -51,7 +51,7 @@
 </script>
 
 <div class="w-full">
-	<label for={id} class="mb-1.5 block text-sm font-medium text-black">
+	<label for={id} class="mb-1.5 block text-sm font-medium text-foreground">
 		{label}
 	</label>
 
@@ -59,7 +59,7 @@
 		{#if loading}
 			<div class="absolute inset-y-0 left-3 flex items-center">
 				<div
-					class="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-black"
+					class="h-4 w-4 animate-spin rounded-full border-2 border-muted border-t-foreground"
 				></div>
 			</div>
 		{/if}
@@ -69,13 +69,13 @@
 			bind:value
 			onblur={() => (touched = true)}
 			disabled={loading || wallets.length === 0}
-			class="w-full appearance-none rounded-md border px-3 py-2 text-sm text-black transition focus:ring-0 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400
-             {loading ? 'pl-9' : 'pl-3'}
-             {showFeedback
+			class="w-full appearance-none rounded-md border bg-background px-3 py-2 text-sm text-foreground transition focus:ring-0 focus:outline-none disabled:bg-muted disabled:text-muted-foreground
+			             {loading ? 'pl-9' : 'pl-3'}
+			             {showFeedback
 				? isValid
-					? 'border-green-400 focus:border-green-500'
-					: 'border-red-400 focus:border-red-500'
-				: 'border-gray-200 focus:border-gray-400'}"
+					? 'border-green-400 focus:border-green-500 dark:border-green-500/60 dark:focus:border-green-400'
+					: 'border-red-400 focus:border-red-500 dark:border-red-500/60 dark:focus:border-red-400'
+				: 'border-input focus:border-ring'}"
 		>
 			<option value="" disabled selected>
 				{loading
@@ -92,7 +92,9 @@
 			{/each}
 		</select>
 
-		<div class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-400">
+		<div
+			class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground"
+		>
 			<ChevronDown class="h-4 w-4" />
 		</div>
 	</div>
@@ -103,7 +105,7 @@
 			Seleccioná una billetera para continuar
 		</p>
 	{:else if wallets.length === 0 && !loading && !error}
-		<p class="mt-1.5 text-xs text-gray-500">El grupo no tiene billeteras creadas.</p>
+		<p class="mt-1.5 text-xs text-muted-foreground">El grupo no tiene billeteras creadas.</p>
 	{:else if error}
 		<p class="mt-1.5 text-xs text-red-500">{error}</p>
 	{:else}

@@ -3,10 +3,12 @@
 	import favicon from '$lib/assets/favicon.svg';
 
 	import { authStore } from '$lib/stores/auth';
-	import Navbar from '$lib/components/ui/Navbar.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+
+	import Navbar from '$lib/components/ui/Navbar.svelte';
+	import FooterTwo from '$lib/components/blocks/footer/footer-two.svelte';
 
 	let { children } = $props();
 	let initialized = $state(false);
@@ -46,11 +48,12 @@
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
+<Navbar isAuthenticated={$authStore.isAuthenticated} user={$authStore.user} />
+
 {#if initialized}
-	{#if $authStore.isAuthenticated}
-		<Navbar />
-	{/if}
-	{@render children()}
+	<div class="flex min-h-screen flex-col">
+		{@render children()}
+	</div>
 {:else}
 	<div class="flex h-screen w-full items-center justify-center">
 		<div
@@ -58,3 +61,5 @@
 		></div>
 	</div>
 {/if}
+
+<FooterTwo />
