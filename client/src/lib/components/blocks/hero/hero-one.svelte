@@ -7,6 +7,8 @@
 	// Hero Header Component
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+
+	let { isAuthed }: { isAuthed: boolean } = $props();
 </script>
 
 <div>
@@ -63,19 +65,37 @@
 							junto a tu grupo.
 						</p>
 
-						<div class="mt-12 flex flex-col items-center justify-center gap-2 md:flex-row">
-							<div
-								class="border bg-foreground/10 p-0.5"
-								style="border-radius: calc(0.5rem + 0.125rem + 4px);"
-							>
-								<Button href="/register" size="lg" class="rounded-xl px-5 text-base">
-									<span class="text-nowrap">Registrarse</span>
-								</Button>
+						{#if !isAuthed}
+							<div class="mt-12 flex flex-col items-center justify-center gap-2 md:flex-row">
+								<div
+									class="border bg-foreground/10 p-0.5"
+									style="border-radius: calc(0.5rem + 0.125rem + 4px);"
+								>
+									<Button href="/register" size="lg" class="rounded-xl px-5 text-base">
+										<span class="text-nowrap">Registrarse</span>
+									</Button>
+								</div>
+								<Button href="/login" size="lg" variant="ghost" class="rounded-xl px-5"
+									>Iniciar Sesión</Button
+								>
 							</div>
-							<Button href="/dashboard" size="lg" variant="ghost" class="rounded-xl px-5"
-								>Dashboard</Button
-							>
-						</div>
+						{/if}
+
+						{#if isAuthed}
+							<div class="mt-12 flex flex-col items-center justify-center gap-2 md:flex-row">
+								<div
+									class="border bg-foreground/10 p-0.5"
+									style="border-radius: calc(0.5rem + 0.125rem + 4px);"
+								>
+									<Button href="/dashboard" size="lg" class="rounded-xl px-5 text-base">
+										<span class="text-nowrap">Dashboard</span>
+									</Button>
+								</div>
+								<Button href="/profile" size="lg" variant="ghost" class="rounded-xl px-5"
+									>Ver Perfil</Button
+								>
+							</div>
+						{/if}
 					</div>
 				</div>
 
