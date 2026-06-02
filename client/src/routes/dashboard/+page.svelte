@@ -383,7 +383,7 @@
 
 			<section class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
 				<div class="space-y-6">
-					<section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" in:fade={{ duration: 300 }}>
+					<section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-2" in:fade={{ duration: 300 }}>
 						<button
 							type="button"
 							onclick={() => (showNewGroup = true)}
@@ -397,6 +397,7 @@
 							<p class="font-semibold">Crear Grupo</p>
 							<p class="mt-1 text-sm text-muted-foreground">Nueva tesorería compartida</p>
 						</button>
+						<!--
 						<a
 							href={resolve('/dashboard')}
 							class="group rounded-3xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-1 hover:border-sky-300 hover:shadow-xl hover:shadow-sky-500/10"
@@ -421,6 +422,8 @@
 							<p class="font-semibold">Crear Proposal</p>
 							<p class="mt-1 text-sm text-muted-foreground">Votación del grupo</p>
 						</a>
+						-->
+
 						<a
 							href={resolve('/dashboard')}
 							class="group rounded-3xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-1 hover:border-amber-300 hover:shadow-xl hover:shadow-amber-500/10"
