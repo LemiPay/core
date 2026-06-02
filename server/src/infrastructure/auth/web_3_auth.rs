@@ -43,7 +43,7 @@ impl Web3AuthTrait for Web3Auth {
 
     fn generate_message(&self, address: &Address, nonce: &String, issued_at: &String) -> String {
         format!(
-            "lemi.pay quiere iniciar sesión con tu cuenta Ethereum:\n\
+            "lemipay.app quiere iniciar sesión con tu cuenta Ethereum:\n\
         {}\n\n\
         Bienvenido a LemiPay.\n\n\
         URI: https://localhost:5173\n\
