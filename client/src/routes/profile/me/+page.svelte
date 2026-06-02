@@ -364,25 +364,17 @@
 				</div>
 
 				<!-- Summary metric cards -->
-				<div class="mt-6 grid grid-cols-3 gap-3">
-					<div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
+				<div class="mt-6 flex flex-row gap-3">
+					<div class="rounded-4xl border border-border/80 bg-background/70 p-4 backdrop-blur">
 						<p class="text-xs font-medium text-muted-foreground">Balance total</p>
 						<p class="mt-1.5 text-xl font-semibold">
 							${totalBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}
 						</p>
 					</div>
 
-					<div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
+					<div class="rounded-4xl border border-border/80 bg-background/70 p-4 backdrop-blur">
 						<p class="text-xs font-medium text-muted-foreground">Wallets activas</p>
 						<p class="mt-1.5 text-xl font-semibold">{totalWallets}</p>
-					</div>
-
-					<div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
-						<p class="text-xs font-medium text-muted-foreground">Último acceso</p>
-						<p class="mt-1.5 flex items-center gap-1 text-sm font-semibold">
-							<Clock class="size-3.5 text-muted-foreground" />
-							Ahora
-						</p>
 					</div>
 				</div>
 			</div>
