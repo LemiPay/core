@@ -399,6 +399,9 @@ impl From<InvestmentError> for AppError {
             InvestmentError::NotProposalCreator => {
                 AppError::Forbidden("Solo el creador de la propuesta puede ejecutarla".into())
             }
+            InvestmentError::NotGroupMember => {
+                AppError::Forbidden("Solo miembros del grupo puede ver estos detalles".into())
+            }
         }
     }
 }

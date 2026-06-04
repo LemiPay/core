@@ -84,10 +84,11 @@ pub async fn list_group_investments(
 pub async fn get_investment_snapshots(
     State(state): State<SharedState>,
     Path(investment_id): Path<Uuid>,
+    user: AuthUser,
 ) -> Result<Json<Vec<SnapshotResponse>>, AppError> {
     let items = state
         .investment_service
-        .list_snapshots(investment_id)
+        .list_snapshots(investment_id, user.user_id)
         .map_err(AppError::from)?;
     Ok(Json(items.into_iter().map(Into::into).collect()))
 }

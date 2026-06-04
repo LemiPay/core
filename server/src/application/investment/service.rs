@@ -23,7 +23,6 @@ use crate::domain::{
     investment::{Investment, InvestmentPolicy},
     treasury::{CurrencyId, Money},
 };
-
 #[derive(Clone)]
 pub struct InvestmentService {
     pub investment_repo: Arc<dyn InvestmentRepository>,
@@ -240,7 +239,23 @@ impl InvestmentService {
 
     // ── Snapshots ──
 
-    pub fn list_snapshots(&self, investment_id: Uuid) -> Result<Vec<SnapshotDto>, InvestmentError> {
+    pub fn list_snapshots(
+        &self,
+        investment_id: Uuid,
+        user_id: UserId,
+    ) -> Result<Vec<SnapshotDto>, InvestmentError> {
+        let investment = self
+            .investment_repo
+            .find_investment(investment_id)?
+            .ok_or(InvestmentError::NotFound)?;
+        let group_id = GroupId(investment.group_id);
+        if !self
+            .group_repo
+            .is_member(user_id, group_id)
+            .map_err(InvestmentError::from)?
+        {
+            return Err(InvestmentError::NotGroupMember);
+        }
         Self::map_repo(self.investment_repo.list_snapshots(investment_id))
     }
 

@@ -15,6 +15,7 @@ pub enum InvestmentError {
     InsufficientGroupFunds,
     NotGroupAdmin,
     NotProposalCreator,
+    NotGroupMember,
 }
 
 impl From<RepoError> for InvestmentError {

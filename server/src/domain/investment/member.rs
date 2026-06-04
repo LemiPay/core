@@ -1,4 +1,3 @@
-use crate::domain::investment::{Investment, InvestmentId};
 use crate::domain::user::UserId;
 use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
