@@ -1,13 +1,13 @@
 import { getGroup, getGroupMembers, getGroupWallets } from '$lib/api/endpoints/groups';
 import {
-	getGroupFundRoundProposals,
+	contributeFundRound,
 	getFundRoundProposal,
-	getMyFundRoundContribution,
 	getFundRoundRemaining,
-	contributeFundRound
+	getGroupFundRoundProposals,
+	getMyFundRoundContribution
 } from '$lib/api/endpoints/fund_rounds';
 import { getGroupBalances } from '$lib/api/endpoints/core';
-import { getGroupExpenses, getExpenses } from '$lib/api/endpoints/expenses';
+import { getExpenses, getGroupExpenses } from '$lib/api/endpoints/expenses';
 import { listGroupTransactions } from '$lib/api/endpoints/transactions';
 import { getMyWallets } from '$lib/api/endpoints/wallets';
 import { authStore } from '$lib/stores/auth';

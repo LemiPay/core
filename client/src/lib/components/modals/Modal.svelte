@@ -42,7 +42,7 @@
 	<!-- Backdrop -->
 	<div
 		role="presentation"
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
 		onclick={handleBackdropClick}
 	>
 		<!-- Panel -->
@@ -52,20 +52,20 @@
 			aria-labelledby="modal-title"
 			aria-busy={loading}
 			tabindex="-1"
-			class="w-full max-w-md rounded-xl border border-gray-200 bg-white p-8 shadow-sm"
+			class="w-full max-w-md rounded-xl border border-border bg-card p-8 text-card-foreground shadow-xl shadow-black/10 dark:shadow-black/30"
 		>
 			<!-- Header -->
 			<div class="mb-6 flex items-start justify-between gap-4">
 				<div class="space-y-1">
-					<h2 id="modal-title" class="text-xl font-bold tracking-tight text-black">{title}</h2>
+					<h2 id="modal-title" class="text-xl font-bold tracking-tight text-foreground">{title}</h2>
 					{#if description}
-						<p class="text-sm text-gray-500">{description}</p>
+						<p class="text-sm text-muted-foreground">{description}</p>
 					{/if}
 				</div>
 				<button
 					onclick={onclose}
 					disabled={loading}
-					class="mt-0.5 rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 disabled:pointer-events-none disabled:opacity-40"
+					class="mt-0.5 rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 					aria-label="Close modal"
 				>
 					<svg
@@ -88,9 +88,9 @@
 			<div class="relative">
 				{#if loading}
 					<div
-						class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/70"
+						class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-sm"
 					>
-						<svg class="h-5 w-5 animate-spin text-gray-700" viewBox="0 0 24 24" fill="none">
+						<svg class="h-5 w-5 animate-spin text-foreground" viewBox="0 0 24 24" fill="none">
 							<circle
 								class="opacity-20"
 								cx="12"
@@ -117,7 +117,7 @@
 					<!-- Status message -->
 					{#if error}
 						<div
-							class="mt-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600"
+							class="mt-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300"
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
@@ -137,7 +137,7 @@
 						</div>
 					{:else if success}
 						<div
-							class="mt-4 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-600"
+							class="mt-4 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-600 dark:border-green-400/20 dark:bg-green-400/10 dark:text-green-300"
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"

@@ -1,7 +1,11 @@
+use std::str::FromStr;
+use std::sync::Arc;
+use uuid::Uuid;
+
 use crate::application::auth::new_user::NewUser;
+use crate::application::auth::traits::challenge_cache::Web3AuthCacheTrait;
 use crate::application::auth::traits::repository::AuthRepository;
 use crate::application::auth::traits::token_service::TokenService;
-use crate::application::auth::traits::web3_auth::Web3AuthTrait;
 use crate::application::auth::verify_challenge::dto::{VerificationInput, VerificationOutput};
 use crate::application::treasury::traits::user_wallet_repo::UserWalletRepository;
 use crate::application::users::traits::repository::UserRepository;
@@ -9,38 +13,31 @@ use crate::domain::treasury::{CurrencyId, Money, UserWallet, UserWalletId};
 use crate::domain::user::{Email, UserId};
 use crate::infrastructure::auth::jwt_service::JwtService;
 use crate::interfaces::http::error::AppError;
-use moka::sync::Cache;
-use std::str::FromStr;
-use std::sync::Arc;
-use uuid::Uuid;
 
 pub mod dto;
 
 pub struct VerifyChallengeUseCase {
-    pub web3_service: Arc<dyn Web3AuthTrait>,
+    pub web3_service: Arc<dyn Web3AuthCacheTrait>,
     pub user_repository: Arc<dyn UserRepository>,
-    pub auth_repository: Arc<dyn AuthRepository>,
     pub user_wallet_repository: Arc<dyn UserWalletRepository>,
-    nonce_cache: Cache<String, String>,
     jwt_service: Arc<JwtService>,
+    pub auth_repository: Arc<dyn AuthRepository>,
 }
 
 impl VerifyChallengeUseCase {
     pub fn new(
-        web3_service: Arc<dyn Web3AuthTrait>,
-        nonce_cache: Cache<String, String>,
+        web3_service: Arc<dyn Web3AuthCacheTrait>,
         user_repository: Arc<dyn UserRepository>,
         user_wallet_repository: Arc<dyn UserWalletRepository>,
-        auth_repository: Arc<dyn AuthRepository>,
         jwt_service: Arc<JwtService>,
+        auth_repository: Arc<dyn AuthRepository>,
     ) -> Self {
         Self {
             web3_service,
             user_repository,
-            auth_repository,
             user_wallet_repository,
-            nonce_cache,
             jwt_service,
+            auth_repository,
         }
     }
 
@@ -48,26 +45,27 @@ impl VerifyChallengeUseCase {
         &self,
         input: VerificationInput,
     ) -> Result<VerificationOutput, AppError> {
-        let stored_nonce = self.nonce_cache.get(&input.email);
-        match stored_nonce {
-            None => {
-                return Err(AppError::Forbidden(
-                    "Sesión expirada o desafío no solicitado".into(),
-                ));
-            }
-            Some(n) if n != input.nonce => {
-                return Err(AppError::Forbidden("Nonce inválido".into()));
-            }
-            _ => (),
+        let stored_data = self
+            .web3_service
+            .cache_get(&input.address.trim().to_string());
+
+        let Some(data) = stored_data else {
+            return Err(AppError::Forbidden(
+                "Sesión expirada o desafío no solicitado".into(),
+            ));
+        };
+
+        if data.nonce != input.nonce {
+            return Err(AppError::Forbidden("Nonce inválido".into()));
         }
 
         let is_valid = self
             .web3_service
             .validate_signature_rpc(
-                input.email.clone(),
                 input.address.clone(),
                 input.signature,
-                input.nonce,
+                data.nonce,
+                data.issued_at,
             )
             .await;
 
@@ -75,21 +73,83 @@ impl VerifyChallengeUseCase {
             return Err(AppError::Forbidden("Firma criptográfica inválida".into()));
         }
 
-        self.nonce_cache.remove(&input.email);
-        let mail = Email(input.email.clone());
+        self.web3_service
+            .cache_remove(&input.address.trim().to_string());
 
-        let find_user = self
-            .user_repository
-            .find_by_email(&mail)
-            .map_err(|_| AppError::Internal)?;
+        let address = input.address.trim().to_string();
 
-        let id = match find_user {
-            Some(user) => {
-                let user_id = UserId(user.id.clone());
-                _ = self.handle_known_user(user_id.clone(), mail, input.address);
-                user_id
+        let email = input
+            .email
+            .as_ref()
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+            .map(|value| Email(value.to_lowercase()));
+
+        let name = input
+            .name
+            .as_ref()
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string());
+
+        let id = match email {
+            Some(mail) => {
+                let find_user = self
+                    .user_repository
+                    .find_by_email(&mail)
+                    .map_err(|_| AppError::Internal)?;
+
+                match find_user {
+                    Some(user) => {
+                        let user_id = UserId(user.id.clone());
+                        let owner = self
+                            .user_wallet_repository
+                            .find_owner_of_address(&address)
+                            .map_err(|_| AppError::Internal)?;
+
+                        match owner {
+                            Some(owner_id) if owner_id == user_id => {
+                                _ = self.handle_known_user(user_id.clone(), address);
+                                user_id
+                            }
+                            Some(_) => {
+                                return Err(AppError::BadRequest(
+                                    "La wallet ya está asociada a otra cuenta".into(),
+                                ));
+                            }
+                            None => {
+                                if input.allow_linking {
+                                    _ = self.handle_known_user(user_id.clone(), address);
+                                    user_id
+                                } else {
+                                    return Err(AppError::BadRequest(
+                                        "Email ya está asociado a una cuenta".into(),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    None => self.handle_new_user(mail, address, name)?,
+                }
             }
-            None => self.handle_new_user(mail, input.address)?,
+            None => {
+                let owner = self
+                    .user_wallet_repository
+                    .find_owner_of_address(&address)
+                    .map_err(|_| AppError::Internal)?;
+
+                match owner {
+                    Some(user_id) => {
+                        _ = self.handle_known_user(user_id.clone(), address);
+                        user_id
+                    }
+                    None => {
+                        return Err(AppError::BadRequest(
+                            "Email requerido para asociar la wallet".into(),
+                        ));
+                    }
+                }
+            }
         };
 
         let token = self
@@ -103,11 +163,17 @@ impl VerifyChallengeUseCase {
         })
     }
 
-    fn handle_new_user(&self, mail: Email, addr: String) -> Result<UserId, AppError> {
+    fn handle_new_user(
+        &self,
+        mail: Email,
+        addr: String,
+        name: Option<String>,
+    ) -> Result<UserId, AppError> {
+        let resolved_name = name.unwrap_or_else(|| addr.clone());
         let new_user = NewUser {
             email: mail.0,
             password: None,
-            name: addr.to_string(),
+            name: resolved_name,
         };
 
         let saved_user = self
@@ -137,12 +203,7 @@ impl VerifyChallengeUseCase {
         Ok(real_user_id)
     }
 
-    fn handle_known_user(
-        &self,
-        user_id: UserId,
-        _mail: Email,
-        addr: String,
-    ) -> Result<UserId, AppError> {
+    fn handle_known_user(&self, user_id: UserId, addr: String) -> Result<UserId, AppError> {
         let usdc_currency = CurrencyId(
             Uuid::from_str("33de6c7c-62a2-4182-813a-9005183be70d")
                 .map_err(|_| AppError::Internal)?,
@@ -178,41 +239,4 @@ impl VerifyChallengeUseCase {
 }
 
 #[cfg(test)]
-mod tests {
-    use alloy::signers::SignerSync;
-    use alloy::signers::local::PrivateKeySigner;
-
-    #[test]
-    fn simulate_frontend_payload() {
-        let email = "facu@lemipay.com";
-        let nonce = "e10c0174-d60d-4a77-b0b1-1137b1d38b65";
-
-        let signer = PrivateKeySigner::random();
-        let address = signer.address().to_string();
-
-        let message = format!(
-            "Bienvenido a LemiPay.\n\n\
-            Al firmar este mensaje, confirmas que eres el dueño de esta cuenta.\n\n\
-            Email: {}\n\
-            Nonce: {}",
-            email, nonce
-        );
-
-        let signature_obj = signer
-            .sign_message_sync(message.as_bytes())
-            .expect("Error firmando");
-        let signature_hex = format!("0x{}", alloy::hex::encode(signature_obj.as_bytes()));
-
-        println!("\n=== JSON para /verify-challenge ===");
-        println!(
-            r#"{{
-  "email": "{}",
-  "address": "{}",
-  "signature": "{}",
-  "nonce": "{}"
-}}"#,
-            email, address, signature_hex, nonce
-        );
-        println!("=======================================================\n");
-    }
-}
+mod tests;
