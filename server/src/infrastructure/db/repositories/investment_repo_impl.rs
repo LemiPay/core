@@ -582,25 +582,24 @@ impl InvestmentRepository for DieselInvestmentRepository {
 
     fn list_active_with_strategy(&self) -> Result<Vec<ActiveInvestmentDto>, RepoError> {
         let mut conn = self.get_conn()?;
-        let rows = schema::investment::table
-            .filter(schema::investment::status.eq(InvestmentStatusModel::Active))
-            .inner_join(
-                schema::investment_proposal::table
-                    .on(schema::investment::proposal_id.eq(schema::investment_proposal::proposal_id)),
-            )
-            .inner_join(
-                schema::investment_strategy::table
-                    .on(schema::investment_proposal::strategy_id.eq(schema::investment_strategy::id)),
-            )
-            .select((
-                schema::investment::id,
-                schema::investment::amount,
-                schema::investment_strategy::expected_return_percentage,
-                schema::investment_strategy::risk_level,
-                schema::investment_strategy::duration_days,
-            ))
-            .load::<(Uuid, BigDecimal, BigDecimal, String, i32)>(&mut conn)
-            .map_err(|_| RepoError::Query)?;
+        let rows =
+            schema::investment::table
+                .filter(schema::investment::status.eq(InvestmentStatusModel::Active))
+                .inner_join(schema::investment_proposal::table.on(
+                    schema::investment::proposal_id.eq(schema::investment_proposal::proposal_id),
+                ))
+                .inner_join(schema::investment_strategy::table.on(
+                    schema::investment_proposal::strategy_id.eq(schema::investment_strategy::id),
+                ))
+                .select((
+                    schema::investment::id,
+                    schema::investment::amount,
+                    schema::investment_strategy::expected_return_percentage,
+                    schema::investment_strategy::risk_level,
+                    schema::investment_strategy::duration_days,
+                ))
+                .load::<(Uuid, BigDecimal, BigDecimal, String, i32)>(&mut conn)
+                .map_err(|_| RepoError::Query)?;
         Ok(rows
             .into_iter()
             .map(|(id, amount, pct, risk, days)| ActiveInvestmentDto {
@@ -629,15 +628,13 @@ impl InvestmentRepository for DieselInvestmentRepository {
         now: NaiveDateTime,
     ) -> Result<(), RepoError> {
         let mut conn = self.get_conn()?;
-        diesel::update(
-            schema::investment::table.filter(schema::investment::id.eq(investment_id)),
-        )
-        .set((
-            schema::investment::current_value.eq(&value),
-            schema::investment::updated_at.eq(now),
-        ))
-        .execute(&mut conn)
-        .map_err(|_| RepoError::Query)?;
+        diesel::update(schema::investment::table.filter(schema::investment::id.eq(investment_id)))
+            .set((
+                schema::investment::current_value.eq(&value),
+                schema::investment::updated_at.eq(now),
+            ))
+            .execute(&mut conn)
+            .map_err(|_| RepoError::Query)?;
         Ok(())
     }
 
@@ -649,17 +646,15 @@ impl InvestmentRepository for DieselInvestmentRepository {
         now: NaiveDateTime,
     ) -> Result<(), RepoError> {
         let mut conn = self.get_conn()?;
-        diesel::update(
-            schema::investment::table.filter(schema::investment::id.eq(investment_id)),
-        )
-        .set((
-            schema::investment::status.eq(InvestmentStatusModel::Matured),
-            schema::investment::actual_return.eq(&actual_return),
-            schema::investment::current_value.eq(&final_value),
-            schema::investment::updated_at.eq(now),
-        ))
-        .execute(&mut conn)
-        .map_err(|_| RepoError::Query)?;
+        diesel::update(schema::investment::table.filter(schema::investment::id.eq(investment_id)))
+            .set((
+                schema::investment::status.eq(InvestmentStatusModel::Matured),
+                schema::investment::actual_return.eq(&actual_return),
+                schema::investment::current_value.eq(&final_value),
+                schema::investment::updated_at.eq(now),
+            ))
+            .execute(&mut conn)
+            .map_err(|_| RepoError::Query)?;
         Ok(())
     }
 

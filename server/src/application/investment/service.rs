@@ -287,7 +287,8 @@ impl InvestmentService {
             let hundred = BigDecimal::from(100);
 
             let linear_value = inv.amount.clone()
-                * (BigDecimal::from(1) + &inv.expected_return_percentage / &hundred * &days / &duration);
+                * (BigDecimal::from(1)
+                    + &inv.expected_return_percentage / &hundred * &days / &duration);
 
             let noise_pct = daily_noise_range(&inv.risk_level);
             let noise_factor =
@@ -320,10 +321,7 @@ impl InvestmentService {
                 self.investment_repo
                     .update_current_value(inv.id, current_value.clone(), now)
                     .map_err(|e| {
-                        format!(
-                            "Failed to update current_value for {}: {:?}",
-                            inv.id, e
-                        )
+                        format!("Failed to update current_value for {}: {:?}", inv.id, e)
                     })?;
 
                 self.investment_repo
