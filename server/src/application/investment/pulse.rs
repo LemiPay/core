@@ -99,6 +99,15 @@ pub fn process_pulse(pool: &DbPool) -> Result<PulseResult, String> {
             .execute(&mut conn)
             .map_err(|e| format!("Failed to mature investment {}: {}", investment_id, e))?;
 
+            diesel::insert_into(schema::investment_value_snapshot::table)
+                .values(&NewInvestmentValueSnapshotModel {
+                    investment_id: *investment_id,
+                    value: final_value.clone(),
+                    snapshot_date: now,
+                })
+                .execute(&mut conn)
+                .map_err(|e| format!("Failed to insert snapshot for {}: {}", investment_id, e))?;
+
             matured += 1;
         } else {
             diesel::update(
@@ -115,16 +124,16 @@ pub fn process_pulse(pool: &DbPool) -> Result<PulseResult, String> {
                     investment_id, e
                 )
             })?;
-        }
 
-        diesel::insert_into(schema::investment_value_snapshot::table)
-            .values(&NewInvestmentValueSnapshotModel {
-                investment_id: *investment_id,
-                value: current_value.clone(),
-                snapshot_date: now,
-            })
-            .execute(&mut conn)
-            .map_err(|e| format!("Failed to insert snapshot for {}: {}", investment_id, e))?;
+            diesel::insert_into(schema::investment_value_snapshot::table)
+                .values(&NewInvestmentValueSnapshotModel {
+                    investment_id: *investment_id,
+                    value: current_value.clone(),
+                    snapshot_date: now,
+                })
+                .execute(&mut conn)
+                .map_err(|e| format!("Failed to insert snapshot for {}: {}", investment_id, e))?;
+        }
 
         updated += 1;
     }
