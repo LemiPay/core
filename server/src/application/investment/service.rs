@@ -132,12 +132,12 @@ impl InvestmentService {
             .map(|b| &b.balance)
             .sum::<BigDecimal>();
 
-        let participants = positive_balances
+        let hundred = BigDecimal::from(100);
+        let mut participants: Vec<NewInvestmentMember> = positive_balances
             .iter()
             .map(|b| {
-                let pct = (&b.balance / &sum) * BigDecimal::from(100);
-                let invested_amount = &proposal.amount * &pct / BigDecimal::from(100);
-
+                let pct = (&b.balance / &sum) * &hundred;
+                let invested_amount = &proposal.amount * &pct / &hundred;
                 NewInvestmentMember {
                     user_id: UserId(b.user_id),
                     balance_at_investment: b.balance.clone(),
@@ -148,6 +148,22 @@ impl InvestmentService {
                 }
             })
             .collect();
+        let max_idx = participants
+            .iter()
+            .enumerate()
+            .max_by(|(_, a), (_, b)| a.balance_at_investment.cmp(&b.balance_at_investment))
+            .map(|(idx, _)| idx);
+        if let Some(max_idx) = max_idx {
+            let others_sum: BigDecimal = participants
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| *i != max_idx)
+                .map(|(_, p)| &p.participation_pct)
+                .sum();
+            participants[max_idx].participation_pct = &hundred - others_sum;
+            participants[max_idx].invested_amount =
+                &proposal.amount * &participants[max_idx].participation_pct / &hundred;
+        }
 
         Self::map_repo(self.investment_repo.execute_investment(
             proposal_id,
