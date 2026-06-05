@@ -28,9 +28,6 @@ impl InvestmentPolicy {
             .ensure_can_transition_to(InvestmentStatus::Withdrawn)
     }
 
-    pub fn calculate_invested_percentage() {
-        todo!()
-    }
 }
 
 #[cfg(test)]
