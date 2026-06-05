@@ -2,6 +2,7 @@ import { getGroup, getGroupWallets } from '$lib/api/endpoints/groups';
 import {
 	listStrategies,
 	listGroupInvestments,
+	listApprovedProposals,
 	createInvestmentProposal,
 	executeInvestmentProposal,
 	withdrawInvestment
@@ -33,6 +34,7 @@ export class InvestmentsState {
 	groupWallets = $state<GroupWallet[]>([]);
 	strategies = $state<InvestmentStrategy[]>([]);
 	investments = $state<Investment[]>([]);
+	proposals = $state<InvestmentProposal[]>([]);
 	tickerMap = $state<Record<string, string>>({});
 
 	proposing = $state(false);
@@ -78,9 +80,15 @@ export class InvestmentsState {
 			this.loadGroupData(),
 			this.loadStrategies(),
 			this.loadInvestments(),
+			this.loadProposals(),
 			this.loadTickerMap()
 		]);
 		this.loading = false;
+	}
+
+	async loadProposals() {
+		const res = await listApprovedProposals(this.groupId);
+		if (isSuccess(res)) this.proposals = res.body;
 	}
 
 	async loadGroupData() {
@@ -144,7 +152,7 @@ export class InvestmentsState {
 			this.proposeError = res.message || 'Error al crear propuesta.';
 			return null;
 		}
-		await this.loadInvestments();
+		await this.loadProposals();
 		return res.body;
 	}
 
@@ -158,6 +166,7 @@ export class InvestmentsState {
 			return false;
 		}
 		await this.loadInvestments();
+		await this.loadProposals();
 		return true;
 	}
 

@@ -13,6 +13,10 @@ pub trait InvestmentRepository: Send + Sync {
     fn find_strategy(&self, strategy_id: Uuid) -> Result<Option<InvestmentStrategyDto>, RepoError>;
 
     // Investment proposals
+    fn list_approved_proposals(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Vec<InvestmentProposalDetails>, RepoError>;
     fn create_investment_proposal(
         &self,
         created_by: Uuid,

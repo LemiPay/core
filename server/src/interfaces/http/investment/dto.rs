@@ -79,6 +79,7 @@ pub struct InvestmentProposalResponse {
     pub amount: BigDecimal,
     pub strategy_id: Uuid,
     pub currency_id: Uuid,
+    pub strategy_name: String,
 }
 
 impl From<InvestmentProposalDetails> for InvestmentProposalResponse {
@@ -93,6 +94,7 @@ impl From<InvestmentProposalDetails> for InvestmentProposalResponse {
             amount: value.amount,
             strategy_id: value.strategy_id,
             currency_id: value.currency_id,
+            strategy_name: value.strategy_name,
         }
     }
 }

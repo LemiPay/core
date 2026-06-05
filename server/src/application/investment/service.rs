@@ -48,6 +48,13 @@ impl InvestmentService {
 
     // ── Investment Proposals ──
 
+    pub fn list_approved_proposals(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Vec<InvestmentProposalDetails>, InvestmentError> {
+        Self::map_repo(self.investment_repo.list_approved_proposals(group_id))
+    }
+
     pub fn create_investment_proposal(
         &self,
         created_by: Uuid,

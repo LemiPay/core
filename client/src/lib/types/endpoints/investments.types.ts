@@ -29,6 +29,7 @@ export type InvestmentProposal = {
 	amount: string;
 	strategy_id: Uuid;
 	currency_id: Uuid;
+	strategy_name: string;
 };
 
 export type ExecuteInvestmentData = {

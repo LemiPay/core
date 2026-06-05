@@ -153,6 +153,11 @@ impl InvestmentRepository for DieselInvestmentRepository {
             })
             .get_result::<ProposalModel>(tx)?;
 
+            let strategy_name = schema::investment_strategy::table
+                .filter(schema::investment_strategy::id.eq(strategy_id))
+                .select(schema::investment_strategy::name)
+                .first::<String>(tx)?;
+
             Ok(InvestmentProposalDetails {
                 proposal_id: proposal.id,
                 group_id: proposal.group_id,
@@ -163,6 +168,7 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 amount,
                 strategy_id,
                 currency_id,
+                strategy_name,
             })
         })
         .map_err(|_| RepoError::Insert)
@@ -173,16 +179,24 @@ impl InvestmentRepository for DieselInvestmentRepository {
         proposal_id: Uuid,
     ) -> Result<Option<InvestmentProposalDetails>, RepoError> {
         let mut conn = self.get_conn()?;
-        let row = schema::investment_proposal::table
-            .inner_join(
-                schema::proposal::table
-                    .on(schema::investment_proposal::proposal_id.eq(schema::proposal::id)),
-            )
-            .filter(schema::investment_proposal::proposal_id.eq(proposal_id))
-            .first::<(InvestmentProposalModel, ProposalModel)>(&mut conn)
-            .optional()
-            .map_err(|_| RepoError::Query)?;
-        Ok(row.map(|(ip, p)| InvestmentProposalDetails {
+        let row =
+            schema::investment_proposal::table
+                .inner_join(
+                    schema::proposal::table
+                        .on(schema::investment_proposal::proposal_id.eq(schema::proposal::id)),
+                )
+                .inner_join(schema::investment_strategy::table.on(
+                    schema::investment_proposal::strategy_id.eq(schema::investment_strategy::id),
+                ))
+                .filter(schema::investment_proposal::proposal_id.eq(proposal_id))
+                .first::<(
+                    InvestmentProposalModel,
+                    ProposalModel,
+                    InvestmentStrategyModel,
+                )>(&mut conn)
+                .optional()
+                .map_err(|_| RepoError::Query)?;
+        Ok(row.map(|(ip, p, s)| InvestmentProposalDetails {
             proposal_id: p.id,
             group_id: p.group_id,
             created_by: p.created_by,
@@ -192,7 +206,52 @@ impl InvestmentRepository for DieselInvestmentRepository {
             amount: ip.amount,
             strategy_id: ip.strategy_id,
             currency_id: ip.currency_id,
+            strategy_name: s.name,
         }))
+    }
+
+    fn list_approved_proposals(
+        &self,
+        group_id: Uuid,
+    ) -> Result<Vec<InvestmentProposalDetails>, RepoError> {
+        let mut conn = self.get_conn()?;
+        let rows =
+            schema::investment_proposal::table
+                .inner_join(
+                    schema::proposal::table
+                        .on(schema::investment_proposal::proposal_id.eq(schema::proposal::id)),
+                )
+                .inner_join(schema::investment_strategy::table.on(
+                    schema::investment_proposal::strategy_id.eq(schema::investment_strategy::id),
+                ))
+                .filter(schema::proposal::group_id.eq(group_id))
+                .filter(schema::proposal::status.eq(ProposalStatusModel::Approved))
+                .select((
+                    InvestmentProposalModel::as_select(),
+                    ProposalModel::as_select(),
+                    InvestmentStrategyModel::as_select(),
+                ))
+                .load::<(
+                    InvestmentProposalModel,
+                    ProposalModel,
+                    InvestmentStrategyModel,
+                )>(&mut conn)
+                .map_err(|_| RepoError::Query)?;
+        Ok(rows
+            .into_iter()
+            .map(|(ip, p, s)| InvestmentProposalDetails {
+                proposal_id: p.id,
+                group_id: p.group_id,
+                created_by: p.created_by,
+                status: InvestmentStatus::Active,
+                created_at: p.created_at,
+                updated_at: p.updated_at,
+                amount: ip.amount,
+                strategy_id: ip.strategy_id,
+                currency_id: ip.currency_id,
+                strategy_name: s.name,
+            })
+            .collect())
     }
 
     // ── Execute Investment ──
@@ -425,6 +484,12 @@ impl InvestmentRepository for DieselInvestmentRepository {
             ))
             .execute(tx)?;
 
+            let group_wallet_address = schema::group_wallet::table
+                .filter(schema::group_wallet::group_id.eq(proposal.group_id))
+                .filter(schema::group_wallet::currency_id.eq(ip.currency_id))
+                .select(schema::group_wallet::address)
+                .first::<String>(tx)?;
+
             let members = schema::investment_member::table
                 .filter(schema::investment_member::investment_id.eq(investment_id))
                 .select(InvestmentMemberModel::as_select())
@@ -434,6 +499,19 @@ impl InvestmentRepository for DieselInvestmentRepository {
 
             for member in &members {
                 let member_return = total_return.clone() * &member.participation_pct / &hundred;
+
+                diesel::insert_into(schema::transaction::table)
+                    .values(&NewTransactionModel {
+                        tx_hash: None,
+                        amount: member_return.clone(),
+                        user_id: member.user_id,
+                        group_id: proposal.group_id,
+                        currency_id: ip.currency_id,
+                        address: group_wallet_address.clone(),
+                        description: Some("Investment return".into()),
+                        tx_type: TransactionTypeModel::from(TransactionType::Deposit),
+                    })
+                    .execute(tx)?;
 
                 diesel::update(
                     schema::investment_member::table

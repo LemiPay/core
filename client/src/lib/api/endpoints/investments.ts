@@ -44,6 +44,10 @@ export async function withdrawInvestment(
 	});
 }
 
+export async function listApprovedProposals(group_id: string): ApiResponse<InvestmentProposal[]> {
+	return authedApiFetch(`/investment/proposals/${group_id}`, { method: 'GET' });
+}
+
 export async function listGroupInvestments(group_id: string): ApiResponse<Investment[]> {
 	return authedApiFetch(`/investment/${group_id}`, { method: 'GET' });
 }

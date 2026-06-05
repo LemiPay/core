@@ -24,6 +24,7 @@ pub struct InvestmentProposalDetails {
     pub amount: BigDecimal,
     pub strategy_id: Uuid,
     pub currency_id: Uuid,
+    pub strategy_name: String,
 }
 
 pub struct SnapshotDto {

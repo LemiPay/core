@@ -15,6 +15,17 @@ use crate::interfaces::http::{
 };
 use crate::setup::state::SharedState;
 
+pub async fn list_approved_proposals(
+    State(state): State<SharedState>,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Vec<InvestmentProposalResponse>>, AppError> {
+    let items = state
+        .investment_service
+        .list_approved_proposals(group_id)
+        .map_err(AppError::from)?;
+    Ok(Json(items.into_iter().map(Into::into).collect()))
+}
+
 pub async fn list_strategies(
     State(state): State<SharedState>,
 ) -> Result<Json<Vec<InvestmentStrategyResponse>>, AppError> {

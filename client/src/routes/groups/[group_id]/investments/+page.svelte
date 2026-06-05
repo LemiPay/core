@@ -31,14 +31,7 @@
 	let selectedAmount = $state('');
 	let selectedCurrencyId = $state('');
 	let showPastInvestments = $state(false);
-	let showProposalExecute = $state<string | null>(null);
-
-	let pendingProposal = $state<{
-		proposal_id: string;
-		amount: string;
-		strategy_name: string;
-		currency_id: string;
-	} | null>(null);
+	let executingProposal = $state<string | null>(null);
 
 	investState.loadAll().finally(() => (loadingInit = false));
 
@@ -60,14 +53,8 @@
 			strategy_id: strategy.id,
 			currency_id: selectedCurrencyId
 		};
-		const proposal = await investState.propose(data);
-		if (proposal) {
-			pendingProposal = {
-				proposal_id: proposal.proposal_id,
-				amount: proposal.amount,
-				strategy_name: strategy.name,
-				currency_id: proposal.currency_id
-			};
+		const ok = await investState.propose(data);
+		if (ok) {
 			showStrategyForm = null;
 			selectedAmount = '';
 			selectedCurrencyId = '';
@@ -76,12 +63,9 @@
 
 	async function handleExecute(proposalId: string) {
 		investState.executeError = '';
-		showProposalExecute = proposalId;
-		const ok = await investState.execute(proposalId);
-		if (ok) {
-			pendingProposal = null;
-			showProposalExecute = null;
-		}
+		executingProposal = proposalId;
+		await investState.execute(proposalId);
+		executingProposal = null;
 	}
 
 	async function handleWithdraw(investmentId: string) {
@@ -207,46 +191,52 @@
 				</section>
 			{/if}
 
-			{#if pendingProposal}
-				{@const proposal = pendingProposal}
+			{#if investState.proposals.length > 0}
 				<section class="space-y-4">
 					<h2 class="flex items-center gap-2 text-sm font-medium text-black">
 						<Check class="h-4 w-4 text-amber-600" />
-						Propuesta aprobada
-					</h2>
-					<div
-						class="rounded-xl border border-amber-200 bg-amber-50/60 p-5 transition hover:shadow-sm"
-					>
-						<div class="mb-4 flex items-start justify-between gap-3">
-							<div class="space-y-1">
-								<p class="text-sm font-medium text-black">{proposal.strategy_name}</p>
-								<p class="text-xs text-gray-600">
-									Monto: ${formatAmount(Number(proposal.amount))}
-									{investState.getTicker(proposal.currency_id)}
-								</p>
-							</div>
-						</div>
-
-						{#if investState.executeError}
-							<div
-								class="mb-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800"
-							>
-								<AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-								<span>{investState.executeError}</span>
-							</div>
-						{/if}
-
-						<Button
-							label={showProposalExecute === proposal.proposal_id
-								? 'Ejecutando...'
-								: 'Ejecutar inversión'}
-							onclick={() => handleExecute(proposal.proposal_id)}
-							disabled={showProposalExecute === proposal.proposal_id}
-							loading={showProposalExecute === proposal.proposal_id}
+						Propuestas aprobadas
+						<span
+							class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600"
 						>
-							{#snippet icon()}<Rocket class="h-4 w-4" />{/snippet}
-						</Button>
-					</div>
+							{investState.proposals.length}
+						</span>
+					</h2>
+					{#each investState.proposals as proposal}
+						<div
+							class="rounded-xl border border-amber-200 bg-amber-50/60 p-5 transition hover:shadow-sm"
+						>
+							<div class="mb-4 flex items-start justify-between gap-3">
+								<div class="space-y-1">
+									<p class="text-sm font-medium text-black">{proposal.strategy_name}</p>
+									<p class="text-xs text-gray-600">
+										Monto: ${formatAmount(Number(proposal.amount))}
+										{investState.getTicker(proposal.currency_id)}
+									</p>
+								</div>
+							</div>
+
+							{#if investState.executeError}
+								<div
+									class="mb-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800"
+								>
+									<AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+									<span>{investState.executeError}</span>
+								</div>
+							{/if}
+
+							<Button
+								label={executingProposal === proposal.proposal_id
+									? 'Ejecutando...'
+									: 'Ejecutar inversión'}
+								onclick={() => handleExecute(proposal.proposal_id)}
+								disabled={executingProposal === proposal.proposal_id}
+								loading={executingProposal === proposal.proposal_id}
+							>
+								{#snippet icon()}<Rocket class="h-4 w-4" />{/snippet}
+							</Button>
+						</div>
+					{/each}
 				</section>
 			{/if}
 
