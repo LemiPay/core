@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Trash2, Pencil, HandCoins, LogOut } from 'lucide-svelte';
+	import { Trash2, Pencil, HandCoins, LogOut, TrendingUp } from 'lucide-svelte';
 
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -181,6 +181,13 @@
 				</div>
 
 				<div class="flex items-center gap-1 self-start">
+					<a
+						href={`/groups/${groupId}/investments`}
+						class="inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 hover:text-emerald-800"
+					>
+						<TrendingUp class="h-4 w-4" />
+						Inversiones
+					</a>
 					<Button
 						label="Propuestas"
 						variant="secondary"

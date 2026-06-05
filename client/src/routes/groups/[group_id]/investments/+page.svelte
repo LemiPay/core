@@ -104,19 +104,13 @@
 	<title>Lemipay - {investState.groupData.name || 'Group'} - Inversiones</title>
 </svelte:head>
 
-<div class="flex min-h-[calc(100vh-64px)] flex-col items-center px-4">
+<div class="flex min-h-[calc(100vh-64px)] flex-col items-center px-4 pt-16">
 	{#if loadingInit}
 		<div
 			class="mt-20 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-black"
 		></div>
 	{:else}
 		<div class="w-full max-w-4xl pt-8 pb-6">
-			<a
-				href={`/groups/${groupId}`}
-				class="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-400 transition hover:text-black"
-			>
-				← {investState.groupData.name || 'Grupo'}
-			</a>
 			<div class="flex items-center gap-3">
 				<h1 class="text-2xl font-bold tracking-tight text-black">Inversiones</h1>
 				<button

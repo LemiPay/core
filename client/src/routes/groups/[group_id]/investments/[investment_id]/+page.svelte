@@ -49,7 +49,7 @@
 	<title>Lemipay - {detailState.investment?.strategy_name ?? 'Inversión'}</title>
 </svelte:head>
 
-<div class="flex min-h-[calc(100vh-64px)] flex-col items-center px-4">
+<div class="flex min-h-[calc(100vh-64px)] flex-col items-center px-4 pt-16">
 	{#if loadingInit}
 		<div
 			class="mt-20 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-black"
@@ -71,12 +71,6 @@
 		{@const currency = detailState.getTicker(inv.currency_id)}
 
 		<div class="w-full max-w-4xl pt-8 pb-6">
-			<a
-				href={`/groups/${groupId}/investments`}
-				class="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-400 transition hover:text-black"
-			>
-				<ArrowLeft class="h-4 w-4" /> Inversiones
-			</a>
 			<div class="flex items-center gap-3">
 				<h1 class="text-2xl font-bold tracking-tight text-black">{inv.strategy_name}</h1>
 				<span class="rounded-full border px-2.5 py-0.5 text-xs font-medium {risk.bg} {risk.color}">
