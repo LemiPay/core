@@ -446,14 +446,15 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 .execute(tx)?;
             }
 
-            diesel::update(
+            let investment = diesel::update(
                 schema::investment::table.filter(schema::investment::id.eq(investment_id)),
             )
             .set((
                 schema::investment::status.eq(InvestmentStatusModel::Withdrawn),
                 schema::investment::updated_at.eq(now),
             ))
-            .execute(tx)?;
+            .returning(InvestmentModel::as_returning())
+            .get_result::<InvestmentModel>(tx)?;
 
             let strategy = schema::investment_strategy::table
                 .filter(schema::investment_strategy::id.eq(ip.strategy_id))
@@ -465,7 +466,7 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 .first::<(String, String, BigDecimal)>(tx)?;
 
             Ok(Self::to_investment_details(
-                inv,
+                investment,
                 proposal.group_id,
                 ip.strategy_id,
                 ip.currency_id,
