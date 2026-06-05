@@ -1,7 +1,8 @@
 use std::{str::FromStr, sync::Arc};
 
-use bigdecimal::{BigDecimal, Zero};
+use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use chrono::Utc;
+use rand::Rng;
 use uuid::Uuid;
 
 use crate::application::balances::BalancesService;
@@ -10,7 +11,10 @@ use crate::application::{
     common::repo_error::RepoError,
     group::traits::repository::GroupRepository,
     investment::{
-        dto::{InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto, SnapshotDto},
+        dto::{
+            ActiveInvestmentDto, InvestmentDetails, InvestmentProposalDetails,
+            InvestmentStrategyDto, PulseResult, SnapshotDto,
+        },
         error::InvestmentError,
         traits::repository::InvestmentRepository,
     },
@@ -245,5 +249,109 @@ impl InvestmentService {
             return Err(InvestmentError::NotGroupMember);
         }
         Self::map_repo(self.investment_repo.list_snapshots(investment_id))
+    }
+
+    // ── Pulse ──
+
+    pub fn process_pulse(&self) -> Result<PulseResult, String> {
+        use bigdecimal::BigDecimal;
+
+        let active: Vec<ActiveInvestmentDto> = self
+            .investment_repo
+            .list_active_with_strategy()
+            .map_err(|e| format!("Failed to query active investments: {:?}", e))?;
+
+        if active.is_empty() {
+            return Ok(PulseResult {
+                updated: 0,
+                matured: 0,
+            });
+        }
+
+        let mut rng = rand::rngs::OsRng;
+        let now = Utc::now().naive_utc();
+        let mut updated = 0;
+        let mut matured = 0;
+
+        for inv in &active {
+            let snapshot_count = self
+                .investment_repo
+                .count_snapshots(inv.id)
+                .map_err(|e| format!("Failed to count snapshots: {:?}", e))?;
+
+            let accrued_days = snapshot_count + 1;
+            let is_last_day = accrued_days >= inv.duration_days as i64;
+
+            let days = BigDecimal::from_i64(accrued_days).unwrap();
+            let duration = BigDecimal::from_i32(inv.duration_days).unwrap();
+            let hundred = BigDecimal::from(100);
+
+            let linear_value = inv.amount.clone()
+                * (BigDecimal::from(1) + &inv.expected_return_percentage / &hundred * &days / &duration);
+
+            let noise_pct = daily_noise_range(&inv.risk_level);
+            let noise_factor =
+                BigDecimal::from_f64(1.0 + rng.gen_range(-noise_pct..=noise_pct)).unwrap();
+            let current_value = linear_value * noise_factor;
+
+            if is_last_day {
+                let variation_pct = risk_variation_range(&inv.risk_level);
+                let variation: f64 = rng.gen_range(-variation_pct..=variation_pct);
+
+                let return_portion = &current_value - &inv.amount;
+                let varied_return = if return_portion.is_zero() {
+                    BigDecimal::zero()
+                } else {
+                    return_portion * BigDecimal::from_f64(1.0 + variation).unwrap()
+                };
+
+                let final_value = &inv.amount + &varied_return;
+
+                self.investment_repo
+                    .mature_investment(inv.id, final_value.clone(), varied_return.clone(), now)
+                    .map_err(|e| format!("Failed to mature investment {}: {:?}", inv.id, e))?;
+
+                self.investment_repo
+                    .insert_snapshot(inv.id, final_value, now)
+                    .map_err(|e| format!("Failed to insert snapshot: {:?}", e))?;
+
+                matured += 1;
+            } else {
+                self.investment_repo
+                    .update_current_value(inv.id, current_value.clone(), now)
+                    .map_err(|e| {
+                        format!(
+                            "Failed to update current_value for {}: {:?}",
+                            inv.id, e
+                        )
+                    })?;
+
+                self.investment_repo
+                    .insert_snapshot(inv.id, current_value, now)
+                    .map_err(|e| format!("Failed to insert snapshot: {:?}", e))?;
+            }
+
+            updated += 1;
+        }
+
+        Ok(PulseResult { updated, matured })
+    }
+}
+
+fn daily_noise_range(risk_level: &str) -> f64 {
+    match risk_level {
+        "low" => 0.005,
+        "medium" => 0.01,
+        "high" => 0.02,
+        _ => 0.0,
+    }
+}
+
+fn risk_variation_range(risk_level: &str) -> f64 {
+    match risk_level {
+        "low" => 0.01,
+        "medium" => 0.05,
+        "high" => 0.10,
+        _ => 0.0,
     }
 }

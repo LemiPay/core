@@ -8,7 +8,8 @@ use uuid::Uuid;
 use crate::application::{
     common::repo_error::RepoError,
     investment::dto::{
-        InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto, SnapshotDto,
+        ActiveInvestmentDto, InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto,
+        SnapshotDto,
     },
     investment::traits::repository::InvestmentRepository,
 };
@@ -575,5 +576,110 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 created_at: s.created_at,
             })
             .collect())
+    }
+
+    // ── Pulse ──
+
+    fn list_active_with_strategy(&self) -> Result<Vec<ActiveInvestmentDto>, RepoError> {
+        let mut conn = self.get_conn()?;
+        let rows = schema::investment::table
+            .filter(schema::investment::status.eq(InvestmentStatusModel::Active))
+            .inner_join(
+                schema::investment_proposal::table
+                    .on(schema::investment::proposal_id.eq(schema::investment_proposal::proposal_id)),
+            )
+            .inner_join(
+                schema::investment_strategy::table
+                    .on(schema::investment_proposal::strategy_id.eq(schema::investment_strategy::id)),
+            )
+            .select((
+                schema::investment::id,
+                schema::investment::amount,
+                schema::investment_strategy::expected_return_percentage,
+                schema::investment_strategy::risk_level,
+                schema::investment_strategy::duration_days,
+            ))
+            .load::<(Uuid, BigDecimal, BigDecimal, String, i32)>(&mut conn)
+            .map_err(|_| RepoError::Query)?;
+        Ok(rows
+            .into_iter()
+            .map(|(id, amount, pct, risk, days)| ActiveInvestmentDto {
+                id,
+                amount,
+                expected_return_percentage: pct,
+                risk_level: risk,
+                duration_days: days,
+            })
+            .collect())
+    }
+
+    fn count_snapshots(&self, investment_id: Uuid) -> Result<i64, RepoError> {
+        let mut conn = self.get_conn()?;
+        schema::investment_value_snapshot::table
+            .filter(schema::investment_value_snapshot::investment_id.eq(investment_id))
+            .count()
+            .get_result(&mut conn)
+            .map_err(|_| RepoError::Query)
+    }
+
+    fn update_current_value(
+        &self,
+        investment_id: Uuid,
+        value: BigDecimal,
+        now: NaiveDateTime,
+    ) -> Result<(), RepoError> {
+        let mut conn = self.get_conn()?;
+        diesel::update(
+            schema::investment::table.filter(schema::investment::id.eq(investment_id)),
+        )
+        .set((
+            schema::investment::current_value.eq(&value),
+            schema::investment::updated_at.eq(now),
+        ))
+        .execute(&mut conn)
+        .map_err(|_| RepoError::Query)?;
+        Ok(())
+    }
+
+    fn mature_investment(
+        &self,
+        investment_id: Uuid,
+        final_value: BigDecimal,
+        actual_return: BigDecimal,
+        now: NaiveDateTime,
+    ) -> Result<(), RepoError> {
+        let mut conn = self.get_conn()?;
+        diesel::update(
+            schema::investment::table.filter(schema::investment::id.eq(investment_id)),
+        )
+        .set((
+            schema::investment::status.eq(InvestmentStatusModel::Matured),
+            schema::investment::actual_return.eq(&actual_return),
+            schema::investment::current_value.eq(&final_value),
+            schema::investment::updated_at.eq(now),
+        ))
+        .execute(&mut conn)
+        .map_err(|_| RepoError::Query)?;
+        Ok(())
+    }
+
+    fn insert_snapshot(
+        &self,
+        investment_id: Uuid,
+        value: BigDecimal,
+        snapshot_date: NaiveDateTime,
+    ) -> Result<(), RepoError> {
+        use crate::infrastructure::db::models::investment::NewInvestmentValueSnapshotModel;
+
+        let mut conn = self.get_conn()?;
+        diesel::insert_into(schema::investment_value_snapshot::table)
+            .values(&NewInvestmentValueSnapshotModel {
+                investment_id,
+                value,
+                snapshot_date,
+            })
+            .execute(&mut conn)
+            .map_err(|_| RepoError::Insert)?;
+        Ok(())
     }
 }

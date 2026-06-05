@@ -4,6 +4,14 @@ use uuid::Uuid;
 
 use crate::domain::investment::InvestmentStatus;
 
+pub struct ActiveInvestmentDto {
+    pub id: Uuid,
+    pub amount: BigDecimal,
+    pub expected_return_percentage: BigDecimal,
+    pub risk_level: String,
+    pub duration_days: i32,
+}
+
 pub struct InvestmentStrategyDto {
     pub id: Uuid,
     pub name: String,
@@ -12,6 +20,11 @@ pub struct InvestmentStrategyDto {
     pub expected_return_percentage: BigDecimal,
     pub duration_days: i32,
     pub created_at: NaiveDateTime,
+}
+
+pub struct PulseResult {
+    pub updated: usize,
+    pub matured: usize,
 }
 
 pub struct InvestmentProposalDetails {

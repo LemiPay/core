@@ -1,9 +1,11 @@
 use bigdecimal::BigDecimal;
+use chrono::NaiveDateTime;
 use uuid::Uuid;
 
 use crate::application::common::repo_error::RepoError;
 use crate::application::investment::dto::{
-    InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto, SnapshotDto,
+    ActiveInvestmentDto, InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto,
+    SnapshotDto,
 };
 use crate::domain::investment::member::NewInvestmentMember;
 
@@ -52,4 +54,27 @@ pub trait InvestmentRepository: Send + Sync {
     ) -> Result<InvestmentDetails, RepoError>;
     // Snapshots
     fn list_snapshots(&self, investment_id: Uuid) -> Result<Vec<SnapshotDto>, RepoError>;
+
+    // ── Pulse (background value simulation) ──
+    fn list_active_with_strategy(&self) -> Result<Vec<ActiveInvestmentDto>, RepoError>;
+    fn count_snapshots(&self, investment_id: Uuid) -> Result<i64, RepoError>;
+    fn update_current_value(
+        &self,
+        investment_id: Uuid,
+        value: BigDecimal,
+        now: NaiveDateTime,
+    ) -> Result<(), RepoError>;
+    fn mature_investment(
+        &self,
+        investment_id: Uuid,
+        final_value: BigDecimal,
+        actual_return: BigDecimal,
+        now: NaiveDateTime,
+    ) -> Result<(), RepoError>;
+    fn insert_snapshot(
+        &self,
+        investment_id: Uuid,
+        value: BigDecimal,
+        snapshot_date: NaiveDateTime,
+    ) -> Result<(), RepoError>;
 }

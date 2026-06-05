@@ -1,5 +1,6 @@
 use axum::Router;
 use std::sync::Arc;
+use std::time::Duration;
 
 // bootstrap
 use super::router::create_router;
@@ -38,7 +39,7 @@ use crate::{
     setup::config::AppConfig,
 };
 
-pub fn build_app() -> (Router, DbPool) {
+pub fn build_app() -> Router {
     // -------------------------
     // 1. Config
     // -------------------------
@@ -125,7 +126,26 @@ pub fn build_app() -> (Router, DbPool) {
     });
 
     // -------------------------
-    // 6. Router + Pool
+    // 6. Background pulse scheduler — 1 pulse every 10s = 1 simulated day
     // -------------------------
-    (create_router(state), pool)
+    let pulse_svc = state.investment_service.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(10));
+        loop {
+            interval.tick().await;
+            let svc = pulse_svc.clone();
+            match tokio::task::spawn_blocking(move || svc.process_pulse()).await {
+                Ok(Ok(res)) => {
+                    println!("Pulse: {} updated, {} matured", res.updated, res.matured)
+                }
+                Ok(Err(e)) => eprintln!("Pulse error: {}", e),
+                Err(e) => eprintln!("Pulse task panicked: {}", e),
+            }
+        }
+    });
+
+    // -------------------------
+    // 7. Router
+    // -------------------------
+    create_router(state)
 }
