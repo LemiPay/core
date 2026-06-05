@@ -154,41 +154,6 @@ impl InvestmentService {
         ))
     }
 
-    // ── Mature Investment ──
-
-    pub fn mature_investment(
-        &self,
-        investment_id: Uuid,
-    ) -> Result<InvestmentDetails, InvestmentError> {
-        let stored = Self::map_repo(self.investment_repo.find_investment(investment_id))?
-            .ok_or(InvestmentError::NotFound)?;
-
-        let domain = Investment::rehydrate(
-            crate::domain::investment::InvestmentId(stored.id),
-            GroupId(stored.group_id),
-            crate::domain::governance::ProposalId(stored.proposal_id),
-            crate::domain::investment::InvestmentStrategyId(stored.strategy_id),
-            CurrencyId(stored.currency_id),
-            stored.amount.clone(),
-            stored.current_value.clone(),
-            stored.actual_return.clone(),
-            stored.status,
-            stored.started_at,
-            stored.matures_at,
-            stored.created_at,
-            stored.updated_at,
-        );
-
-        InvestmentPolicy::ensure_can_mature(&domain)?;
-
-        let actual_return = domain.current_value.clone();
-
-        Self::map_repo(
-            self.investment_repo
-                .mature_investment(investment_id, actual_return),
-        )
-    }
-
     // ── Withdraw Investment ──
 
     pub fn withdraw_investment(
@@ -257,14 +222,5 @@ impl InvestmentService {
             return Err(InvestmentError::NotGroupMember);
         }
         Self::map_repo(self.investment_repo.list_snapshots(investment_id))
-    }
-
-    // ── Maturation job ──
-
-    pub fn list_maturable_investments(&self) -> Result<Vec<InvestmentDetails>, InvestmentError> {
-        Self::map_repo(
-            self.investment_repo
-                .list_maturable_investments(Utc::now().naive_utc()),
-        )
     }
 }

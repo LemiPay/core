@@ -40,22 +40,12 @@ pub trait InvestmentRepository: Send + Sync {
     ) -> Result<InvestmentDetails, RepoError>;
     fn find_investment(&self, investment_id: Uuid) -> Result<Option<InvestmentDetails>, RepoError>;
     fn list_group_investments(&self, group_id: Uuid) -> Result<Vec<InvestmentDetails>, RepoError>;
-    fn mature_investment(
-        &self,
-        investment_id: Uuid,
-        actual_return: BigDecimal,
-    ) -> Result<InvestmentDetails, RepoError>;
     fn withdraw_investment(
         &self,
         investment_id: Uuid,
         group_id: Uuid,
         user_id: Uuid,
     ) -> Result<InvestmentDetails, RepoError>;
-    fn list_maturable_investments(
-        &self,
-        now: chrono::NaiveDateTime,
-    ) -> Result<Vec<InvestmentDetails>, RepoError>;
-
     // Snapshots
     fn list_snapshots(&self, investment_id: Uuid) -> Result<Vec<SnapshotDto>, RepoError>;
 }

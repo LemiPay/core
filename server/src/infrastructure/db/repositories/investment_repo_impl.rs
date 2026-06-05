@@ -387,25 +387,6 @@ impl InvestmentRepository for DieselInvestmentRepository {
             .collect())
     }
 
-    fn mature_investment(
-        &self,
-        investment_id: Uuid,
-        actual_return: BigDecimal,
-    ) -> Result<InvestmentDetails, RepoError> {
-        let mut conn = self.get_conn()?;
-        let now = chrono::Utc::now().naive_utc();
-        diesel::update(schema::investment::table.filter(schema::investment::id.eq(investment_id)))
-            .set((
-                schema::investment::status.eq(InvestmentStatusModel::Matured),
-                schema::investment::actual_return.eq(actual_return),
-                schema::investment::updated_at.eq(now),
-            ))
-            .execute(&mut conn)
-            .map_err(|_| RepoError::Insert)?;
-
-        self.find_investment(investment_id)?.ok_or(RepoError::Query)
-    }
-
     fn withdraw_investment(
         &self,
         investment_id: Uuid,
@@ -532,52 +513,6 @@ impl InvestmentRepository for DieselInvestmentRepository {
             ))
         })
         .map_err(|_| RepoError::Insert)
-    }
-
-    fn list_maturable_investments(
-        &self,
-        now: NaiveDateTime,
-    ) -> Result<Vec<InvestmentDetails>, RepoError> {
-        let mut conn = self.get_conn()?;
-        let rows =
-            schema::investment::table
-                .filter(schema::investment::status.eq(InvestmentStatusModel::Active))
-                .filter(schema::investment::matures_at.le(now))
-                .inner_join(schema::investment_proposal::table.on(
-                    schema::investment::proposal_id.eq(schema::investment_proposal::proposal_id),
-                ))
-                .inner_join(schema::investment_strategy::table.on(
-                    schema::investment_proposal::strategy_id.eq(schema::investment_strategy::id),
-                ))
-                .inner_join(
-                    schema::proposal::table
-                        .on(schema::investment::proposal_id.eq(schema::proposal::id)),
-                )
-                .select((
-                    InvestmentModel::as_select(),
-                    schema::investment_proposal::currency_id,
-                    schema::investment_proposal::strategy_id,
-                    schema::proposal::group_id,
-                    schema::investment_strategy::name,
-                    schema::investment_strategy::risk_level,
-                    schema::investment_strategy::expected_return_percentage,
-                ))
-                .load::<(
-                    InvestmentModel,
-                    Uuid,
-                    Uuid,
-                    Uuid,
-                    String,
-                    String,
-                    BigDecimal,
-                )>(&mut conn)
-                .map_err(|_| RepoError::Query)?;
-        Ok(rows
-            .into_iter()
-            .map(|(inv, currency_id, sid, gid, name, risk, pct)| {
-                Self::to_investment_details(inv, gid, sid, currency_id, name, risk, pct)
-            })
-            .collect())
     }
 
     fn list_snapshots(&self, investment_id: Uuid) -> Result<Vec<SnapshotDto>, RepoError> {
