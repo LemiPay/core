@@ -27,7 +27,6 @@ impl InvestmentPolicy {
             .status
             .ensure_can_transition_to(InvestmentStatus::Withdrawn)
     }
-
 }
 
 #[cfg(test)]
