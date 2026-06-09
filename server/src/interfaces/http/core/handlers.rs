@@ -4,6 +4,7 @@ use axum::{
 };
 use uuid::Uuid;
 
+use crate::domain::group::GroupId;
 use crate::{
     interfaces::http::{core::dto::BalancesResponse, error::AppError},
     setup::state::SharedState,
@@ -15,7 +16,7 @@ pub async fn get_balances(
 ) -> Result<Json<BalancesResponse>, AppError> {
     let result = state
         .balances_service
-        .get_balances(group_id)
+        .get_balances(GroupId(group_id))
         .map_err(AppError::from)?;
     Ok(Json(result.into()))
 }

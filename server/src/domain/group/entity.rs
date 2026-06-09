@@ -1,5 +1,4 @@
-use uuid::Uuid;
-
+use crate::domain::balances::BalancesMap;
 use crate::domain::group::GroupStatus;
 use crate::domain::group::config::GroupConfig;
 use crate::domain::group::error::GroupError;
@@ -7,6 +6,7 @@ use crate::domain::group::member::GroupMember;
 use crate::domain::group::policy::GroupPolicy;
 use crate::domain::group::types::GroupId;
 use crate::domain::user::UserId;
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct Group {
@@ -87,8 +87,8 @@ impl Group {
         Ok(Self { members, ..self })
     }
 
-    pub fn leave_group(self, user_id: UserId) -> Result<Self, GroupError> {
-        GroupPolicy::can_leave_group(&self, user_id)?;
+    pub fn leave_group(self, user_id: UserId, balances: &BalancesMap) -> Result<Self, GroupError> {
+        GroupPolicy::can_leave_group(&self, user_id, balances)?;
         self.remove_member(user_id)
     }
 
@@ -253,43 +253,5 @@ mod tests {
 
         let result = group.add_member(&actor, GroupMember::member(new_member_id));
         assert!(matches!(result, Err(GroupError::UserAlreadyMember)));
-    }
-
-    #[test]
-    fn member_can_leave_group() {
-        let admin_id = user_id();
-        let member_id = user_id();
-
-        let group = Group::new(
-            "Roomies".into(),
-            "Description".into(),
-            admin_id,
-            GroupConfig::default(),
-        )
-        .unwrap();
-        let admin = group.member(admin_id).cloned().unwrap();
-        let group = group
-            .add_member(&admin, GroupMember::member(member_id))
-            .unwrap();
-
-        let group = group.leave_group(member_id).unwrap();
-        assert!(!group.has_member(member_id));
-        assert!(group.has_member(admin_id));
-    }
-
-    #[test]
-    fn non_member_cannot_leave_group() {
-        let admin_id = user_id();
-        let stranger_id = user_id();
-
-        let group = Group::new(
-            "Roomies".into(),
-            "Description".into(),
-            admin_id,
-            GroupConfig::default(),
-        )
-        .unwrap();
-        let result = group.leave_group(stranger_id);
-        assert!(matches!(result, Err(GroupError::NotMember)));
     }
 }

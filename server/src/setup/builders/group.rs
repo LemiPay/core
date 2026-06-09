@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::balances::BalancesService;
 use crate::{
     application::group::{
         GroupService, create_group::CreateGroupUseCase, delete_group::DeleteGroupUseCase,
@@ -10,7 +11,10 @@ use crate::{
     infrastructure::db::repositories::group_repo_impl::DieselGroupRepository,
 };
 
-pub fn build_group_service(group_repo: Arc<DieselGroupRepository>) -> GroupService {
+pub fn build_group_service(
+    group_repo: Arc<DieselGroupRepository>,
+    balances_service: BalancesService,
+) -> GroupService {
     GroupService {
         create_group: CreateGroupUseCase {
             group_repo: group_repo.clone(),
@@ -20,6 +24,7 @@ pub fn build_group_service(group_repo: Arc<DieselGroupRepository>) -> GroupServi
         },
         leave_group: LeaveGroupUseCase {
             group_repo: group_repo.clone(),
+            balances_service,
         },
         list_user_groups: ListUserGroupsUseCase {
             group_repo: group_repo.clone(),

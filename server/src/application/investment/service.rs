@@ -123,7 +123,7 @@ impl InvestmentService {
 
         let balances = self
             .balances_service
-            .get_balances(group_id)
+            .get_balances(GroupId(group_id))
             .map_err(|_| InvestmentError::Internal)?;
 
         let positive_balances: Vec<UserBalanceDetails> = balances

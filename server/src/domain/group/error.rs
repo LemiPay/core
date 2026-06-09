@@ -7,4 +7,5 @@ pub enum GroupError {
     UserAlreadyMember,
     LastAdminCannotLeave,
     NoFieldsToUpdate,
+    BalanceNotZero,
 }

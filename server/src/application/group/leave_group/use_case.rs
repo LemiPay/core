@@ -1,12 +1,13 @@
-use std::sync::Arc;
-
+use crate::application::balances::BalancesService;
 use crate::application::group::leave_group::dto::{LeaveGroupInput, LeaveGroupOutput};
 use crate::application::group::leave_group::error::LeaveGroupError;
 use crate::application::group::traits::repository::GroupRepository;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct LeaveGroupUseCase {
     pub group_repo: Arc<dyn GroupRepository>,
+    pub balances_service: BalancesService,
 }
 
 impl LeaveGroupUseCase {
@@ -16,8 +17,12 @@ impl LeaveGroupUseCase {
             .find_by_id(input.group_id)
             .map_err(|_| LeaveGroupError::InternalError)?
             .ok_or(LeaveGroupError::NotFound)?;
+        let balances = self
+            .balances_service
+            .get_balances(input.group_id)
+            .map_err(|_| LeaveGroupError::InternalError)?;
 
-        let updated = group.leave_group(input.user_id)?;
+        let updated = group.leave_group(input.user_id, &balances.to_domain())?;
 
         self.group_repo
             .save(&updated)
