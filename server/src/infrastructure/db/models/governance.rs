@@ -33,6 +33,7 @@ pub enum ProposalType {
     NewMember,
     FundRound,
     Withdraw,
+    Investment,
 }
 
 #[derive(Queryable, Selectable, Debug)]
@@ -155,6 +156,7 @@ impl From<ProposalType> for ProposalKind {
             ProposalType::NewMember => ProposalKind::NewMember,
             ProposalType::Withdraw => ProposalKind::Withdraw,
             ProposalType::FundRound => ProposalKind::FundRound,
+            ProposalType::Investment => ProposalKind::Investment,
         }
     }
 }
@@ -165,6 +167,7 @@ impl From<ProposalKind> for ProposalType {
             ProposalKind::NewMember => ProposalType::NewMember,
             ProposalKind::Withdraw => ProposalType::Withdraw,
             ProposalKind::FundRound => ProposalType::FundRound,
+            ProposalKind::Investment => ProposalType::Investment,
         }
     }
 }

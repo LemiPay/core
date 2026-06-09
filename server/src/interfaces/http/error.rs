@@ -7,6 +7,7 @@ use axum::{
 use serde::Serialize;
 use thiserror::Error;
 
+use crate::application::investment::InvestmentError;
 use crate::application::treasury::list_user_transactions::ListUserTransactionsError;
 use crate::{
     application::{
@@ -359,6 +360,48 @@ impl From<GetGroupTransactionError> for AppError {
         match err {
             GetGroupTransactionError::NotFound => AppError::NotFound,
             GetGroupTransactionError::Internal => AppError::Internal,
+        }
+    }
+}
+
+impl From<InvestmentError> for AppError {
+    fn from(err: InvestmentError) -> Self {
+        match err {
+            InvestmentError::NotFound => AppError::NotFound,
+            InvestmentError::Internal => AppError::Internal,
+            InvestmentError::InvalidAmount => {
+                AppError::BadRequest("El monto debe ser mayor a 0".into())
+            }
+            InvestmentError::InvalidStatusTransition => {
+                AppError::BadRequest("Transición de estado inválida".into())
+            }
+            InvestmentError::NotMatured => {
+                AppError::BadRequest("La inversión aún no ha madurado".into())
+            }
+            InvestmentError::AlreadyWithdrawn => {
+                AppError::BadRequest("La inversión ya fue retirada".into())
+            }
+            InvestmentError::StrategyNotFound => {
+                AppError::BadRequest("Estrategia de inversión no encontrada".into())
+            }
+            InvestmentError::ProposalNotFound => {
+                AppError::BadRequest("Propuesta de inversión no encontrada".into())
+            }
+            InvestmentError::GroupWalletNotFound => {
+                AppError::BadRequest("El grupo no tiene una wallet para esta moneda".into())
+            }
+            InvestmentError::InsufficientGroupFunds => {
+                AppError::BadRequest("El grupo no tiene fondos suficientes".into())
+            }
+            InvestmentError::NotGroupAdmin => {
+                AppError::Forbidden("Solo administradores pueden realizar esta acción".into())
+            }
+            InvestmentError::NotProposalCreator => {
+                AppError::Forbidden("Solo el creador de la propuesta puede ejecutarla".into())
+            }
+            InvestmentError::NotGroupMember => {
+                AppError::Forbidden("Solo miembros del grupo puede ver estos detalles".into())
+            }
         }
     }
 }

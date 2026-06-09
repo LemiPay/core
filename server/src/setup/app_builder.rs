@@ -1,5 +1,6 @@
 use axum::Router;
 use std::sync::Arc;
+use std::time::Duration;
 
 // bootstrap
 use super::router::create_router;
@@ -8,7 +9,8 @@ use crate::setup::{
     builders::{
         auth::build_auth_service, balances::build_balances_service, expense::build_expense_service,
         governance::build_governance_service, group::build_group_service,
-        treasury::build_treasury_service, users::build_user_service,
+        investment::build_investment_service, treasury::build_treasury_service,
+        users::build_user_service,
     },
     state::AppState,
 };
@@ -27,6 +29,7 @@ use crate::{
                 governance_repo_impl::DieselGovernanceRepository,
                 group_repo_impl::DieselGroupRepository,
                 group_wallet_repo_impl::DieselGroupWalletRepository,
+                investment_repo_impl::DieselInvestmentRepository,
                 transaction_repo_impl::DieselTransactionRepository,
                 user_repo_impl::DieselUserRepository,
                 user_wallet_repo_impl::DieselUserWalletRepository,
@@ -60,6 +63,7 @@ pub fn build_app() -> Router {
     let currency_repo = Arc::new(DieselCurrencyRepository::new(pool.clone()));
     let governance_repo = Arc::new(DieselGovernanceRepository::new(pool.clone()));
     let expense_repo = Arc::new(DieselExpenseRepository::new(pool.clone()));
+    let investment_repo = Arc::new(DieselInvestmentRepository::new(pool.clone()));
 
     let hash_service = Arc::new(Argon2Hasher::new().expect("argon2 fail"));
     let token_service = Arc::new(JwtService::new(db_config.jwt_secret));
@@ -95,7 +99,14 @@ pub fn build_app() -> Router {
         user_wallet_repo,
     );
     let expense_service = build_expense_service(expense_repo.clone());
-    let balances_service = build_balances_service(transaction_repo, group_repo, expense_repo);
+    let balances_service =
+        build_balances_service(transaction_repo, group_repo.clone(), expense_repo);
+    let investment_service = build_investment_service(
+        investment_repo,
+        group_repo.clone(),
+        group_wallet_repo,
+        balances_service.clone(),
+    );
 
     // -------------------------
     // 5. State
@@ -111,10 +122,30 @@ pub fn build_app() -> Router {
         governance_service,
         expense_service,
         balances_service,
+        investment_service,
     });
 
     // -------------------------
-    // 6. Router
+    // 6. Background pulse scheduler — 1 pulse every 10s = 1 simulated day
+    // -------------------------
+    let pulse_svc = state.investment_service.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(10));
+        loop {
+            interval.tick().await;
+            let svc = pulse_svc.clone();
+            match tokio::task::spawn_blocking(move || svc.process_pulse()).await {
+                Ok(Ok(res)) => {
+                    println!("Pulse: {} updated, {} matured", res.updated, res.matured)
+                }
+                Ok(Err(e)) => eprintln!("Pulse error: {}", e),
+                Err(e) => eprintln!("Pulse task panicked: {}", e),
+            }
+        }
+    });
+
+    // -------------------------
+    // 7. Router
     // -------------------------
     create_router(state)
 }

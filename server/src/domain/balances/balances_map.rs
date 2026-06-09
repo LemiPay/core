@@ -62,6 +62,24 @@ impl BalancesMap {
         Ok(Self::new(next, self.group_balance.clone() + amount))
     }
 
+    /// Returns a new map with `amount` subtracted from `user_id`'s balance
+    /// and from the group balance. Errors if the user is not part of the map.
+    pub fn subtract_from_user(
+        &self,
+        user_id: UserId,
+        amount: BigDecimal,
+    ) -> Result<BalancesMap, BalancesError> {
+        if !self.balances.contains_key(&user_id) {
+            return Err(BalancesError::UserNotFound);
+        }
+
+        let mut next = self.balances.clone();
+        next.entry(user_id)
+            .and_modify(|previous| *previous -= amount.clone());
+
+        Ok(Self::new(next, self.group_balance.clone() - amount))
+    }
+
     /// Returns a new map with `total_amount` distributed (subtracted)
     /// evenly among all users. Uses 18 decimals and a remainder-spread
     /// strategy so the sum of subtractions matches `total_amount` exactly.
@@ -156,6 +174,31 @@ mod tests {
 
         assert!(matches!(
             map.add_balance_to_user(ghost, dec("10")),
+            Err(BalancesError::UserNotFound)
+        ));
+    }
+
+    #[test]
+    fn subtract_from_user_debits_user_and_group() {
+        let alice = user();
+        let map = BalancesMap::empty_for(&[alice])
+            .add_balance_to_user(alice, dec("100"))
+            .unwrap();
+
+        let updated = map.subtract_from_user(alice, dec("30")).unwrap();
+
+        assert_eq!(updated.get_user_balance(&alice).unwrap(), &dec("70"));
+        assert_eq!(updated.get_group_balance(), &dec("70"));
+    }
+
+    #[test]
+    fn subtract_from_user_unknown_user_errors() {
+        let alice = user();
+        let ghost = user();
+        let map = BalancesMap::empty_for(&[alice]);
+
+        assert!(matches!(
+            map.subtract_from_user(ghost, dec("10")),
             Err(BalancesError::UserNotFound)
         ));
     }

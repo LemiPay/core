@@ -28,7 +28,10 @@ fn read_all_tx(
                 balances.add_balance_to_user(tx.user_id, tx.amount.amount.clone())?
             }
             TransactionType::Withdraw => balances.remove_to_all(tx.amount.amount)?,
-            _ => balances,
+            TransactionType::Investment => {
+                balances.subtract_from_user(tx.user_id, tx.amount.amount.clone())?
+            }
+            TransactionType::Expense => balances,
         };
     }
     Ok(balances)
@@ -97,6 +100,22 @@ mod tests {
         }
     }
 
+    fn make_investment(user_id: UserId, amount: &str) -> Transaction {
+        Transaction {
+            id: TransactionId(Uuid::new_v4()),
+            tx_hash: None,
+            amount: Money {
+                amount: dec(amount),
+                currency: CurrencyId(Uuid::new_v4()),
+            },
+            user_id,
+            group_id: GroupId(Uuid::new_v4()),
+            address: "addr".to_string(),
+            description: None,
+            tx_type: TransactionType::Investment,
+        }
+    }
+
     fn make_expense(user_id: UserId, amount: &str) -> Expense {
         let now = Utc::now().naive_utc();
         Expense::rehydrate(
@@ -119,6 +138,30 @@ mod tests {
 
         assert_eq!(result.get_user_balance(&user).unwrap(), &dec("100"));
         assert_eq!(result.get_group_balance(), &dec("100"));
+    }
+
+    #[test]
+    fn investment_subtracts_from_user() {
+        let user = UserId(Uuid::new_v4());
+        let txs = vec![make_deposit(user, "100"), make_investment(user, "80")];
+        let result = core(vec![user], txs, vec![]).unwrap();
+
+        assert_eq!(result.get_user_balance(&user).unwrap(), &dec("20"));
+        assert_eq!(result.get_group_balance(), &dec("20"));
+    }
+
+    #[test]
+    fn investment_full_cycle() {
+        let user = UserId(Uuid::new_v4());
+        let txs = vec![
+            make_deposit(user, "80"),
+            make_investment(user, "80"),
+            make_deposit(user, "82.3"),
+        ];
+        let result = core(vec![user], txs, vec![]).unwrap();
+
+        assert_eq!(result.get_user_balance(&user).unwrap(), &dec("82.3"));
+        assert_eq!(result.get_group_balance(), &dec("82.3"));
     }
 
     #[test]

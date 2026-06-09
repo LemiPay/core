@@ -1,11 +1,11 @@
-use axum::{Router, serve};
+use axum::serve;
 use tokio::net::TcpListener;
 
 use server::setup::app_builder::build_app;
 
 #[tokio::main]
 async fn main() {
-    let app: Router = build_app();
+    let app = build_app();
 
     // 🚀 Server
     use std::net::SocketAddr;
@@ -13,7 +13,6 @@ async fn main() {
 
     println!("Server running on http://{}", addr);
 
-    // run our app with hyper, listening globally on port 3000
     let listener = TcpListener::bind(addr).await.unwrap();
 
     serve(

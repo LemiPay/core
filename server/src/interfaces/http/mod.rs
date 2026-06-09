@@ -4,6 +4,7 @@ pub mod expense;
 pub mod governance;
 pub mod group;
 pub mod group_wallet;
+pub mod investment;
 pub mod transaction;
 pub mod users;
 pub mod wallet;
