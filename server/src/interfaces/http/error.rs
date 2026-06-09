@@ -134,6 +134,9 @@ impl From<LeaveGroupError> for AppError {
                 AppError::BadRequest("El grupo tiene que tener al menos un administrador".into())
             }
             LeaveGroupError::InternalError => AppError::Internal,
+            LeaveGroupError::BalanceNotZero => {
+                AppError::Forbidden("Debes tener un balance igual a 0 para irte del grupo".into())
+            }
         }
     }
 }
