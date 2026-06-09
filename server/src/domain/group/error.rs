@@ -9,4 +9,5 @@ pub enum GroupError {
     NoFieldsToUpdate,
     BalanceNotZero,
     NotAllBalancesZero,
+    GroupNotActive,
 }

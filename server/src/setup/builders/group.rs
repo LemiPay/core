@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::application::balances::BalancesService;
+use crate::application::group::enter_debt_resolution::EnterDebtResolutionUseCase;
 use crate::{
     application::group::{
         GroupService, create_group::CreateGroupUseCase, delete_group::DeleteGroupUseCase,
@@ -39,6 +40,11 @@ pub fn build_group_service(
             group_repo: group_repo.clone(),
             balances_service: balances_service.clone(),
         },
-        get_group_members: GetGroupMembersUseCase { group_repo },
+        get_group_members: GetGroupMembersUseCase {
+            group_repo: group_repo.clone(),
+        },
+        enter_debt_resolution: EnterDebtResolutionUseCase {
+            group_repo: group_repo.clone(),
+        },
     }
 }

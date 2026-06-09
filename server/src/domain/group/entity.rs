@@ -116,6 +116,12 @@ impl Group {
         Ok(self)
     }
 
+    pub fn enter_debt_resolution(mut self, user_id: UserId) -> Result<Self, GroupError> {
+        GroupPolicy::can_enter_debt_resolution(user_id, &self)?;
+        self.status = GroupStatus::DebtResolution;
+        Ok(self)
+    }
+
     pub fn deactivate(mut self, balances_map: BalancesMap) -> Result<Self, GroupError> {
         GroupPolicy::can_end_group(balances_map)?;
         self.status = GroupStatus::Ended;
