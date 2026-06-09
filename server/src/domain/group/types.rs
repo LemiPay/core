@@ -15,3 +15,10 @@ impl Display for GroupId {
         write!(f, "{}", self.0)
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GroupStatus {
+    Active,
+    Ended,
+    DebtResolution,
+}

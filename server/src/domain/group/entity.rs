@@ -1,5 +1,6 @@
 use uuid::Uuid;
 
+use crate::domain::group::GroupStatus;
 use crate::domain::group::config::GroupConfig;
 use crate::domain::group::error::GroupError;
 use crate::domain::group::member::GroupMember;
@@ -12,7 +13,7 @@ pub struct Group {
     pub id: GroupId,
     pub name: String,
     pub description: String,
-    pub is_active: bool,
+    pub status: GroupStatus,
     pub config: GroupConfig,
     pub members: Vec<GroupMember>,
 }
@@ -37,7 +38,7 @@ impl Group {
             id: GroupId(Uuid::new_v4()),
             name: trimmed_name.to_string(),
             description: trimmed_description.to_string(),
-            is_active: true,
+            status: GroupStatus::Active,
             config,
             members: vec![GroupMember::admin(creator_id)],
         })
@@ -47,7 +48,7 @@ impl Group {
         id: GroupId,
         name: String,
         description: String,
-        is_active: bool,
+        status: GroupStatus,
         config: GroupConfig,
         members: Vec<GroupMember>,
     ) -> Self {
@@ -55,7 +56,7 @@ impl Group {
             id,
             name,
             description,
-            is_active,
+            status,
             config,
             members,
         }
@@ -116,7 +117,7 @@ impl Group {
     }
 
     pub fn deactivate(mut self) -> Self {
-        self.is_active = false;
+        self.status = GroupStatus::Ended;
         self
     }
 
@@ -172,7 +173,7 @@ mod tests {
         assert_eq!(group.members.len(), 1);
         assert_eq!(group.members[0].user_id, creator);
         assert!(group.members[0].is_admin());
-        assert!(group.is_active);
+        assert_eq!(group.status, GroupStatus::Active);
     }
 
     #[test]
