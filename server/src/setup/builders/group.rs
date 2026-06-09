@@ -24,7 +24,7 @@ pub fn build_group_service(
         },
         leave_group: LeaveGroupUseCase {
             group_repo: group_repo.clone(),
-            balances_service,
+            balances_service: balances_service.clone(),
         },
         list_user_groups: ListUserGroupsUseCase {
             group_repo: group_repo.clone(),
@@ -37,6 +37,7 @@ pub fn build_group_service(
         },
         delete_group: DeleteGroupUseCase {
             group_repo: group_repo.clone(),
+            balances_service: balances_service.clone(),
         },
         get_group_members: GetGroupMembersUseCase { group_repo },
     }

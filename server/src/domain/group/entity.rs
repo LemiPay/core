@@ -116,9 +116,10 @@ impl Group {
         Ok(self)
     }
 
-    pub fn deactivate(mut self) -> Self {
+    pub fn deactivate(mut self, balances_map: BalancesMap) -> Result<Self, GroupError> {
+        GroupPolicy::can_end_group(balances_map)?;
         self.status = GroupStatus::Ended;
-        self
+        Ok(self)
     }
 
     pub fn update_info(

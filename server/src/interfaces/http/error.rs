@@ -181,6 +181,9 @@ impl From<DeleteGroupError> for AppError {
             }
             DeleteGroupError::NotFound => AppError::NotFound,
             DeleteGroupError::Internal => AppError::Internal,
+            DeleteGroupError::NotAllBalancesZero => AppError::Forbidden(
+                "Todos los balances tienen que ser 0 para terminar el grupo".into(),
+            ),
         }
     }
 }

@@ -39,7 +39,11 @@ impl GroupPolicy {
         }
         Ok(())
     }
-    pub fn can_end_group() -> Result<(), GroupError> {
-        todo!("solo se puede hacer si no hay deudas en el grupo")
+    pub fn can_end_group(balances: BalancesMap) -> Result<(), GroupError> {
+        let all_zero = balances.get_all_balances().values().all(|b| b.is_zero());
+        if !all_zero {
+            return Err(GroupError::NotAllBalancesZero);
+        }
+        Ok(())
     }
 }

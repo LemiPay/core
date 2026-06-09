@@ -8,4 +8,5 @@ pub enum GroupError {
     LastAdminCannotLeave,
     NoFieldsToUpdate,
     BalanceNotZero,
+    NotAllBalancesZero,
 }
