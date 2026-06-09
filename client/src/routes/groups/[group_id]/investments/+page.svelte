@@ -395,10 +395,14 @@
 							>
 								<div class="mb-3 flex items-start justify-between gap-2">
 									<div class="min-w-0 space-y-0.5">
-										<p class="truncate text-sm font-medium text-black">{inv.strategy_name}</p>
-										<p class="text-xs text-gray-500">
-											Vencida {formatDate(inv.updated_at)}
-										</p>
+										<a href={`/groups/${groupId}/investments/${inv.id}`} class="block">
+											<p class="truncate text-sm font-medium text-black hover:underline">
+												{inv.strategy_name}
+											</p>
+											<p class="text-xs text-gray-500">
+												Vencida {formatDate(inv.updated_at)}
+											</p>
+										</a>
 									</div>
 									<span
 										class="shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium {risk.bg} {risk.color}"
