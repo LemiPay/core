@@ -4,7 +4,7 @@ use crate::application::governance::error::GovernanceError;
 use crate::domain::governance::{
     GovernancePolicy, Proposal, ProposalId, ProposalKind, WithdrawProposal,
 };
-use crate::domain::group::GroupId;
+use crate::domain::group::{GroupId, GroupPolicy};
 use crate::domain::treasury::CurrencyId;
 use crate::domain::user::UserId;
 
@@ -19,6 +19,9 @@ impl GovernanceService {
         amount: String,
         currency_id: Uuid,
     ) -> Result<WithdrawProposalDetails, GovernanceError> {
+        let group = Self::map_repo(self.group_repo.find_by_id(GroupId(group_id)))?
+            .ok_or(GovernanceError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| GovernanceError::GroupNotActive)?;
         let amount = Self::parse_amount(&amount)?;
         GovernancePolicy::ensure_positive_amount(&amount)?;
 
@@ -44,6 +47,9 @@ impl GovernanceService {
         proposal_id: Uuid,
         currency_id: Uuid,
     ) -> Result<(), GovernanceError> {
+        let group = Self::map_repo(self.group_repo.find_by_id(GroupId(group_id)))?
+            .ok_or(GovernanceError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| GovernanceError::GroupNotActive)?;
         let stored = Self::map_repo(
             self.governance_repo
                 .find_withdraw_proposal(proposal_id, currency_id),

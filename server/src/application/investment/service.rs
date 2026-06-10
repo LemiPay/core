@@ -20,6 +20,7 @@ use crate::application::{
     },
     treasury::traits::group_wallet_repo::GroupWalletRepository,
 };
+use crate::domain::group::GroupPolicy;
 use crate::domain::investment::member::NewInvestmentMember;
 use crate::domain::user::UserId;
 use crate::domain::{
@@ -67,6 +68,9 @@ impl InvestmentService {
         strategy_id: Uuid,
         currency_id: Uuid,
     ) -> Result<InvestmentProposalDetails, InvestmentError> {
+        let group = Self::map_repo(self.group_repo.find_by_id(GroupId(group_id)))?
+            .ok_or(InvestmentError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| InvestmentError::GroupNotActive)?;
         let amount = Self::parse_amount(&amount)?;
         InvestmentPolicy::ensure_positive_amount(&amount)?;
 

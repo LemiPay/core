@@ -14,6 +14,7 @@ pub enum GovernanceError {
     NotProposalCreator,
     ProposalAlreadyResolved,
     GroupMismatch,
+    GroupNotActive,
     FundRoundNotActive,
     ContributionExceedsTarget,
     InvalidStatusTransition,

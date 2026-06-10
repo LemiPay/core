@@ -12,7 +12,8 @@ use crate::interfaces::http::middlewares::{
 };
 
 use handlers::{
-    create_group::create_group, delete_group::delete_group, get_group::get_group,
+    create_group::create_group, delete_group::delete_group,
+    enter_debt_resolution::enter_debt_resolution, get_group::get_group,
     get_group_members::get_group_members, leave_group::leave_group,
     list_user_groups::list_user_groups, make_group_admin::make_group_admin,
     update_group::update_group,
@@ -43,6 +44,13 @@ pub fn routes(state: SharedState) -> Router<SharedState> {
         .route(
             "/{id}/make_admin",
             post(make_group_admin).route_layer(middleware::from_fn_with_state(
+                state.clone(),
+                is_group_admin_middleware,
+            )),
+        )
+        .route(
+            "/{id}/debt-resolution",
+            post(enter_debt_resolution).route_layer(middleware::from_fn_with_state(
                 state.clone(),
                 is_group_admin_middleware,
             )),

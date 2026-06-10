@@ -4,7 +4,7 @@ use crate::application::governance::error::GovernanceError;
 use crate::domain::governance::{
     GovernancePolicy, NewMemberProposal, Proposal, ProposalId, ProposalKind, ProposalStatus,
 };
-use crate::domain::group::GroupId;
+use crate::domain::group::{GroupId, GroupPolicy};
 use crate::domain::user::{Email, UserId};
 
 use super::{
@@ -47,6 +47,9 @@ impl GovernanceService {
         user_id: Option<Uuid>,
         user_email: Option<String>,
     ) -> Result<NewMemberProposalDetails, GovernanceError> {
+        let group = Self::map_repo(self.group_repo.find_by_id(GroupId(group_id)))?
+            .ok_or(GovernanceError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| GovernanceError::GroupNotActive)?;
         let target_user_id = self.resolve_target_user(user_id, user_email)?;
 
         if Self::map_repo(

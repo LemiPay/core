@@ -2,6 +2,7 @@ use crate::application::balances::BalancesService;
 use crate::application::group::leave_group::dto::{LeaveGroupInput, LeaveGroupOutput};
 use crate::application::group::leave_group::error::LeaveGroupError;
 use crate::application::group::traits::repository::GroupRepository;
+use crate::domain::group::GroupPolicy;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -17,6 +18,7 @@ impl LeaveGroupUseCase {
             .find_by_id(input.group_id)
             .map_err(|_| LeaveGroupError::InternalError)?
             .ok_or(LeaveGroupError::NotFound)?;
+        GroupPolicy::ensure_active(&group)?;
         let balances = self
             .balances_service
             .get_balances(input.group_id)

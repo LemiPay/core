@@ -12,13 +12,14 @@ use crate::application::treasury::{
     transfer_funds::TransferFundsUseCase,
 };
 use crate::infrastructure::db::repositories::{
-    currency_repo_impl::DieselCurrencyRepository,
+    currency_repo_impl::DieselCurrencyRepository, group_repo_impl::DieselGroupRepository,
     group_wallet_repo_impl::DieselGroupWalletRepository,
     transaction_repo_impl::DieselTransactionRepository,
     user_wallet_repo_impl::DieselUserWalletRepository,
 };
 
 pub fn build_treasury_service(
+    group_repo: Arc<DieselGroupRepository>,
     user_wallet_repo: Arc<DieselUserWalletRepository>,
     group_wallet_repo: Arc<DieselGroupWalletRepository>,
     transaction_repo: Arc<DieselTransactionRepository>,
@@ -49,6 +50,7 @@ pub fn build_treasury_service(
 
         // Group wallet
         create_group_wallet: CreateGroupWalletUseCase {
+            group_repo: group_repo.clone(),
             group_wallet_repo: group_wallet_repo.clone(),
             currency_repo,
         },
@@ -58,6 +60,7 @@ pub fn build_treasury_service(
 
         // Transactions
         fund_group: FundGroupUseCase {
+            group_repo,
             user_wallet_repo,
             group_wallet_repo,
             transaction_repo: transaction_repo.clone(),

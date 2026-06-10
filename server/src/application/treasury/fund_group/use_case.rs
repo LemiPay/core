@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::group::traits::repository::GroupRepository;
 use crate::application::treasury::dto::TransactionDetails;
 use crate::application::treasury::fund_group::dto::{FundGroupInput, FundGroupOutput};
 use crate::application::treasury::fund_group::error::FundGroupError;
@@ -7,10 +8,12 @@ use crate::application::treasury::traits::{
     group_wallet_repo::GroupWalletRepository, transaction_repo::TransactionRepository,
     user_wallet_repo::UserWalletRepository,
 };
+use crate::domain::group::{GroupId, GroupPolicy};
 use crate::domain::treasury::{Money, NewTransaction, TransactionType, TreasuryPolicy};
 
 #[derive(Clone)]
 pub struct FundGroupUseCase {
+    pub group_repo: Arc<dyn GroupRepository>,
     pub user_wallet_repo: Arc<dyn UserWalletRepository>,
     pub group_wallet_repo: Arc<dyn GroupWalletRepository>,
     pub transaction_repo: Arc<dyn TransactionRepository>,
@@ -18,6 +21,12 @@ pub struct FundGroupUseCase {
 
 impl FundGroupUseCase {
     pub fn execute(&self, input: FundGroupInput) -> Result<FundGroupOutput, FundGroupError> {
+        let group = self
+            .group_repo
+            .find_by_id(input.group_id)
+            .map_err(|_| FundGroupError::Internal)?
+            .ok_or(FundGroupError::GroupNotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| FundGroupError::GroupNotActive)?;
         let amount = Money::positive(input.amount, input.currency_id)?;
 
         let user_wallet = self

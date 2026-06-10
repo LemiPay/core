@@ -6,6 +6,7 @@ pub enum LeaveGroupError {
     NotMember,
     LastAdminCannotLeave,
     BalanceNotZero,
+    GroupNotActive,
     InternalError,
 }
 
@@ -15,6 +16,7 @@ impl From<GroupError> for LeaveGroupError {
             GroupError::NotMember => LeaveGroupError::NotMember,
             GroupError::LastAdminCannotLeave => LeaveGroupError::LastAdminCannotLeave,
             GroupError::BalanceNotZero => LeaveGroupError::BalanceNotZero,
+            GroupError::GroupNotActive => LeaveGroupError::GroupNotActive,
             _ => LeaveGroupError::InternalError,
         }
     }

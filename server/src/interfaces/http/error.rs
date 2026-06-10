@@ -17,9 +17,10 @@ use crate::{
         governance::GovernanceError,
         group::{
             create_group::CreateGroupError, delete_group::DeleteGroupError,
-            get_group::GetGroupError, get_group_members::GetGroupMembersError,
-            leave_group::LeaveGroupError, list_user_groups::ListUserGroupsError,
-            make_group_admin::MakeGroupAdminError, update_group::UpdateGroupError,
+            enter_debt_resolution::EnterDebtResolutionError, get_group::GetGroupError,
+            get_group_members::GetGroupMembersError, leave_group::LeaveGroupError,
+            list_user_groups::ListUserGroupsError, make_group_admin::MakeGroupAdminError,
+            update_group::UpdateGroupError,
         },
         treasury::{
             create_group_wallet::CreateGroupWalletError, create_user_wallet::CreateUserWalletError,
@@ -137,6 +138,9 @@ impl From<LeaveGroupError> for AppError {
             LeaveGroupError::BalanceNotZero => {
                 AppError::Forbidden("Debes tener un balance igual a 0 para irte del grupo".into())
             }
+            LeaveGroupError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
         }
     }
 }
@@ -168,6 +172,9 @@ impl From<UpdateGroupError> for AppError {
             }
             UpdateGroupError::NotFound => AppError::NotFound,
             UpdateGroupError::BadRequest(message) => AppError::BadRequest(message),
+            UpdateGroupError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
             UpdateGroupError::Internal => AppError::Internal,
         }
     }
@@ -184,6 +191,21 @@ impl From<DeleteGroupError> for AppError {
             DeleteGroupError::NotAllBalancesZero => AppError::Forbidden(
                 "Todos los balances tienen que ser 0 para terminar el grupo".into(),
             ),
+        }
+    }
+}
+
+impl From<EnterDebtResolutionError> for AppError {
+    fn from(err: EnterDebtResolutionError) -> Self {
+        match err {
+            EnterDebtResolutionError::Forbidden => AppError::Forbidden(
+                "Solo el administrador puede iniciar la resolucion de deudas".into(),
+            ),
+            EnterDebtResolutionError::NotFound => AppError::NotFound,
+            EnterDebtResolutionError::NotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
+            EnterDebtResolutionError::Internal => AppError::Internal,
         }
     }
 }
@@ -315,6 +337,10 @@ impl From<CreateGroupWalletError> for AppError {
                 AppError::BadRequest("Esa dirección ya está registrada para esa moneda".into())
             }
             CreateGroupWalletError::Internal => AppError::Internal,
+            CreateGroupWalletError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
+            CreateGroupWalletError::GroupNotFound => AppError::NotFound,
         }
     }
 }
@@ -341,6 +367,8 @@ impl From<FundGroupError> for AppError {
             }
             FundGroupError::InsufficientFunds => AppError::BadRequest("Saldo insuficiente".into()),
             FundGroupError::Internal => AppError::Internal,
+            FundGroupError::GroupNotActive => AppError::Forbidden("El grupo no esta activo".into()),
+            FundGroupError::GroupNotFound => AppError::NotFound,
         }
     }
 }
@@ -408,6 +436,9 @@ impl From<InvestmentError> for AppError {
             InvestmentError::NotGroupMember => {
                 AppError::Forbidden("Solo miembros del grupo puede ver estos detalles".into())
             }
+            InvestmentError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
         }
     }
 }
@@ -452,6 +483,9 @@ impl From<GovernanceError> for AppError {
             GovernanceError::SenderWalletNotFound => {
                 AppError::BadRequest("La wallet del usuario no existe para esa moneda".into())
             }
+            GovernanceError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
         }
     }
 }
@@ -483,6 +517,7 @@ impl From<ExpenseError> for AppError {
                 AppError::Forbidden("Solo el creador o el admin pueden editar".into())
             }
             ExpenseError::GroupMismatch => AppError::NotFound,
+            ExpenseError::GroupNotActive => AppError::Forbidden("El grupo no esta activo".into()),
         }
     }
 }

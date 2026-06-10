@@ -84,6 +84,7 @@ pub fn build_app() -> Router {
     let user_service = build_user_service(user_repo.clone());
 
     let treasury_service = build_treasury_service(
+        group_repo.clone(),
         user_wallet_repo.clone(),
         group_wallet_repo.clone(),
         transaction_repo.clone(),
@@ -96,7 +97,7 @@ pub fn build_app() -> Router {
         user_repo,
         user_wallet_repo,
     );
-    let expense_service = build_expense_service(expense_repo.clone());
+    let expense_service = build_expense_service(group_repo.clone(), expense_repo.clone());
     let balances_service =
         build_balances_service(transaction_repo, group_repo.clone(), expense_repo);
     let group_service = build_group_service(group_repo.clone(), balances_service.clone());
