@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { readContract, writeContract } from '@wagmi/core';
 	import { parseUnits, pad } from 'viem';
-	import { PUBLIC_VAULT_CONTRACT_ADDRESS } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 	import NumberField from '$lib/components/input_fields/NumberField.svelte';
 	import CurrencySelectField from '$lib/components/input_fields/CurrencySelectField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -114,7 +114,7 @@
 				}
 
 				const tokenAddress = config.address as `0x${string}`;
-				const vaultAddress = PUBLIC_VAULT_CONTRACT_ADDRESS as `0x${string}`;
+				const vaultAddress = env.PUBLIC_VAULT_CONTRACT_ADDRESS as `0x${string}`;
 				const parsedUnits = parseUnits(parsedAmount, config.decimals);
 
 				try {
