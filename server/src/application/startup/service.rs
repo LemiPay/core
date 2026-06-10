@@ -1,11 +1,7 @@
-use std::sync::Arc;
-
+use crate::application::startup::config::{BATCH_SIZE, END_BLOCK_GAP, UPDATE_BLOCK_SIZE};
 use crate::application::treasury::traits::fund_event_repo::FundEventRepository;
 use crate::infrastructure::blockchain::{BlockchainService, ContractEvent, FundData};
-
-const END_BLOCK_GAP: u64 = 64;
-const BATCH_SIZE: u64 = 10;
-const UPDATE_BLOCK_SIZE: u64 = 700; // 700; in prod.
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct BlockchainSyncService {

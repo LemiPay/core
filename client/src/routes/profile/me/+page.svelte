@@ -206,8 +206,10 @@
 
 	onMount(() => {
 		const unsubscribe = onWalletAuthChange(handleWalletAuthChange);
+		const interval = setInterval(() => loadWallets(), 5000);
 		return () => {
 			unsubscribe();
+			clearInterval(interval);
 		};
 	});
 
