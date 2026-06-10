@@ -32,6 +32,7 @@
 	import FaucetModal from '$lib/components/modals/user/FaucetModal.svelte';
 	import TransferModal from '$lib/components/modals/user/TransferModal.svelte';
 	import CreateWalletModal from '$lib/components/modals/user/CreateWalletModal.svelte';
+	import FundWalletModal from '$lib/components/modals/user/FundWalletModal.svelte';
 	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
@@ -55,6 +56,7 @@
 	// --- ESTADOS DE MODALES ---
 	let faucetTarget = $state<{ wallet_id: string; ticker: string } | null>(null);
 	let transferTarget = $state<{ sender_wallet_id: string; ticker: string } | null>(null);
+	let fundTarget = $state<{ wallet_id: string; wallet_address: string } | null>(null);
 	let openCreateWalletModal = $state(false);
 	let linkingRequested = $state(false);
 	let linkingInFlight = $state(false);
@@ -238,6 +240,14 @@
 <CreateWalletModal
 	open={openCreateWalletModal}
 	onclose={() => (openCreateWalletModal = false)}
+	onsuccess={() => loadWallets()}
+/>
+
+<FundWalletModal
+	open={fundTarget !== null}
+	wallet_id={fundTarget?.wallet_id ?? ''}
+	wallet_address={fundTarget?.wallet_address ?? ''}
+	onclose={() => (fundTarget = null)}
 	onsuccess={() => loadWallets()}
 />
 
@@ -566,6 +576,17 @@
 												maximumFractionDigits: 4
 											})}
 										</span>
+										<button
+											onclick={() =>
+												(fundTarget = {
+													wallet_id: currency.wallet_id,
+													wallet_address: group.address
+												})}
+											class="inline-flex items-center gap-1.5 rounded-xl border border-lime-200 bg-lime-50 px-3 py-1.5 text-xs font-semibold text-lime-700 transition hover:border-lime-300 hover:bg-lime-100 dark:border-lime-400/20 dark:bg-lime-400/10 dark:text-lime-300 dark:hover:border-lime-400/30 dark:hover:bg-lime-400/15"
+										>
+											<Wallet class="size-3.5" />
+											Fondear
+										</button>
 										<button
 											onclick={() =>
 												(faucetTarget = {

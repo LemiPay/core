@@ -57,7 +57,7 @@ impl UserWalletRepository for DieselUserWalletRepository {
 
         let new_wallet = NewUserWalletModel {
             id: wallet.id.0,
-            address: wallet.address.clone(),
+            address: wallet.address.to_lowercase(),
             user_id: wallet.user_id.0,
             currency_id: wallet.balance.currency.0,
             balance: wallet.balance.amount.clone(),
@@ -98,7 +98,7 @@ impl UserWalletRepository for DieselUserWalletRepository {
         let mut conn = self.get_conn()?;
 
         let model = schema::user_wallet::table
-            .filter(schema::user_wallet::address.eq(address))
+            .filter(schema::user_wallet::address.eq(&address.to_lowercase()))
             .filter(schema::user_wallet::currency_id.eq(currency.0))
             .select(UserWalletModel::as_select())
             .first::<UserWalletModel>(&mut conn)
@@ -112,7 +112,7 @@ impl UserWalletRepository for DieselUserWalletRepository {
         let mut conn = self.get_conn()?;
 
         let owner = schema::user_wallet::table
-            .filter(schema::user_wallet::address.eq(address))
+            .filter(schema::user_wallet::address.eq(&address.to_lowercase()))
             .select(schema::user_wallet::user_id)
             .first::<Uuid>(&mut conn)
             .optional()

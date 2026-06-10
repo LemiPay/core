@@ -388,7 +388,7 @@ impl GovernanceRepository for DieselGovernanceRepository {
             let credited_user = diesel::update(
                 schema::user_wallet::table
                     .filter(schema::user_wallet::user_id.eq(user_id))
-                    .filter(schema::user_wallet::address.eq(&address))
+                    .filter(schema::user_wallet::address.eq(&address.to_lowercase()))
                     .filter(schema::user_wallet::currency_id.eq(currency_id)),
             )
             .set((

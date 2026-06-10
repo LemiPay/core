@@ -5,7 +5,7 @@ use crate::infrastructure::blockchain::{BlockchainService, ContractEvent, FundDa
 
 const END_BLOCK_GAP: u64 = 64;
 const BATCH_SIZE: u64 = 10;
-const UPDATE_BLOCK_SIZE: u64 = 100; // 700 in prod.
+const UPDATE_BLOCK_SIZE: u64 = 700; // 700; in prod.
 
 #[derive(Clone)]
 pub struct BlockchainSyncService {
@@ -83,25 +83,33 @@ impl BlockchainSyncService {
                     self.repo
                         .update_sync_state(flush_block)
                         .expect("Failed to update sync state");
+
                     println!(
                         ">>> Checkpoint advanced to block {} (no events)",
                         flush_block
                     );
                 } else {
                     let count = fund_events.len();
+
                     self.repo
                         .process_events(&fund_events, flush_block)
                         .expect("Failed to process events");
+
                     println!(
                         ">>> Flushed {} events, sync at block {}",
                         count, flush_block
                     );
+
                     fund_events = Vec::new();
                 }
                 blocks_since_flush = 0;
             }
 
             current = to + 1;
+        }
+
+        if !fund_events.is_empty() {
+            print!("LALALALALLALa");
         }
     }
 }
