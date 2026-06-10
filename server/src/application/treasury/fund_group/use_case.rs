@@ -8,7 +8,7 @@ use crate::application::treasury::traits::{
     group_wallet_repo::GroupWalletRepository, transaction_repo::TransactionRepository,
     user_wallet_repo::UserWalletRepository,
 };
-use crate::domain::group::{GroupId, GroupPolicy};
+use crate::domain::group::GroupPolicy;
 use crate::domain::treasury::{Money, NewTransaction, TransactionType, TreasuryPolicy};
 
 #[derive(Clone)]

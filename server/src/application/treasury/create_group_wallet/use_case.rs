@@ -8,7 +8,7 @@ use crate::application::treasury::create_group_wallet::error::CreateGroupWalletE
 use crate::application::treasury::traits::{
     currency_repo::CurrencyRepository, group_wallet_repo::GroupWalletRepository,
 };
-use crate::domain::group::{GroupId, GroupPolicy};
+use crate::domain::group::GroupPolicy;
 use crate::domain::treasury::GroupWallet;
 
 #[derive(Clone)]
