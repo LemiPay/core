@@ -57,6 +57,8 @@ pub struct FundData {
     pub gross_amount: U256,
     pub fee_amount: U256,
     pub net_amount: U256,
+    pub tx_hash: B256,
+    pub block_number: u64,
 }
 
 impl PrintCommand for FundData {
@@ -77,6 +79,8 @@ pub struct WithdrawData {
     pub gross_amount: U256,
     pub fee_amount: U256,
     pub net_amount: U256,
+    pub tx_hash: B256,
+    pub block_number: u64,
 }
 
 impl PrintCommand for WithdrawData {

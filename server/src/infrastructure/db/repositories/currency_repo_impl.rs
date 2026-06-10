@@ -36,4 +36,20 @@ impl CurrencyRepository for DieselCurrencyRepository {
 
         Ok(id.map(CurrencyId))
     }
+
+    fn find_id_by_token_currency_id(
+        &self,
+        token_currency_id: &str,
+    ) -> Result<Option<CurrencyId>, RepoError> {
+        let mut conn = self.get_conn()?;
+
+        let id = schema::currency::table
+            .filter(schema::currency::token_currency_id.eq(token_currency_id))
+            .select(schema::currency::currency_id)
+            .first::<Uuid>(&mut conn)
+            .optional()
+            .map_err(|_| RepoError::Query)?;
+
+        Ok(id.map(CurrencyId))
+    }
 }

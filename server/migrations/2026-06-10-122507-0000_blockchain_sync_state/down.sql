@@ -1,2 +1,2 @@
 -- This file should undo anything in `up.sql`
-DROP TABLE blockchain_sync_state;
+DROP TABLE IF EXISTS blockchain_sync_state;

@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use erc6492;
 use std::env;
 
+#[derive(Clone)]
 pub struct EthereumService {
     rpc_url: String,
     vault_address: Address,

@@ -160,6 +160,62 @@ impl From<TransactionType> for TransactionTypeModel {
     }
 }
 
+// ----------------------------
+// Blockchain event
+// ----------------------------
+
+#[derive(Queryable, Selectable, Debug, Clone)]
+#[diesel(table_name = schema::blockchain_event)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct BlockchainEventModel {
+    pub id: Uuid,
+    pub event_type: String,
+    pub sender: String,
+    pub wallet_address: String,
+    pub token_address: String,
+    pub currency_id: Uuid,
+    pub gross_amount: BigDecimal,
+    pub fee_amount: BigDecimal,
+    pub net_amount: BigDecimal,
+    pub tx_hash: String,
+    pub block_number: i64,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::blockchain_event)]
+pub struct NewBlockchainEventModel {
+    pub id: Uuid,
+    pub event_type: String,
+    pub sender: String,
+    pub wallet_address: String,
+    pub token_address: String,
+    pub currency_id: Uuid,
+    pub gross_amount: BigDecimal,
+    pub fee_amount: BigDecimal,
+    pub net_amount: BigDecimal,
+    pub tx_hash: String,
+    pub block_number: i64,
+}
+
+// ----------------------------
+// Blockchain sync state
+// ----------------------------
+
+#[derive(Queryable, Selectable, Debug, Clone)]
+#[diesel(table_name = schema::blockchain_sync_state)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct BlockchainSyncStateModel {
+    pub sync_key: String,
+    pub last_processed_block: i64,
+    pub updated_at: chrono::NaiveDateTime,
+}
+
+pub struct UpdateSyncStateModel {
+    pub last_processed_block: i64,
+    pub updated_at: chrono::NaiveDateTime,
+}
+
 impl From<CurrencyModel> for Currency {
     fn from(value: CurrencyModel) -> Self {
         Currency {

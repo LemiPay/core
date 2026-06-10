@@ -32,6 +32,8 @@ pub fn try_decode_event(log: Log) -> Option<ContractEvent> {
                     gross_amount: e.grossAmount,
                     fee_amount: e.feeAmount,
                     net_amount: e.netAmount,
+                    tx_hash: log.transaction_hash.unwrap_or_default(),
+                    block_number: log.block_number.unwrap_or(0),
                 })
             })
         },
@@ -46,6 +48,8 @@ pub fn try_decode_event(log: Log) -> Option<ContractEvent> {
                     gross_amount: e.grossAmount,
                     fee_amount: e.feeAmount,
                     net_amount: e.netAmount,
+                    tx_hash: log.transaction_hash.unwrap_or_default(),
+                    block_number: log.block_number.unwrap_or(0),
                 })
             })
         },

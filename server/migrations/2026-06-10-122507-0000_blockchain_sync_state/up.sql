@@ -1,5 +1,5 @@
 -- Your SQL goes here
-CREATE TABLE blockchain_sync_state
+CREATE TABLE IF NOT EXISTS blockchain_sync_state
 (
     sync_key             TEXT PRIMARY KEY,
     last_processed_block BIGINT      NOT NULL CHECK (last_processed_block >= 0),

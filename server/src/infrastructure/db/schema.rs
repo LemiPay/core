@@ -39,6 +39,31 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    blockchain_event (id) {
+        id -> Uuid,
+        event_type -> Text,
+        sender -> Text,
+        wallet_address -> Text,
+        token_address -> Text,
+        currency_id -> Uuid,
+        gross_amount -> Numeric,
+        fee_amount -> Numeric,
+        net_amount -> Numeric,
+        tx_hash -> Text,
+        block_number -> Int8,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    blockchain_sync_state (sync_key) {
+        sync_key -> Text,
+        last_processed_block -> Int8,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::Blockchain;
 
@@ -296,6 +321,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(blockchain_event -> currency (currency_id));
 diesel::joinable!(expense -> currency (currency_id));
 diesel::joinable!(expense -> group (group_id));
 diesel::joinable!(expense -> user (user_id));
@@ -334,6 +360,8 @@ diesel::joinable!(withdraw_proposal -> currency (currency_id));
 diesel::joinable!(withdraw_proposal -> proposal (proposal_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    blockchain_event,
+    blockchain_sync_state,
     currency,
     expense,
     expense_participant,
