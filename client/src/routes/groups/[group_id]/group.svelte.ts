@@ -128,6 +128,10 @@ export class GroupState {
 		return [...this.memberBalances].sort((a, b) => b.balance - a.balance);
 	}
 
+	get readonly() {
+		return this.groupData.status === 'DebtResolution';
+	}
+
 	// Algoritmo Greedy
 	get settlements() {
 		const creditors = this.memberBalances

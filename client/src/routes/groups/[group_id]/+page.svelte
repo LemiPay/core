@@ -197,27 +197,29 @@
 							<HandCoins class="h-4 w-4" />
 						{/snippet}
 					</Button>
-					<button
-						onclick={() => (showEditModal = true)}
-						class="rounded-md p-2 text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
-						title="Editar grupo"
-					>
-						<Pencil class="h-4 w-4" />
-					</button>
-					<button
-						onclick={() => (showLeaveModal = true)}
-						class="rounded-md p-2 text-muted-foreground transition hover:bg-orange-50 hover:text-orange-500 dark:hover:bg-orange-400/10 dark:hover:text-orange-300"
-						title="Salir del grupo"
-					>
-						<LogOut class="h-4 w-4" />
-					</button>
-					<button
-						onclick={() => (showDeleteModal = true)}
-						class="rounded-md p-2 text-muted-foreground transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-400/10 dark:hover:text-red-300"
-						title="Eliminar grupo"
-					>
-						<Trash2 class="h-4 w-4" />
-					</button>
+					{#if !groupState.readonly}
+						<button
+							onclick={() => (showEditModal = true)}
+							class="rounded-md p-2 text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+							title="Editar grupo"
+						>
+							<Pencil class="h-4 w-4" />
+						</button>
+						<button
+							onclick={() => (showLeaveModal = true)}
+							class="rounded-md p-2 text-muted-foreground transition hover:bg-orange-50 hover:text-orange-500 dark:hover:bg-orange-400/10 dark:hover:text-orange-300"
+							title="Salir del grupo"
+						>
+							<LogOut class="h-4 w-4" />
+						</button>
+						<button
+							onclick={() => (showDeleteModal = true)}
+							class="rounded-md p-2 text-muted-foreground transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-400/10 dark:hover:text-red-300"
+							title="Eliminar grupo"
+						>
+							<Trash2 class="h-4 w-4" />
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -243,12 +245,14 @@
 				{#if activeTab === 'general'}
 					<GeneralTab
 						{groupState}
+						readonly={groupState.readonly}
 						onInviteClick={() => (showNewMemberModal = true)}
 						onGoToBalances={() => (activeTab = 'balances')}
 					/>
 				{:else if activeTab === 'wallets'}
 					<WalletsTab
 						{groupState}
+						readonly={groupState.readonly}
 						onCreateWallet={() => (showCreateWalletModal = true)}
 						onFundWallet={(wId, cId) => {
 							selectedWalletIdToFund = wId;
@@ -263,6 +267,7 @@
 				{:else if activeTab === 'fund_rounds'}
 					<FundRoundsTab
 						{groupState}
+						readonly={groupState.readonly}
 						onCreateFundRound={() => (showCreateFundRoundModal = true)}
 						onCancelFundRound={(id) => {
 							fundRoundToCancel = id;
@@ -272,7 +277,11 @@
 				{:else if activeTab === 'balances'}
 					<BalancesTab {groupState} />
 				{:else if activeTab === 'expenses'}
-					<ExpensesTab {groupState} onCreateExpense={() => (showCreateExpenseModal = true)} />
+					<ExpensesTab
+						{groupState}
+						readonly={groupState.readonly}
+						onCreateExpense={() => (showCreateExpenseModal = true)}
+					/>
 				{:else if activeTab === 'history'}
 					<HistoryTab {groupState} />
 				{/if}

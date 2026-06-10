@@ -6,8 +6,14 @@
 	import type { GroupState } from '../group.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
 
-	let { groupState, onInviteClick, onGoToBalances } = $props<{
+	let {
+		groupState,
+		readonly = false,
+		onInviteClick,
+		onGoToBalances
+	} = $props<{
 		groupState: GroupState;
+		readonly?: boolean;
 		onInviteClick: () => void;
 		onGoToBalances: () => void;
 	}>();
@@ -26,9 +32,11 @@
 					</span>
 				{/if}
 			</div>
-			<Button label="Invitar" variant="secondary" onclick={onInviteClick}>
-				{#snippet icon()}<Plus class="h-4 w-4" />{/snippet}
-			</Button>
+			{#if !readonly}
+				<Button label="Invitar" variant="secondary" onclick={onInviteClick}>
+					{#snippet icon()}<Plus class="h-4 w-4" />{/snippet}
+				</Button>
+			{/if}
 		</div>
 
 		{#if groupState.loadingMembers}
@@ -62,25 +70,27 @@
 					</a>
 				{/each}
 
-				<button
-					type="button"
-					onclick={onInviteClick}
-					class="group flex items-center gap-3 rounded-xl border border-dashed border-border bg-card px-3 py-2.5 text-left text-card-foreground transition hover:border-foreground hover:bg-accent"
-				>
-					<div
-						class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dashed border-border bg-background text-muted-foreground transition group-hover:border-foreground group-hover:text-foreground"
+				{#if !readonly}
+					<button
+						type="button"
+						onclick={onInviteClick}
+						class="group flex items-center gap-3 rounded-xl border border-dashed border-border bg-card px-3 py-2.5 text-left text-card-foreground transition hover:border-foreground hover:bg-accent"
 					>
-						<Plus class="h-4 w-4" />
-					</div>
-					<div class="min-w-0 space-y-0.5">
-						<p
-							class="truncate text-sm font-medium text-muted-foreground group-hover:text-foreground"
+						<div
+							class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dashed border-border bg-background text-muted-foreground transition group-hover:border-foreground group-hover:text-foreground"
 						>
-							Invitar miembro
-						</p>
-						<p class="text-[11px] text-muted-foreground">Sumá a alguien al grupo</p>
-					</div>
-				</button>
+							<Plus class="h-4 w-4" />
+						</div>
+						<div class="min-w-0 space-y-0.5">
+							<p
+								class="truncate text-sm font-medium text-muted-foreground group-hover:text-foreground"
+							>
+								Invitar miembro
+							</p>
+							<p class="text-[11px] text-muted-foreground">Sumá a alguien al grupo</p>
+						</div>
+					</button>
+				{/if}
 			</div>
 		{:else}
 			<div
@@ -91,9 +101,11 @@
 				<p class="mb-4 text-sm text-muted-foreground">
 					Invitá a alguien para empezar a mover plata en grupo.
 				</p>
-				<Button label="Invitar primer miembro" variant="secondary" onclick={onInviteClick}>
-					{#snippet icon()}<Plus class="h-4 w-4" />{/snippet}
-				</Button>
+				{#if !readonly}
+					<Button label="Invitar primer miembro" variant="secondary" onclick={onInviteClick}>
+						{#snippet icon()}<Plus class="h-4 w-4" />{/snippet}
+					</Button>
+				{/if}
 			</div>
 		{/if}
 	</div>
