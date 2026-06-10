@@ -1,44 +1,51 @@
-use server::domain::treasury::CurrencyAddress;
 use server::infrastructure::blockchain::BlockchainService;
 use server::infrastructure::blockchain::ethereum_service::EthereumService;
 
-async fn test_read_blockchain() {
+const START_BLOCK: u64 = 11023370;
+const BATCH_SIZE: u64 = 10;
+
+#[tokio::main]
+async fn main() {
     let service = EthereumService::new();
 
-    /// Example: get_supported_tokens function with a known currency address.
-    // let x = service.get_supported_tokens(
-    //     CurrencyAddress::new("0x1c7d4b196cb0c7b01d743fbc6116a902379c7238".to_string())
-    //         .expect("Invalid currency address"),
-    // ).await.expect("Failed to get supported tokens");
-    //
-    // println!("{}", x.enabled);
-    // println!("{:?}", x.lemipayCurrencyId);
-
-    /// Example: Get logs
-    let x = service
-        .get_events(0, 1)
+    let latest_block = service
+        .get_block_number()
         .await
-        .expect("Failed to get events");
+        .expect("Failed to get latest block number");
 
-    println!("Number of events: {}", x.len());
-    // for log in x {
-    //     println!("Event! token: {:?} currency: {:?}", log.token, log.currency_id);
-    // }
+    let total_blocks = latest_block.saturating_sub(START_BLOCK).saturating_add(1);
+    let mut processed: u64 = 0;
 
-    // // Instantiate the contract instance.
-    // let weth = address!("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
-    // let erc20 = ERC20::new(weth, provider);
-    //
-    // // Fetch the balance of WETH for a given address.
-    // let owner = address!("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
-    // let balance = erc20.balanceOf(owner).call().await?;
-    //
-    // println!("WETH Balance of {owner}: {balance}");
+    println!("latest_block={latest_block}");
+    println!("start_block={START_BLOCK}");
+    println!("batch_size={BATCH_SIZE}");
+    println!("total_blocks_to_process={total_blocks}");
+    println!();
 
-    // Ok(())
-}
+    let mut current = START_BLOCK;
 
-fn main() {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(test_read_blockchain());
+    while current <= latest_block {
+        let to = std::cmp::min(current + BATCH_SIZE - 1, latest_block);
+        let batch_len = to - current + 1;
+
+        print!("[{}, {}] ... ", current, to);
+
+        match service.get_events(current, to).await {
+            Ok(events) => {
+                println!("{} events", events.len());
+                for event in &events {
+                    event.execute_print();
+                }
+            }
+            Err(e) => {
+                eprintln!("RPC FAILED: {e}");
+            }
+        }
+
+        processed += batch_len;
+        let pct = (processed as f64 / total_blocks as f64) * 100.0;
+        println!("      progress: {processed}/{total_blocks} ({pct:.1}%)");
+
+        current = to + 1;
+    }
 }

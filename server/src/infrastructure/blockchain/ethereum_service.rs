@@ -1,11 +1,11 @@
 use crate::domain::treasury::CurrencyAddress;
-use crate::infrastructure::blockchain::contracts::lemipay_vault::LemiPayVault::TokenAdded;
 use crate::infrastructure::blockchain::{
-    BlockchainService, contracts::lemipay_vault::LemiPayVault, error::BlockchainError,
+    BlockchainService, ContractEvent, contracts::lemipay_vault::LemiPayVault,
+    error::BlockchainError, event_decoder::try_decode_event,
 };
 use alloy::primitives::{Address, B256, Bytes};
 use alloy::providers::{Provider, ProviderBuilder};
-use alloy::rpc::types::{Filter, Log};
+use alloy::rpc::types::Filter;
 use async_trait::async_trait;
 use erc6492;
 use std::env;
@@ -17,8 +17,8 @@ pub struct EthereumService {
 
 impl EthereumService {
     pub fn new() -> Self {
-        dotenvy::dotenv().ok(); // intenta cargar .env del cwd
-        dotenvy::from_filename("../.env").ok(); // fallback
+        dotenvy::dotenv().ok();
+        dotenvy::from_filename("../.env").ok();
 
         let rpc_url = env::var("RPC_URL").expect("RPC_URL environment variable not set");
 
@@ -30,11 +30,6 @@ impl EthereumService {
             vault_address: vault_address_str.parse().expect("Invalid VAULT_ADDRESS"),
         }
     }
-}
-
-pub struct TokenAddedEvent {
-    pub token: Address,
-    pub currency_id: B256,
 }
 
 #[async_trait]
@@ -59,42 +54,38 @@ impl BlockchainService for EthereumService {
             .supportedTokens(*currency_addr.as_address())
             .call()
             .await
-            .map_err(|_| BlockchainError::BlockchainService)?;
+            .map_err(|e| BlockchainError::BlockchainService(e.to_string()))?;
 
         Ok(supported_tokens_response)
     }
 
+    async fn get_block_number(&self) -> Result<u64, BlockchainError> {
+        let provider = ProviderBuilder::new().connect_http(self.rpc_url.parse().unwrap());
+        let block_number = provider
+            .get_block_number()
+            .await
+            .map_err(|e| BlockchainError::RpcError(e.to_string()))?;
+        Ok(block_number)
+    }
+
     async fn get_events(
         &self,
-        _from_block: u64,
-        _to_block: u64,
-    ) -> Result<Vec<TokenAddedEvent>, BlockchainError> {
+        from_block: u64,
+        to_block: u64,
+    ) -> Result<Vec<ContractEvent>, BlockchainError> {
         let provider = ProviderBuilder::new().connect_http(self.rpc_url.parse().unwrap());
-        let vault = LemiPayVault::new(self.vault_address, provider);
 
-        let events = vault
-            .TokenAdded_filter()
-            .from_block(0)
-            .to_block(9)
-            .query()
+        let filter = Filter::new()
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(self.vault_address);
+
+        let logs = provider
+            .get_logs(&filter)
             .await
-            .map_err(|e| {
-                println!("{e:?}");
-                BlockchainError::BlockchainService
-            })?;
+            .map_err(|e| BlockchainError::RpcError(e.to_string()))?;
 
-        for event in &events {
-            println!("token = {:?}", event.0.token);
-            println!("currency_id = {:?}", event.0.currencyId);
-        }
-
-        let events = events
-            .into_iter()
-            .map(|event| TokenAddedEvent {
-                token: event.0.token,
-                currency_id: event.0.currencyId,
-            })
-            .collect();
+        let events: Vec<ContractEvent> = logs.into_iter().filter_map(try_decode_event).collect();
 
         Ok(events)
     }

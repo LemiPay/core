@@ -2,6 +2,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum BlockchainError {
-    #[error("Blockchain service error")]
-    BlockchainService,
+    #[error("RPC error: {0}")]
+    RpcError(String),
+
+    #[error("Blockchain service error: {0}")]
+    BlockchainService(String),
 }

@@ -1,11 +1,7 @@
 use alloy::primitives::{Address, B256, Bytes};
-use alloy::providers::ProviderBuilder;
-use alloy::rpc::types::{Filter, Log};
 use async_trait::async_trait;
 
 use crate::domain::treasury::CurrencyAddress;
-
-use crate::infrastructure::blockchain::ethereum_service::TokenAddedEvent;
 use crate::infrastructure::blockchain::{
     contracts::lemipay_vault::LemiPayVault, error::BlockchainError,
 };
@@ -13,6 +9,10 @@ use crate::infrastructure::blockchain::{
 pub mod contracts;
 pub mod error;
 pub mod ethereum_service;
+mod event_decoder;
+pub mod events;
+
+pub use events::*;
 
 #[async_trait]
 pub trait BlockchainService: Send + Sync {
@@ -23,9 +23,11 @@ pub trait BlockchainService: Send + Sync {
         currency_addr: CurrencyAddress,
     ) -> Result<LemiPayVault::supportedTokensReturn, BlockchainError>;
 
+    async fn get_block_number(&self) -> Result<u64, BlockchainError>;
+
     async fn get_events(
         &self,
-        _from_block: u64,
-        _to_block: u64,
-    ) -> Result<Vec<TokenAddedEvent>, BlockchainError>;
+        from_block: u64,
+        to_block: u64,
+    ) -> Result<Vec<ContractEvent>, BlockchainError>;
 }
