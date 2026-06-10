@@ -2,9 +2,10 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::application::common::repo_error::RepoError;
-use crate::application::treasury::traits::currency_repo::CurrencyRepository;
+use crate::application::treasury::traits::currency_repo::{CurrencyInfo, CurrencyRepository};
 use crate::domain::treasury::CurrencyId;
 use crate::infrastructure::db::{
+    models::treasury::CurrencyModel,
     pool::{DbConn, DbPool},
     schema,
 };
@@ -51,5 +52,22 @@ impl CurrencyRepository for DieselCurrencyRepository {
             .map_err(|_| RepoError::Query)?;
 
         Ok(id.map(CurrencyId))
+    }
+
+    fn find_by_id(&self, id: CurrencyId) -> Result<Option<CurrencyInfo>, RepoError> {
+        let mut conn = self.get_conn()?;
+
+        let model: Option<CurrencyModel> = schema::currency::table
+            .filter(schema::currency::currency_id.eq(id.0))
+            .select(CurrencyModel::as_select())
+            .first(&mut conn)
+            .optional()
+            .map_err(|_| RepoError::Query)?;
+
+        Ok(model.map(|m| CurrencyInfo {
+            id: CurrencyId(m.currency_id),
+            token_address: m.token_address,
+            decimals: m.decimals,
+        }))
     }
 }

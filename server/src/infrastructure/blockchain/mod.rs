@@ -1,4 +1,4 @@
-use alloy::primitives::{Address, B256, Bytes};
+use alloy::primitives::{Address, B256, Bytes, U256};
 use async_trait::async_trait;
 
 use crate::domain::treasury::CurrencyAddress;
@@ -30,4 +30,14 @@ pub trait BlockchainService: Send + Sync {
         from_block: u64,
         to_block: u64,
     ) -> Result<Vec<ContractEvent>, BlockchainError>;
+
+    /// Submits a withdraw transaction to the vault contract.
+    /// Returns the transaction hash on success.
+    async fn withdraw(
+        &self,
+        receiver: Address,
+        wallet_address: B256,
+        token: Address,
+        amount: U256,
+    ) -> Result<String, BlockchainError>;
 }

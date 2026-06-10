@@ -8,7 +8,7 @@ export async function getAllMyWallets(): ApiResponse<WalletInfo[]> {
 	});
 }
 
-export async function faucetFundWallet(amount: string, wallet_id: string): ApiResponse<Wallet> {
+export async function fundWallet(amount: string, wallet_id: string): ApiResponse<Wallet> {
 	return authedApiFetch(`/wallet/fund/${wallet_id}`, {
 		method: 'POST',
 		body: JSON.stringify({ amount: amount })
@@ -32,5 +32,17 @@ export async function createNewAddress(
 	return authedApiFetch('/wallet/create', {
 		method: 'POST',
 		body: JSON.stringify({ address, currency_ticker })
+	});
+}
+
+export async function withdrawFromWallet(
+	amount: string,
+	wallet_id: string,
+	signature: string,
+	address: string
+): ApiResponse<Wallet> {
+	return authedApiFetch(`/wallet/withdraw/${wallet_id}`, {
+		method: 'POST',
+		body: JSON.stringify({ amount, signature, address })
 	});
 }

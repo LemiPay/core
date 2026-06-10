@@ -6,10 +6,11 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::application::common::repo_error::RepoError;
+use crate::application::treasury::dto::BlockchainEventDetails;
 use crate::application::treasury::traits::fund_event_repo::FundEventRepository;
-use crate::infrastructure::blockchain::events::FundData;
+use crate::infrastructure::blockchain::events::{FundData, WithdrawData};
 use crate::infrastructure::db::{
-    models::treasury::NewBlockchainEventModel,
+    models::treasury::{BlockchainEventModel, NewBlockchainEventModel},
     pool::{DbConn, DbPool},
     schema,
 };
@@ -66,6 +67,128 @@ fn do_update_sync_state(
 }
 
 impl FundEventRepository for DieselFundEventRepository {
+    fn insert_event(
+        &self,
+        event_type: &str,
+        sender: &str,
+        wallet_address: &str,
+        token_address: &str,
+        currency_id: Uuid,
+        gross_amount: BigDecimal,
+        fee_amount: BigDecimal,
+        net_amount: BigDecimal,
+        tx_hash: &str,
+        block_number: i64,
+    ) -> Result<(), RepoError> {
+        let mut conn = self.get_conn()?;
+
+        let new_event = NewBlockchainEventModel {
+            id: Uuid::new_v4(),
+            event_type: event_type.to_string(),
+            sender: sender.to_string(),
+            wallet_address: wallet_address.to_string(),
+            token_address: token_address.to_string(),
+            currency_id,
+            gross_amount,
+            fee_amount,
+            net_amount,
+            tx_hash: tx_hash.to_string(),
+            block_number,
+        };
+
+        diesel::insert_into(schema::blockchain_event::table)
+            .values(&new_event)
+            .execute(&mut conn)
+            .map_err(|_| RepoError::Insert)?;
+
+        Ok(())
+    }
+
+    fn process_withdraw_events(
+        &self,
+        events: &[WithdrawData],
+        last_processed_block: u64,
+    ) -> Result<(), RepoError> {
+        let mut conn = self.get_conn()?;
+
+        conn.transaction::<(), diesel::result::Error, _>(|tx_conn| {
+            for event in events {
+                let wallet_addr = extract_address_from_b256(&event.wallet_address);
+                let receiver = address_to_str(&event.receiver);
+                let token_addr = address_to_str(&event.token);
+                let currency_uuid = b256_to_uuid(&event.currency_id);
+
+                let decimals: i16 = schema::currency::table
+                    .filter(schema::currency::currency_id.eq(currency_uuid))
+                    .select(schema::currency::decimals)
+                    .first::<i16>(tx_conn)
+                    .map_err(|e| {
+                        match e {
+                            diesel::result::Error::NotFound => {
+                                println!("Database error: Currency not found for currency_id: {currency_uuid}");
+                            },
+                            _ => panic!("Database error: {e}"),
+                        }
+                    })
+                    .map_err(|_| diesel::result::Error::NotFound)?;
+
+                let wallet_uuid: Uuid = schema::user_wallet::table
+                    .filter(schema::user_wallet::address.eq(&wallet_addr.to_lowercase()))
+                    .filter(schema::user_wallet::currency_id.eq(currency_uuid))
+                    .select(schema::user_wallet::id)
+                    .first::<Uuid>(tx_conn)
+                    .map_err(|e| {
+                        match e {
+                            diesel::result::Error::NotFound => {
+                                println!("Database error: User wallet not found for address: {wallet_addr} and currency_id: {currency_uuid}");
+                            },
+                            _ => panic!("Database error: {e}"),
+                        }
+                    })
+                    .map_err(|_| diesel::result::Error::NotFound)?;
+
+                let divisor = BigDecimal::from(10u64.pow(decimals as u32));
+
+                let net = b256_to_bigdecimal(&event.net_amount) / &divisor;
+
+                diesel::update(schema::user_wallet::table)
+                    .filter(schema::user_wallet::id.eq(wallet_uuid))
+                    .filter(schema::user_wallet::currency_id.eq(currency_uuid))
+                    .set((
+                        schema::user_wallet::balance.eq(schema::user_wallet::balance - &net),
+                        schema::user_wallet::updated_at.eq(chrono::Utc::now().naive_utc()),
+                    ))
+                    .execute(tx_conn)?;
+
+                let gross = b256_to_bigdecimal(&event.gross_amount) / &divisor;
+                let fee = b256_to_bigdecimal(&event.fee_amount) / &divisor;
+
+                let new_event = NewBlockchainEventModel {
+                    id: Uuid::new_v4(),
+                    event_type: "Withdraw".to_string(),
+                    sender: receiver,
+                    wallet_address: wallet_addr,
+                    token_address: token_addr,
+                    currency_id: currency_uuid,
+                    gross_amount: gross,
+                    fee_amount: fee,
+                    net_amount: net,
+                    tx_hash: b256_to_str(&event.tx_hash),
+                    block_number: event.block_number as i64,
+                };
+
+                diesel::insert_into(schema::blockchain_event::table)
+                    .values(&new_event)
+                    .execute(tx_conn)?;
+            }
+
+            do_update_sync_state(tx_conn, last_processed_block)?;
+
+            Ok(())
+        })
+        .map_err(|_| RepoError::Insert)
+    }
+
     fn process_events(
         &self,
         events: &[FundData],
@@ -170,6 +293,41 @@ impl FundEventRepository for DieselFundEventRepository {
             .map_err(|_| RepoError::Query)?;
 
         Ok(block as u64)
+    }
+
+    fn list_by_wallet_addresses(
+        &self,
+        wallet_addresses: &[String],
+    ) -> Result<Vec<BlockchainEventDetails>, RepoError> {
+        use schema::blockchain_event::dsl::*;
+
+        let mut conn = self.get_conn()?;
+
+        let lowercased: Vec<String> = wallet_addresses.iter().map(|a| a.to_lowercase()).collect();
+
+        let models: Vec<BlockchainEventModel> = blockchain_event
+            .filter(wallet_address.eq_any(&lowercased))
+            .order(created_at.desc())
+            .load::<BlockchainEventModel>(&mut conn)
+            .map_err(|_| RepoError::Query)?;
+
+        Ok(models
+            .into_iter()
+            .map(|m| BlockchainEventDetails {
+                id: m.id,
+                event_type: m.event_type,
+                sender: m.sender,
+                wallet_address: m.wallet_address,
+                token_address: m.token_address,
+                currency_id: m.currency_id,
+                gross_amount: m.gross_amount,
+                fee_amount: m.fee_amount,
+                net_amount: m.net_amount,
+                tx_hash: m.tx_hash,
+                block_number: m.block_number,
+                created_at: m.created_at,
+            })
+            .collect())
     }
 }
 

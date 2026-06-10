@@ -3,9 +3,10 @@ use crate::infrastructure::blockchain::{
     BlockchainService, ContractEvent, contracts::lemipay_vault::LemiPayVault,
     error::BlockchainError, event_decoder::try_decode_event,
 };
-use alloy::primitives::{Address, B256, Bytes};
+use alloy::primitives::{Address, B256, Bytes, U256};
 use alloy::providers::{Provider, ProviderBuilder};
 use alloy::rpc::types::Filter;
+use alloy::signers::local::PrivateKeySigner;
 use async_trait::async_trait;
 use erc6492;
 use std::env;
@@ -89,5 +90,40 @@ impl BlockchainService for EthereumService {
         let events: Vec<ContractEvent> = logs.into_iter().filter_map(try_decode_event).collect();
 
         Ok(events)
+    }
+
+    async fn withdraw(
+        &self,
+        receiver: Address,
+        wallet_address: B256,
+        token: Address,
+        amount: U256,
+    ) -> Result<String, BlockchainError> {
+        let private_key_str = env::var("PRIVATE_KEY")
+            .map_err(|_| BlockchainError::BlockchainService("PRIVATE_KEY not set".into()))?;
+
+        let signer: PrivateKeySigner = private_key_str
+            .parse()
+            .map_err(|e| BlockchainError::BlockchainService(format!("Invalid PRIVATE_KEY: {e}")))?;
+
+        let provider = ProviderBuilder::new()
+            .wallet(signer)
+            .connect_http(self.rpc_url.parse().unwrap());
+
+        let vault = LemiPayVault::new(self.vault_address, &provider);
+
+        let pending = vault
+            .withdraw(receiver, wallet_address, token, amount)
+            .send()
+            .await
+            .map_err(|e| {
+                BlockchainError::BlockchainService(format!("withdraw send failed: {e}"))
+            })?;
+
+        let receipt = pending.get_receipt().await.map_err(|e| {
+            BlockchainError::BlockchainService(format!("failed to get receipt: {e}"))
+        })?;
+
+        Ok(format!("{:?}", receipt.transaction_hash))
     }
 }

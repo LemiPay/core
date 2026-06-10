@@ -111,6 +111,9 @@ pub fn build_app() -> Router {
         balances_service.clone(),
     );
 
+    let blockchain_service = Arc::new(EthereumService::new());
+    let fund_event_repo = Arc::new(DieselFundEventRepository::new(pool.clone()));
+
     // -------------------------
     // 5. State
     // -------------------------
@@ -126,6 +129,10 @@ pub fn build_app() -> Router {
         expense_service,
         balances_service,
         investment_service,
+
+        blockchain_service: blockchain_service.clone(),
+        fund_event_repo: fund_event_repo.clone(),
+        currency_repo: currency_repo.clone(),
     });
 
     // -------------------------
@@ -155,9 +162,7 @@ pub fn build_app() -> Router {
     // -------------------------
     // 7. Background live blockchain sync — polls every N seconds
     // -------------------------
-    let fund_event_repo = Arc::new(DieselFundEventRepository::new(pool.clone()));
-    let blockchain_service = Arc::new(EthereumService::new());
-    let live_sync = LiveSyncService::new(fund_event_repo, blockchain_service);
+    let live_sync = LiveSyncService::new(fund_event_repo, blockchain_service.clone());
 
     tokio::spawn(async move {
         live_sync.start().await;

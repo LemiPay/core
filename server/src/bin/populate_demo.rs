@@ -133,7 +133,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             idx
         );
         let wallet = create_wallet_if_missing(&client, &base_url, &token, &wallet_address).await?;
-        faucet_fund(&client, &base_url, &token, &wallet.id, "5000").await?;
+        fund_wallet_http(&client, &base_url, &token, &wallet.id, "5000").await?;
 
         sessions.push(Session {
             user: user.clone(),
@@ -551,7 +551,7 @@ async fn create_wallet_if_missing(
     Err("No USDC wallet found for user after create fallback".into())
 }
 
-async fn faucet_fund(
+async fn fund_wallet_http(
     client: &Client,
     base_url: &str,
     token: &str,
@@ -569,7 +569,7 @@ async fn faucet_fund(
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Faucet fund failed ({status}): {body}").into());
+        return Err(format!("Fund failed ({status}): {body}").into());
     }
     Ok(())
 }

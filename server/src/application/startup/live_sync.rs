@@ -5,7 +5,7 @@ use crate::application::startup::config::{
     BATCH_SIZE, END_BLOCK_GAP, POLL_INTERVAL_SECS, UPDATE_BLOCK_SIZE,
 };
 use crate::application::treasury::traits::fund_event_repo::FundEventRepository;
-use crate::infrastructure::blockchain::{BlockchainService, ContractEvent, FundData};
+use crate::infrastructure::blockchain::{BlockchainService, ContractEvent, FundData, WithdrawData};
 
 pub struct LiveSyncService {
     repo: Arc<dyn FundEventRepository>,
@@ -53,6 +53,7 @@ impl LiveSyncService {
             let mut processed: u64 = 0;
             let mut current = last_processed + 1;
             let mut fund_events: Vec<FundData> = Vec::new();
+            let mut withdraw_events: Vec<WithdrawData> = Vec::new();
             let mut blocks_since_flush: u64 = 0;
 
             while current <= confirmed {
@@ -62,8 +63,10 @@ impl LiveSyncService {
                 match self.blockchain_service.get_events(current, to).await {
                     Ok(events) => {
                         for event in events {
-                            if let ContractEvent::Fund(data) = event {
-                                fund_events.push(data);
+                            match event {
+                                ContractEvent::Fund(data) => fund_events.push(data),
+                                ContractEvent::Withdraw(data) => withdraw_events.push(data),
+                                _ => {}
                             }
                         }
                     }
@@ -86,7 +89,10 @@ impl LiveSyncService {
 
                 if blocks_since_flush >= UPDATE_BLOCK_SIZE || to == confirmed {
                     let flush_block = to;
-                    if fund_events.is_empty() {
+                    let has_fund = !fund_events.is_empty();
+                    let has_withdraw = !withdraw_events.is_empty();
+
+                    if !has_fund && !has_withdraw {
                         if let Err(e) = self.repo.update_sync_state(flush_block) {
                             eprintln!(
                                 "[LiveSync] Failed to update sync state to block {}: {e:?}",
@@ -94,22 +100,45 @@ impl LiveSyncService {
                             );
                         }
                     } else {
-                        match self.repo.process_events(&fund_events, flush_block) {
-                            Ok(()) => {
-                                println!(
-                                    "[LiveSync] Flushed {} events, sync at block {}",
-                                    fund_events.len(),
-                                    flush_block
-                                );
+                        if has_fund {
+                            match self.repo.process_events(&fund_events, flush_block) {
+                                Ok(()) => {
+                                    println!(
+                                        "[LiveSync] Flushed {} Fund events, sync at block {}",
+                                        fund_events.len(),
+                                        flush_block
+                                    );
+                                }
+                                Err(e) => {
+                                    eprintln!(
+                                        "[LiveSync] Failed to process Fund events up to block {}: {e:?}",
+                                        flush_block
+                                    );
+                                }
                             }
-                            Err(e) => {
-                                eprintln!(
-                                    "[LiveSync] Failed to process events up to block {}: {e:?}",
-                                    flush_block
-                                );
-                            }
+                            fund_events = Vec::new();
                         }
-                        fund_events = Vec::new();
+                        if has_withdraw {
+                            match self
+                                .repo
+                                .process_withdraw_events(&withdraw_events, flush_block)
+                            {
+                                Ok(()) => {
+                                    println!(
+                                        "[LiveSync] Flushed {} Withdraw events, sync at block {}",
+                                        withdraw_events.len(),
+                                        flush_block
+                                    );
+                                }
+                                Err(e) => {
+                                    eprintln!(
+                                        "[LiveSync] Failed to process Withdraw events up to block {}: {e:?}",
+                                        flush_block
+                                    );
+                                }
+                            }
+                            withdraw_events = Vec::new();
+                        }
                     }
                     blocks_since_flush = 0;
                 }

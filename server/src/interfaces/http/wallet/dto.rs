@@ -10,8 +10,15 @@ pub struct CreateWalletRequest {
 }
 
 #[derive(Deserialize)]
-pub struct FaucetAmountRequest {
+pub struct FundAmountRequest {
     pub amount: String,
+}
+
+#[derive(Deserialize)]
+pub struct WithdrawRequest {
+    pub amount: String,
+    pub signature: String,
+    pub address: String,
 }
 
 #[derive(Deserialize)]

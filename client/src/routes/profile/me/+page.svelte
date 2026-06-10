@@ -1,12 +1,10 @@
 <script lang="ts">
 	import {
 		ArrowLeft,
-		ArrowDownToLine,
 		Copy,
 		Link2,
 		LogOut,
 		Plus,
-		Send,
 		Wallet,
 		ArrowUpRight,
 		Shield,
@@ -29,17 +27,16 @@
 	} from '../../wallet_auth.svelte';
 
 	// Importar Modales
-	import FaucetModal from '$lib/components/modals/user/FaucetModal.svelte';
-	import TransferModal from '$lib/components/modals/user/TransferModal.svelte';
 	import CreateWalletModal from '$lib/components/modals/user/CreateWalletModal.svelte';
 	import FundWalletModal from '$lib/components/modals/user/FundWalletModal.svelte';
+	import WithdrawModal from '$lib/components/modals/user/WithdrawModal.svelte';
 	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { fly, fade, scale } from 'svelte/transition';
 	import UserTransactionHistory from '$lib/components/UserTransactionHistory.svelte';
-	import type { Transaction } from '$lib/types/endpoints/transactions.types';
-	import { listUserTransactions } from '$lib/api/endpoints/transactions';
+	import type { BlockchainEvent, Transaction } from '$lib/types/endpoints/transactions.types';
+	import { listBlockchainEvents, listUserTransactions } from '$lib/api/endpoints/transactions';
 
 	// --- ESTADOS DE DATOS ---
 	let loadingUserInfo = $state(true);
@@ -52,11 +49,13 @@
 
 	let loadingTransactions = $state(true);
 	let transactionsArray = $state([] as Transaction[]);
+	let blockchainEvents = $state([] as BlockchainEvent[]);
 
 	// --- ESTADOS DE MODALES ---
-	let faucetTarget = $state<{ wallet_id: string; ticker: string } | null>(null);
-	let transferTarget = $state<{ sender_wallet_id: string; ticker: string } | null>(null);
 	let fundTarget = $state<{ wallet_id: string; wallet_address: string } | null>(null);
+	let withdrawTarget = $state<{ wallet_id: string; wallet_address: string; ticker: string } | null>(
+		null
+	);
 	let openCreateWalletModal = $state(false);
 	let linkingRequested = $state(false);
 	let linkingInFlight = $state(false);
@@ -94,6 +93,8 @@
 		loadingTransactions = true;
 		const result = await listUserTransactions();
 		if (isSuccess(result)) transactionsArray = result.body.reverse();
+		const eventsResult = await listBlockchainEvents();
+		if (isSuccess(eventsResult)) blockchainEvents = eventsResult.body;
 		loadingTransactions = false;
 	}
 
@@ -223,22 +224,6 @@
 	<title>Lemipay – Perfil de {user.name ?? '...'}</title>
 </svelte:head>
 
-<FaucetModal
-	open={faucetTarget !== null}
-	wallet_id={faucetTarget?.wallet_id ?? ''}
-	ticker={faucetTarget?.ticker ?? ''}
-	onclose={() => (faucetTarget = null)}
-	onsuccess={() => loadWallets()}
-/>
-
-<TransferModal
-	open={transferTarget !== null}
-	sender_wallet_id={transferTarget?.sender_wallet_id ?? ''}
-	ticker={transferTarget?.ticker ?? ''}
-	onclose={() => (transferTarget = null)}
-	onsuccess={() => loadWallets()}
-/>
-
 <CreateWalletModal
 	open={openCreateWalletModal}
 	onclose={() => (openCreateWalletModal = false)}
@@ -253,11 +238,21 @@
 	onsuccess={() => loadWallets()}
 />
 
+<WithdrawModal
+	open={withdrawTarget !== null}
+	wallet_id={withdrawTarget?.wallet_id ?? ''}
+	wallet_address={withdrawTarget?.wallet_address ?? ''}
+	ticker={withdrawTarget?.ticker ?? ''}
+	onclose={() => (withdrawTarget = null)}
+	onsuccess={() => loadWallets()}
+/>
+
 <UserTransactionHistory
 	open={openTxHistory}
 	onclose={() => (openTxHistory = false)}
 	onsuccess={() => (openTxHistory = false)}
 	{transactionsArray}
+	{blockchainEvents}
 	{loadingTransactions}
 />
 
@@ -591,25 +586,15 @@
 										</button>
 										<button
 											onclick={() =>
-												(faucetTarget = {
+												(withdrawTarget = {
 													wallet_id: currency.wallet_id,
+													wallet_address: group.address,
 													ticker: currency.ticker
 												})}
-											class="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-border/80 hover:text-foreground"
+											class="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300 dark:hover:border-red-400/30 dark:hover:bg-red-400/15"
 										>
-											<ArrowDownToLine class="size-3.5" />
-											Recibir
-										</button>
-										<button
-											onclick={() =>
-												(transferTarget = {
-													sender_wallet_id: currency.wallet_id,
-													ticker: currency.ticker
-												})}
-											class="inline-flex items-center gap-1.5 rounded-xl bg-foreground px-3 py-1.5 text-xs font-semibold text-background shadow-sm transition hover:bg-foreground/85"
-										>
-											<Send class="size-3.5" />
-											Enviar
+											<LogOut class="size-3.5" />
+											Retirar
 										</button>
 									</div>
 								</div>

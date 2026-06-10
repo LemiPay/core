@@ -3,7 +3,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Modal from '$lib/components/modals/Modal.svelte';
 
-	import { faucetFundWallet } from '$lib/api/endpoints/user_wallet';
+	import { fundWallet } from '$lib/api/endpoints/user_wallet';
 	import { ModalState } from '$lib/utils/modal_state.svelte.js';
 
 	interface Props {
@@ -37,7 +37,7 @@
 		form.setAttempted();
 		if (!formValid) return;
 
-		await form.submit(() => faucetFundWallet(String(amount).replace(',', '.'), wallet_id), {
+		await form.submit(() => fundWallet(String(amount).replace(',', '.'), wallet_id), {
 			successMsg: 'Billetera fondeada correctamente',
 			onSuccess: () => {
 				onsuccess(); // Refresca la data en la vista padre
@@ -49,8 +49,8 @@
 
 <Modal
 	{open}
-	title="Recibir Dinero"
-	description="Dinero mágico de otra dimensión será enviado a tu dirección."
+	title="Fondear wallet"
+	description="Ingresá el monto para fondear esta wallet."
 	onclose={handleClose}
 	error={form.error}
 	success={form.success}
