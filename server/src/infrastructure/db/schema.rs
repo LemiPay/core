@@ -2,6 +2,10 @@
 
 pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "blockchain"))]
+    pub struct Blockchain;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "expense_status"))]
     pub struct ExpenseStatus;
 
@@ -35,10 +39,19 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::Blockchain;
+
     currency (currency_id) {
         currency_id -> Uuid,
         name -> Text,
         ticker -> Text,
+        blockchain -> Blockchain,
+        token_address -> Text,
+        token_currency_id -> Nullable<Text>,
+        decimals -> Int2,
+        is_active -> Bool,
+        created_at -> Timestamptz,
     }
 }
 
