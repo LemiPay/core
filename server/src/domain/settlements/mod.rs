@@ -1,2 +1,2 @@
-mod algorithm;
+pub mod algorithm;
 pub mod entity;
