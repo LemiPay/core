@@ -1,5 +1,4 @@
 use crate::domain::group::GroupId;
-use crate::domain::settlements::entity::Settlement;
 use crate::domain::user::{UserId, UserName};
 use bigdecimal::BigDecimal;
 
