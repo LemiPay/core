@@ -1,11 +1,11 @@
+use super::config::AppConfig;
+use crate::application::settlements::service::SettlementsService;
 use crate::application::{
     auth::AuthService, balances::BalancesService, expense::ExpenseService,
     governance::GovernanceService, group::GroupService, investment::InvestmentService,
     treasury::TreasuryService, users::UserService,
 };
 use std::sync::Arc;
-
-use super::config::AppConfig;
 
 // ----------------------
 // APP STATE
@@ -21,6 +21,7 @@ pub struct AppState {
     pub governance_service: GovernanceService,
     pub expense_service: ExpenseService,
     pub balances_service: BalancesService,
+    pub settlements_service: SettlementsService,
     pub investment_service: InvestmentService,
 }
 

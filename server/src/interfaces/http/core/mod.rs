@@ -1,5 +1,6 @@
 use axum::{Router, middleware, routing::get};
 
+use crate::interfaces::http::core::handlers::get_settlements;
 use crate::{
     interfaces::http::{
         core::handlers::get_balances,
@@ -16,6 +17,7 @@ pub mod handlers;
 pub fn routes(state: SharedState) -> Router<SharedState> {
     Router::new()
         .route("/balances/{group_id}", get(get_balances))
+        .route("/get-settlements/{group_id}", get(get_settlements))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             is_in_group_middleware,

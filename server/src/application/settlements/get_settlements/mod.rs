@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use crate::application::balances::BalancesService;
 use crate::application::balances::dto::UserBalanceDetails;
-use crate::application::balances::get_settlements::dto::{
+use crate::application::settlements::get_settlements::dto::{
     GetSettlementsInput, GetSettlementsOutput, SettlementDetails,
 };
-use crate::application::balances::get_settlements::error::GetSettlementError;
+use crate::application::settlements::get_settlements::error::GetSettlementError;
 use crate::domain::settlements::algorithm::recommend_settlements;
 use crate::domain::user::{UserId, UserName};
 

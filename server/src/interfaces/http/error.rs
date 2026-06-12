@@ -8,6 +8,7 @@ use serde::Serialize;
 use thiserror::Error;
 
 use crate::application::investment::InvestmentError;
+use crate::application::settlements::get_settlements::error::GetSettlementError;
 use crate::application::treasury::list_user_transactions::ListUserTransactionsError;
 use crate::{
     application::{
@@ -518,6 +519,14 @@ impl From<ExpenseError> for AppError {
             }
             ExpenseError::GroupMismatch => AppError::NotFound,
             ExpenseError::GroupNotActive => AppError::Forbidden("El grupo no esta activo".into()),
+        }
+    }
+}
+
+impl From<GetSettlementError> for AppError {
+    fn from(err: GetSettlementError) -> Self {
+        match err {
+            GetSettlementError::Internal => AppError::Internal,
         }
     }
 }

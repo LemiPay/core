@@ -16,6 +16,7 @@ use crate::setup::{
 };
 
 use crate::infrastructure::auth::web_3_auth::Web3Auth;
+use crate::setup::builders::settlements::build_settlements_service;
 use crate::{
     // infrastructure
     infrastructure::{
@@ -107,6 +108,7 @@ pub fn build_app() -> Router {
         group_wallet_repo,
         balances_service.clone(),
     );
+    let settlements_service = build_settlements_service(balances_service.clone());
 
     // -------------------------
     // 5. State
@@ -122,6 +124,7 @@ pub fn build_app() -> Router {
         governance_service,
         expense_service,
         balances_service,
+        settlements_service,
         investment_service,
     });
 

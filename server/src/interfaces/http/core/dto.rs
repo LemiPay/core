@@ -3,6 +3,9 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::application::balances::dto::{GroupBalancesDetails, UserBalanceDetails};
+use crate::application::settlements::get_settlements::dto::{
+    GetSettlementsOutput, SettlementDetails,
+};
 
 #[derive(Serialize)]
 pub struct UserBalanceResponse {
@@ -34,4 +37,37 @@ impl From<GroupBalancesDetails> for BalancesResponse {
             balances: value.balances.into_iter().map(Into::into).collect(),
         }
     }
+}
+#[derive(Serialize)]
+pub struct SettlementResponse {
+    pub from: Uuid,
+    pub to: Uuid,
+    pub amount: BigDecimal,
+    pub to_name: Option<String>,
+    pub from_name: Option<String>,
+}
+
+impl From<SettlementDetails> for SettlementResponse {
+    fn from(value: SettlementDetails) -> Self {
+        Self {
+            from: value.from.0,
+            to: value.to.0,
+            amount: value.amount,
+            to_name: value.to_name.map(|n| n.0),
+            from_name: value.from_name.map(|n| n.0),
+        }
+    }
+}
+
+impl From<GetSettlementsOutput> for GetSettlementsResponse {
+    fn from(value: GetSettlementsOutput) -> Self {
+        Self {
+            settlements: value.settlements.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct GetSettlementsResponse {
+    pub settlements: Vec<SettlementResponse>,
 }
