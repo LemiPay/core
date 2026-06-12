@@ -1,0 +1,3 @@
+### Get - settlements
+GET {{host}}/core/get-settlements/1f819225-ff3d-438b-be16-f42337acea21
+Authorization: Bearer {{token}}
