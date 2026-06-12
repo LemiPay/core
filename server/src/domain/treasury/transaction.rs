@@ -28,6 +28,8 @@ pub enum TransactionType {
     Withdraw,
     Expense,
     Investment,
+    SettlementPayment,
+    Claim,
 }
 
 #[derive(Debug, Clone)]
