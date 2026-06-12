@@ -44,16 +44,18 @@ impl WithdrawWalletUseCase {
                 _ => WithdrawWalletError::Internal,
             })?;
 
-        if !wallet
-            .balance
-            .has_enough(&money)
-            .map_err(|_| WithdrawWalletError::Internal)?
-        {
-            return Err(WithdrawWalletError::InsufficientFunds);
-        }
+        let updated = wallet.withdraw(&money).map_err(|err| match err {
+            TreasuryError::InsufficientFunds => WithdrawWalletError::InsufficientFunds,
+            TreasuryError::InvalidAmount => WithdrawWalletError::InvalidAmount,
+            _ => WithdrawWalletError::Internal,
+        })?;
 
         self.user_wallet_repo
-            .get_details(wallet.id)
+            .save(&updated)
+            .map_err(|_| WithdrawWalletError::Internal)?;
+
+        self.user_wallet_repo
+            .get_details(updated.id)
             .map_err(|_| WithdrawWalletError::Internal)?
             .ok_or(WithdrawWalletError::Internal)
     }

@@ -233,9 +233,12 @@ impl From<CurrencyModel> for Currency {
                 BlockchainModel::Base => crate::domain::treasury::currency::Blockchain::Base,
                 BlockchainModel::Polygon => crate::domain::treasury::currency::Blockchain::Polygon,
             },
-            token_address: crate::domain::treasury::currency::CurrencyAddress(Address::new(
-                <[u8; 20]>::try_from(value.token_address.as_bytes()).unwrap(),
-            )),
+            token_address: crate::domain::treasury::currency::CurrencyAddress(
+                value
+                    .token_address
+                    .parse::<Address>()
+                    .expect("valid token address"),
+            ),
             token_currency_id: None,
             decimals: value.decimals,
             is_active: value.is_active,

@@ -45,7 +45,7 @@ impl CurrencyRepository for DieselCurrencyRepository {
         let mut conn = self.get_conn()?;
 
         let id = schema::currency::table
-            .filter(schema::currency::token_currency_id.eq(token_currency_id))
+            .filter(schema::currency::token_currency_id.eq(Some(token_currency_id)))
             .select(schema::currency::currency_id)
             .first::<Uuid>(&mut conn)
             .optional()

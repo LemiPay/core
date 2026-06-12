@@ -3,6 +3,7 @@ use axum::{
     Json,
     extract::{Path, State},
 };
+use bigdecimal::num_bigint::BigUint;
 use bigdecimal::{BigDecimal, Zero};
 use std::str::FromStr;
 use uuid::Uuid;
@@ -25,10 +26,19 @@ fn addr_to_b256(addr: &str) -> Result<B256, AppError> {
     Ok(B256::from(bytes))
 }
 
-fn decimal_to_u256(amount: &BigDecimal, decimals: i16) -> U256 {
-    let scale = BigDecimal::from(10u64.pow(decimals as u32));
-    let raw = (amount * scale).with_scale(0);
-    U256::from_str(&raw.to_string()).expect("valid U256")
+pub fn decimal_to_u256(amount: &BigDecimal, decimals: u8) -> Result<U256, AppError> {
+    let multiplier = BigUint::from(10u8).pow(decimals as u32);
+
+    let scaled: BigDecimal = amount * multiplier;
+
+    let integer: BigDecimal = scaled.with_scale(0);
+
+    if integer < BigDecimal::from(0) {
+        return Err(AppError::InvalidAmount("Amount cannot be negative".into()));
+    }
+
+    U256::from_str(&integer.to_string())
+        .map_err(|_| AppError::InvalidAmount("Amount does not fit into U256".into()))
 }
 
 pub async fn withdraw_wallet(
@@ -83,7 +93,7 @@ pub async fn withdraw_wallet(
         .map_err(|_| AppError::Internal)?;
 
     let wallet_b256 = addr_to_b256(&details.address)?;
-    let raw_amount = decimal_to_u256(&amount, currency_info.decimals);
+    let raw_amount = decimal_to_u256(&amount, currency_info.decimals as u8)?;
 
     let tx_hash = state
         .blockchain_service

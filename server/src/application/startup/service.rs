@@ -21,7 +21,7 @@ impl BlockchainSyncService {
             .get_block_number()
             .await
             .expect("Failed to get latest block number")
-            - END_BLOCK_GAP;
+            .saturating_sub(END_BLOCK_GAP);
 
         if start_block >= latest_block {
             println!("Already up to date at block {}", start_block);

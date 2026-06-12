@@ -121,33 +121,18 @@ impl FundEventRepository for DieselFundEventRepository {
                 let decimals: i16 = schema::currency::table
                     .filter(schema::currency::currency_id.eq(currency_uuid))
                     .select(schema::currency::decimals)
-                    .first::<i16>(tx_conn)
-                    .map_err(|e| {
-                        match e {
-                            diesel::result::Error::NotFound => {
-                                println!("Database error: Currency not found for currency_id: {currency_uuid}");
-                            },
-                            _ => panic!("Database error: {e}"),
-                        }
-                    })
-                    .map_err(|_| diesel::result::Error::NotFound)?;
+                    .first::<i16>(tx_conn)?;
 
                 let wallet_uuid: Uuid = schema::user_wallet::table
-                    .filter(schema::user_wallet::address.eq(&wallet_addr.to_lowercase()))
+                    .filter(schema::user_wallet::address.eq(wallet_addr.to_lowercase()))
                     .filter(schema::user_wallet::currency_id.eq(currency_uuid))
                     .select(schema::user_wallet::id)
-                    .first::<Uuid>(tx_conn)
-                    .map_err(|e| {
-                        match e {
-                            diesel::result::Error::NotFound => {
-                                println!("Database error: User wallet not found for address: {wallet_addr} and currency_id: {currency_uuid}");
-                            },
-                            _ => panic!("Database error: {e}"),
-                        }
-                    })
-                    .map_err(|_| diesel::result::Error::NotFound)?;
+                    .first::<Uuid>(tx_conn)?;
 
-                let divisor = BigDecimal::from(10u64.pow(decimals as u32));
+                let divisor = BigDecimal::new(
+                    bigdecimal::num_bigint::BigInt::from(10u8).pow(decimals as u32),
+                    0,
+                );
 
                 let net = b256_to_bigdecimal(&event.net_amount) / &divisor;
 
@@ -218,21 +203,15 @@ impl FundEventRepository for DieselFundEventRepository {
                     .map_err(|_| diesel::result::Error::NotFound)?;
 
                 let wallet_uuid: Uuid = schema::user_wallet::table
-                    .filter(schema::user_wallet::address.eq(&wallet_addr.to_lowercase()))
+                    .filter(schema::user_wallet::address.eq(wallet_addr.to_lowercase()))
                     .filter(schema::user_wallet::currency_id.eq(currency_uuid))
                     .select(schema::user_wallet::id)
-                    .first::<Uuid>(tx_conn)
-                    .map_err(|e| {
-                        match e {
-                            diesel::result::Error::NotFound => {
-                                println!("Database error: User wallet not found for address: {wallet_addr} and currency_id: {currency_uuid}");
-                            },
-                            _ => panic!("Database error: {e}"),
-                        }
-                    })
-                    .map_err(|_| diesel::result::Error::NotFound)?;
+                    .first::<Uuid>(tx_conn)?;
 
-                let divisor = BigDecimal::from(10u64.pow(decimals as u32));
+                let divisor = BigDecimal::new(
+                    bigdecimal::num_bigint::BigInt::from(10u8).pow(decimals as u32),
+                    0,
+                );
 
                 let net = b256_to_bigdecimal(&event.net_amount) / &divisor;
 

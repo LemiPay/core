@@ -60,6 +60,9 @@ pub enum AppError {
 
     #[error("Core operation failed")]
     Core,
+
+    #[error("Invalid amount")]
+    InvalidAmount(String),
 }
 
 #[derive(Serialize)]
@@ -81,6 +84,7 @@ impl IntoResponse for AppError {
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, self.to_string()),
             AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
             AppError::Core => (StatusCode::CONFLICT, self.to_string()),
+            AppError::InvalidAmount(msg) => (StatusCode::BAD_REQUEST, msg),
         };
 
         let body = Json(ErrorResponse { message });
