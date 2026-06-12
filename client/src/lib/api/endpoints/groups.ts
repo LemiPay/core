@@ -79,3 +79,9 @@ export async function fundGroupWallet(
 		body: JSON.stringify(data)
 	});
 }
+
+export async function enterDebtResolution(group_id: string): ApiResponse<Group> {
+	return authedApiFetch(`/group/${group_id}/debt-resolution`, {
+		method: 'POST'
+	});
+}

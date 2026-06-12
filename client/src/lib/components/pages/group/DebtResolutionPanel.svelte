@@ -158,7 +158,10 @@
 					class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300"
 				>
 					<CircleAlert class="mt-0.5 h-4 w-4 shrink-0" />
-					<span>Tenés que esperar a que te paguen.</span>
+					<span
+						>Tu plata está segura en el grupo. Cuando se paguen todas las deudas la vas a poder
+						retirar.</span
+					>
 				</div>
 			{:else}
 				<div class="flex flex-col items-center gap-3 py-6 text-center">

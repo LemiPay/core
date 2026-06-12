@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Trash2, Pencil, HandCoins, LogOut, TrendingUp } from 'lucide-svelte';
+	import { Trash2, Pencil, HandCoins, LogOut, TrendingUp, ShieldAlert } from 'lucide-svelte';
 
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 
 	// API UI bindings (Solo las que borran/salen)
-	import { deleteGroup, leaveGroup } from '$lib/api/endpoints/groups';
+	import { deleteGroup, enterDebtResolution, leaveGroup } from '$lib/api/endpoints/groups';
 	import { cancelFundRoundProposal } from '$lib/api/endpoints/fund_rounds';
 
 	// Helpers y Estado Global
@@ -51,9 +51,14 @@
 	let showCreateExpenseModal = $state(false);
 	let showCancelFundRoundModal = $state(false);
 	let showDebtPanel = $state(true);
+	let showConfirmDebtResolution = $state(false);
 
 	let currentUserBalance = $derived(
 		groupState.memberBalances.find((m) => m.user.user_id === groupState.currentUserId)?.balance ?? 0
+	);
+
+	let isCurrentUserAdmin = $derived(
+		groupState.members.some((m) => m.user_id === groupState.currentUserId && m.role === 'Admin')
 	);
 
 	let selectedCurrencyIdToWithdraw = $state<string>('');
@@ -204,6 +209,16 @@
 							<HandCoins class="h-4 w-4" />
 						{/snippet}
 					</Button>
+					{#if !groupState.readonly && isCurrentUserAdmin}
+						<button
+							onclick={() => (showConfirmDebtResolution = true)}
+							class="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 transition hover:bg-amber-100 hover:text-amber-800"
+							title="Iniciar resolución de deudas"
+						>
+							<ShieldAlert class="h-4 w-4" />
+							Finalizar grupo
+						</button>
+					{/if}
 					{#if !groupState.readonly}
 						<button
 							onclick={() => (showEditModal = true)}
@@ -406,6 +421,16 @@
 			}}
 			onconfirm={() => cancelFundRoundProposal(fundRoundToCancel)}
 			onsuccess={() => groupState.loadFundRoundsData()}
+		/>
+		<Confirm
+			open={showConfirmDebtResolution}
+			title="Finalizar grupo"
+			description="Se va a inhabilitar la creación de gastos, billeteras, rondas de fondeo y más. Solo se podrá ver la historia y los balances."
+			message="¿Estás seguro de iniciar la resolución de deudas?"
+			successMsg="Resolución de deudas iniciada"
+			onclose={() => (showConfirmDebtResolution = false)}
+			onconfirm={() => enterDebtResolution(groupId)}
+			onsuccess={() => groupState.loadGroupData()}
 		/>
 	{/if}
 </div>
