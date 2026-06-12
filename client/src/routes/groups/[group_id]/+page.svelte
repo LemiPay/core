@@ -22,6 +22,7 @@
 	import ProposeWithdrawModal from '$lib/components/modals/group_wallet/ProposeWithdrawModal.svelte';
 	import WithdrawProposalDrawer from '$lib/components/WithdrawProposalDrawer.svelte';
 	import CreateExpenseModal from '$lib/components/modals/group_wallet/CreateExpenseModal.svelte';
+	import DebtResolutionPanel from '$lib/components/pages/group/DebtResolutionPanel.svelte';
 
 	// Tabs
 	import GeneralTab from './tabs/GeneralTab.svelte';
@@ -49,6 +50,11 @@
 	let showCreateFundRoundModal = $state(false);
 	let showCreateExpenseModal = $state(false);
 	let showCancelFundRoundModal = $state(false);
+	let showDebtPanel = $state(true);
+
+	let currentUserBalance = $derived(
+		groupState.memberBalances.find((m) => m.user.user_id === groupState.currentUserId)?.balance ?? 0
+	);
 
 	let selectedCurrencyIdToWithdraw = $state<string>('');
 	let selectedWalletIdToFund = $state<string>('');
@@ -86,6 +92,7 @@
 	groupState.loadWalletsData();
 	groupState.loadExpensesData();
 	groupState.loadCoreBalances();
+	groupState.loadSettlements();
 
 	// Tab Refetching Logic
 	$effect(() => {
@@ -295,6 +302,17 @@
 				>← Volver al Dashboard</a
 			>
 		</div>
+
+		{#if groupState.readonly && showDebtPanel && !groupState.loading}
+			<DebtResolutionPanel
+				debts={groupState.userDebts}
+				credits={groupState.userCredits}
+				loading={groupState.settlementsLoading}
+				error={groupState.settlementsError}
+				{currentUserBalance}
+				onClose={() => (showDebtPanel = false)}
+			/>
+		{/if}
 
 		<InviteUserToGroup
 			group_id={groupState.groupData.id}

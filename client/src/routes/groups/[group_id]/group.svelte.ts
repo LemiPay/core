@@ -6,7 +6,7 @@ import {
 	getGroupFundRoundProposals,
 	getMyFundRoundContribution
 } from '$lib/api/endpoints/fund_rounds';
-import { getGroupBalances } from '$lib/api/endpoints/core';
+import { getGroupBalances, getGroupSettlements } from '$lib/api/endpoints/core';
 import { getExpenses, getGroupExpenses } from '$lib/api/endpoints/expenses';
 import { listGroupTransactions } from '$lib/api/endpoints/transactions';
 import { getMyWallets } from '$lib/api/endpoints/wallets';
@@ -17,7 +17,10 @@ import { isSuccess } from '$lib/types/client.types';
 import type { Group, GroupWallet } from '$lib/types/endpoints/groups.types';
 import type { UserBadge } from '$lib/types/endpoints/auth.types';
 import type { FundRoundStatusResponse } from '$lib/types/endpoints/fund_rounds.types';
-import type { GroupBalancesResponse } from '$lib/types/endpoints/core.types';
+import type {
+	GetSettlementsResponse,
+	GroupBalancesResponse
+} from '$lib/types/endpoints/core.types';
 import type { Transaction } from '$lib/types/endpoints/transactions.types';
 import type { Expense } from '$lib/types/endpoints/expenses.types';
 import type { WalletCurrency } from '$lib/types/endpoints/wallets.types';
@@ -55,6 +58,9 @@ export class GroupState {
 	coreBalancesData = $state<GroupBalancesResponse | null>(null);
 	loadingCoreBalances = $state(true);
 	coreBalancesError = $state('');
+	settlementsResponse = $state<GetSettlementsResponse | null>(null);
+	settlementsLoading = $state(false);
+	settlementsError = $state('');
 	groupTransactions = $state<Transaction[]>([]);
 	groupExpenses = $state<Expense[]>([]);
 	loadingBalancesDetail = $state(false);
@@ -132,35 +138,52 @@ export class GroupState {
 		return this.groupData.status === 'DebtResolution';
 	}
 
-	// Algoritmo Greedy
+	// Settlements desde backend
 	get settlements() {
-		const creditors = this.memberBalances
-			.filter((m) => m.balance > 0.01)
-			.map((m) => ({ user: m.user, remaining: m.balance }))
-			.sort((a, b) => b.remaining - a.remaining);
-		const debtors = this.memberBalances
-			.filter((m) => m.balance < -0.01)
-			.map((m) => ({ user: m.user, remaining: -m.balance }))
-			.sort((a, b) => b.remaining - a.remaining);
+		if (!this.settlementsResponse?.settlements) return [];
+		return this.settlementsResponse.settlements
+			.map((s) => {
+				const fromMember = this.members.find((m) => m.user_id === s.from);
+				const toMember = this.members.find((m) => m.user_id === s.to);
+				return {
+					from: { user_id: s.from, name: s.from_name ?? fromMember?.name ?? 'Usuario' },
+					to: { user_id: s.to, name: s.to_name ?? toMember?.name ?? 'Usuario' },
+					amount: Number(s.amount)
+				};
+			})
+			.filter((s) => s.amount > 0.01);
+	}
 
-		const result = [];
-		let i = 0;
-		let j = 0;
-		while (i < debtors.length && j < creditors.length) {
-			const amount = Math.min(debtors[i].remaining, creditors[j].remaining);
-			if (amount > 0.01) {
-				result.push({
-					from: debtors[i].user,
-					to: creditors[j].user,
-					amount: Math.round(amount * 100) / 100
-				});
-			}
-			debtors[i].remaining -= amount;
-			creditors[j].remaining -= amount;
-			if (debtors[i].remaining < 0.01) i++;
-			if (creditors[j].remaining < 0.01) j++;
-		}
-		return result;
+	get userDebts() {
+		if (!this.settlementsResponse?.settlements) return [];
+		const uid = this.currentUserId;
+		return this.settlementsResponse.settlements
+			.filter((s) => s.from === uid)
+			.map((s) => {
+				const toMember = this.members.find((m) => m.user_id === s.to);
+				return {
+					creditorId: s.to,
+					creditorName: s.to_name ?? toMember?.name ?? 'Usuario',
+					amount: Number(s.amount)
+				};
+			})
+			.filter((d) => d.amount > 0.01);
+	}
+
+	get userCredits() {
+		if (!this.settlementsResponse?.settlements) return [];
+		const uid = this.currentUserId;
+		return this.settlementsResponse.settlements
+			.filter((s) => s.to === uid)
+			.map((s) => {
+				const fromMember = this.members.find((m) => m.user_id === s.from);
+				return {
+					debtorId: s.from,
+					debtorName: s.from_name ?? fromMember?.name ?? 'Usuario',
+					amount: Number(s.amount)
+				};
+			})
+			.filter((c) => c.amount > 0.01);
 	}
 
 	// --- METHODS ---
@@ -226,6 +249,22 @@ export class GroupState {
 			}
 		} finally {
 			this.loadingCoreBalances = false;
+		}
+	}
+
+	async loadSettlements() {
+		this.settlementsLoading = true;
+		this.settlementsError = '';
+		try {
+			const res = await getGroupSettlements(this.groupId);
+			if (!isSuccess(res)) {
+				this.settlementsError = res.message || 'Error al cargar liquidaciones.';
+				this.settlementsResponse = null;
+			} else {
+				this.settlementsResponse = res.body;
+			}
+		} finally {
+			this.settlementsLoading = false;
 		}
 	}
 
