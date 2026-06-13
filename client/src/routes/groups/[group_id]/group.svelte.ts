@@ -168,10 +168,10 @@ export class GroupState {
 				return {
 					creditorId: s.to,
 					creditorName: s.to_name ?? toMember?.name ?? 'Usuario',
-					amount: Number(s.amount)
+					amount: s.amount
 				};
 			})
-			.filter((d) => d.amount > 0.01);
+			.filter((d) => Number(d.amount) > 0.01);
 	}
 
 	get userCredits() {
@@ -184,10 +184,10 @@ export class GroupState {
 				return {
 					debtorId: s.from,
 					debtorName: s.from_name ?? fromMember?.name ?? 'Usuario',
-					amount: Number(s.amount)
+					amount: s.amount
 				};
 			})
-			.filter((c) => c.amount > 0.01);
+			.filter((c) => Number(c.amount) > 0.01);
 	}
 
 	// --- METHODS ---
@@ -355,7 +355,7 @@ export class GroupState {
 		this.settlementPayError = '';
 
 		const res = await paySettlement(this.groupId, {
-			amount: String(debt.amount),
+			amount: debt.amount,
 			address,
 			currency_id: currencyId
 		});

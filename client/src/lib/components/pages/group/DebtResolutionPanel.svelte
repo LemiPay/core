@@ -7,13 +7,13 @@
 	interface DebtInfo {
 		creditorName: string;
 		creditorId: string;
-		amount: number;
+		amount: string;
 	}
 
 	interface CreditInfo {
 		debtorName: string;
 		debtorId: string;
-		amount: number;
+		amount: string;
 	}
 
 	let {
@@ -147,7 +147,7 @@
 								{displayName(debt.creditorName)}
 							</span>
 							<span class="text-sm font-semibold text-foreground tabular-nums">
-								${debt.amount.toFixed(2)}
+								${Number(debt.amount).toFixed(2)}
 							</span>
 						</label>
 					{/each}
@@ -170,7 +170,7 @@
 								{displayName(credit.debtorName)} te debe
 							</span>
 							<span class="text-sm font-semibold text-foreground tabular-nums">
-								${credit.amount.toFixed(2)}
+								${Number(credit.amount).toFixed(2)}
 							</span>
 						</div>
 					{/each}
