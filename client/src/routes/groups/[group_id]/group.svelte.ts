@@ -6,7 +6,12 @@ import {
 	getGroupFundRoundProposals,
 	getMyFundRoundContribution
 } from '$lib/api/endpoints/fund_rounds';
-import { getGroupBalances, getGroupSettlements, paySettlement } from '$lib/api/endpoints/core';
+import {
+	claim,
+	getGroupBalances,
+	getGroupSettlements,
+	paySettlement
+} from '$lib/api/endpoints/core';
 import { getExpenses, getGroupExpenses } from '$lib/api/endpoints/expenses';
 import { listGroupTransactions } from '$lib/api/endpoints/transactions';
 import { getMyWallets } from '$lib/api/endpoints/wallets';
@@ -59,7 +64,7 @@ export class GroupState {
 	loadingCoreBalances = $state(true);
 	coreBalancesError = $state('');
 	settlementsResponse = $state<GetSettlementsResponse | null>(null);
-	settlementsLoading = $state(false);
+	settlementsLoading = $state(true);
 	settlementsError = $state('');
 	groupTransactions = $state<Transaction[]>([]);
 	groupExpenses = $state<Expense[]>([]);
@@ -71,6 +76,10 @@ export class GroupState {
 	settlementPaying = $state(false);
 	settlementPayError = $state('');
 
+	// Claim State
+	claimPaying = $state(false);
+	claimError = $state('');
+
 	constructor(groupId: string) {
 		this.groupId = groupId;
 	}
@@ -78,6 +87,12 @@ export class GroupState {
 	// --- DERIVED / GETTERS ---
 	get currentUserId() {
 		return authStore.getUserId();
+	}
+
+	get currentUserBalanceRaw(): string {
+		if (!this.coreBalancesData?.balances) return '0';
+		const entry = this.coreBalancesData.balances.find((b) => b.user_id === this.currentUserId);
+		return entry ? String(entry.balance) : '0';
 	}
 
 	get groupWalletsBalance() {
@@ -267,6 +282,10 @@ export class GroupState {
 			} else {
 				this.settlementsResponse = res.body;
 			}
+		} catch (e) {
+			this.settlementsError = 'Error inesperado al cargar liquidaciones.';
+			this.settlementsResponse = null;
+			console.error('loadSettlements error:', e);
 		} finally {
 			this.settlementsLoading = false;
 		}
@@ -364,6 +383,27 @@ export class GroupState {
 
 		if (!isSuccess(res)) {
 			this.settlementPayError = res.message || 'Error al realizar el pago.';
+			return false;
+		}
+
+		await Promise.all([this.loadSettlements(), this.loadCoreBalances()]);
+		return true;
+	}
+
+	async claim(address: string, currencyId: string, amount: string): Promise<boolean> {
+		this.claimPaying = true;
+		this.claimError = '';
+
+		const res = await claim(this.groupId, {
+			amount,
+			address,
+			currency_id: currencyId
+		});
+
+		this.claimPaying = false;
+
+		if (!isSuccess(res)) {
+			this.claimError = res.message || 'Error al retirar.';
 			return false;
 		}
 

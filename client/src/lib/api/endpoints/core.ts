@@ -2,6 +2,8 @@ import { authedApiFetch } from '../client';
 
 import type { ApiResponse } from '$lib/types/client.types';
 import type {
+	ClaimData,
+	ClaimResponse,
 	GroupBalancesResponse,
 	GetSettlementsResponse,
 	PaySettlementData,
@@ -21,6 +23,13 @@ export async function paySettlement(
 	data: PaySettlementData
 ): ApiResponse<PaySettlementResponse> {
 	return authedApiFetch(`/core/pay-settlement/${groupId}`, {
+		method: 'POST',
+		body: JSON.stringify(data)
+	});
+}
+
+export async function claim(groupId: string, data: ClaimData): ApiResponse<ClaimResponse> {
+	return authedApiFetch(`/core/claim/${groupId}`, {
 		method: 'POST',
 		body: JSON.stringify(data)
 	});

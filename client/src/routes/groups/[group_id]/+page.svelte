@@ -10,6 +10,7 @@
 
 	// Helpers y Estado Global
 	import { GroupState } from './group.svelte';
+	import { authStore } from '$lib/stores/auth';
 
 	// Components
 	import Button from '$lib/components/ui/Button.svelte';
@@ -53,12 +54,14 @@
 	let showDebtPanel = $state(true);
 	let showConfirmDebtResolution = $state(false);
 
+	let currentUserId = $derived($authStore.user?.id);
+
 	let currentUserBalance = $derived(
-		groupState.memberBalances.find((m) => m.user.user_id === groupState.currentUserId)?.balance ?? 0
+		groupState.memberBalances.find((m) => m.user.user_id === currentUserId)?.balance ?? 0
 	);
 
 	let isCurrentUserAdmin = $derived(
-		groupState.members.some((m) => m.user_id === groupState.currentUserId && m.role === 'Admin')
+		groupState.members.some((m) => m.user_id === currentUserId && m.role === 'Admin')
 	);
 
 	let settlementCurrencyId = $derived(groupState.wallets[0]?.currency_id ?? '');
@@ -327,10 +330,14 @@
 				loading={groupState.settlementsLoading}
 				error={groupState.settlementsError}
 				{currentUserBalance}
+				claimableAmount={groupState.currentUserBalanceRaw}
 				currencyId={settlementCurrencyId}
 				paying={groupState.settlementPaying}
 				payError={groupState.settlementPayError}
+				claiming={groupState.claimPaying}
+				claimError={groupState.claimError}
 				onPaySettlement={(i, a, c) => groupState.paySettlement(i, a, c)}
+				onClaim={(a, c, amt) => groupState.claim(a, c, amt)}
 				onClose={() => (showDebtPanel = false)}
 			/>
 		{/if}

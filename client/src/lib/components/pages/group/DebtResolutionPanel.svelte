@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X, CircleCheckBig, CircleAlert } from 'lucide-svelte';
+	import { X, CircleCheckBig } from 'lucide-svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import UserWalletSelectField from '$lib/components/input_fields/UserWalletSelectField.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
@@ -22,22 +22,30 @@
 		loading = false,
 		error = '',
 		currentUserBalance = 0,
+		claimableAmount = '0',
 		currencyId = '',
 		paying = false,
 		payError = '',
+		claiming = false,
+		claimError = '',
 		onClose,
-		onPaySettlement = async (_debtIndex: number, _address: string, _currencyId: string) => false
+		onPaySettlement = async (_debtIndex: number, _address: string, _currencyId: string) => false,
+		onClaim = async (_address: string, _currencyId: string, _amount: string) => false
 	} = $props<{
 		debts: DebtInfo[];
 		credits: CreditInfo[];
 		loading?: boolean;
 		error?: string;
 		currentUserBalance?: number;
+		claimableAmount?: string;
 		currencyId?: string;
 		paying?: boolean;
 		payError?: string;
+		claiming?: boolean;
+		claimError?: string;
 		onClose: () => void;
 		onPaySettlement: (debtIndex: number, address: string, currencyId: string) => Promise<boolean>;
+		onClaim: (address: string, currencyId: string, amount: string) => Promise<boolean>;
 	}>();
 
 	let isDebtor = $derived(currentUserBalance < -0.01);
@@ -47,6 +55,7 @@
 	let selectedDebts = $state<Set<number>>(new Set());
 	let initialized = $state(false);
 	let senderAddress = $state('');
+	let claimAddress = $state('');
 
 	$effect(() => {
 		if (debts.length > 0 && !initialized) {
@@ -74,6 +83,10 @@
 			const ok = await onPaySettlement(i, senderAddress, currencyId);
 			if (!ok) break;
 		}
+	}
+
+	async function handleClaim() {
+		await onClaim(claimAddress, currencyId, claimableAmount);
 	}
 </script>
 
@@ -177,14 +190,19 @@
 				</div>
 
 				<div
-					class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300"
+					class="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300"
 				>
-					<CircleAlert class="mt-0.5 h-4 w-4 shrink-0" />
-					<span
-						>Tu plata está segura en el grupo. Cuando se paguen todas las deudas la vas a poder
-						retirar.</span
-					>
+					<CircleCheckBig class="mt-0.5 h-4 w-4 shrink-0" />
+					<span class="font-medium">Podés retirar ${currentUserBalance.toFixed(2)}</span>
 				</div>
+
+				<UserWalletSelectField
+					id="settlement-claim-wallet"
+					label="Wallet de destino"
+					currency_id={currencyId}
+					returnType="address"
+					bind:value={claimAddress}
+				/>
 			{:else}
 				<div class="flex flex-col items-center gap-3 py-6 text-center">
 					<CircleCheckBig class="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
@@ -202,6 +220,13 @@
 					{payError}
 				</div>
 			{/if}
+			{#if claimError}
+				<div
+					class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
+				>
+					{claimError}
+				</div>
+			{/if}
 			<div class="flex items-center justify-between gap-2">
 				<Button label="Ver grupo" variant="ghost" onclick={onClose} />
 
@@ -210,6 +235,14 @@
 						label={paying ? 'Pagando...' : allSelected ? 'Saldar todo' : 'Saldar ' + selectedCount}
 						onclick={handleSettle}
 						disabled={selectedCount === 0 || paying || !senderAddress}
+					/>
+				{/if}
+
+				{#if isCreditor}
+					<Button
+						label={claiming ? 'Retirando...' : 'Retirar todo'}
+						onclick={handleClaim}
+						disabled={claiming || !claimAddress}
 					/>
 				{/if}
 			</div>
