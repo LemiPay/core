@@ -95,6 +95,19 @@ export class GroupState {
 		return entry ? String(entry.balance) : '0';
 	}
 
+	get currentUserDebtRaw(): string {
+		if (!this.coreBalancesData?.balances) return '0';
+		const entry = this.coreBalancesData.balances.find((b) => b.user_id === this.currentUserId);
+		if (!entry) return '0';
+		const raw = String(entry.balance);
+		return raw.startsWith('-') ? raw.slice(1) : '0';
+	}
+
+	get hasDebtors(): boolean {
+		if (!this.coreBalancesData?.balances) return false;
+		return this.coreBalancesData.balances.some((b) => parseBalanceValue(b.balance) < -0.01);
+	}
+
 	get groupWalletsBalance() {
 		return this.wallets.reduce((acc, wallet) => acc + Number(wallet.balance || 0), 0);
 	}
@@ -365,16 +378,12 @@ export class GroupState {
 		}
 	}
 
-	async paySettlement(debtIndex: number, address: string, currencyId: string): Promise<boolean> {
-		const debts = this.userDebts;
-		if (debtIndex < 0 || debtIndex >= debts.length) return false;
-
-		const debt = debts[debtIndex];
+	async paySettlement(amount: string, address: string, currencyId: string): Promise<boolean> {
 		this.settlementPaying = true;
 		this.settlementPayError = '';
 
 		const res = await paySettlement(this.groupId, {
-			amount: debt.amount,
+			amount,
 			address,
 			currency_id: currencyId
 		});

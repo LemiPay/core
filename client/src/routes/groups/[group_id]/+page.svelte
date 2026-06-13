@@ -325,18 +325,19 @@
 
 		{#if groupState.readonly && showDebtPanel && !groupState.loading}
 			<DebtResolutionPanel
-				debts={groupState.userDebts}
+				debtAmount={groupState.currentUserDebtRaw}
 				credits={groupState.userCredits}
 				loading={groupState.settlementsLoading}
 				error={groupState.settlementsError}
 				{currentUserBalance}
 				claimableAmount={groupState.currentUserBalanceRaw}
+				hasDebtors={groupState.hasDebtors}
 				currencyId={settlementCurrencyId}
 				paying={groupState.settlementPaying}
 				payError={groupState.settlementPayError}
 				claiming={groupState.claimPaying}
 				claimError={groupState.claimError}
-				onPaySettlement={(i, a, c) => groupState.paySettlement(i, a, c)}
+				onPaySettlement={(amt, a, c) => groupState.paySettlement(amt, a, c)}
 				onClaim={(a, c, amt) => groupState.claim(a, c, amt)}
 				onClose={() => (showDebtPanel = false)}
 			/>

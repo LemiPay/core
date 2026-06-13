@@ -1,14 +1,8 @@
 <script lang="ts">
-	import { X, CircleCheckBig } from 'lucide-svelte';
+	import { X, CircleCheckBig, CircleAlert, TriangleAlert } from 'lucide-svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import UserWalletSelectField from '$lib/components/input_fields/UserWalletSelectField.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
-
-	interface DebtInfo {
-		creditorName: string;
-		creditorId: string;
-		amount: string;
-	}
 
 	interface CreditInfo {
 		debtorName: string;
@@ -17,34 +11,36 @@
 	}
 
 	let {
-		debts = [],
+		debtAmount = '0',
 		credits = [],
 		loading = false,
 		error = '',
 		currentUserBalance = 0,
 		claimableAmount = '0',
+		hasDebtors = false,
 		currencyId = '',
 		paying = false,
 		payError = '',
 		claiming = false,
 		claimError = '',
 		onClose,
-		onPaySettlement = async (_debtIndex: number, _address: string, _currencyId: string) => false,
+		onPaySettlement = async (_amount: string, _address: string, _currencyId: string) => false,
 		onClaim = async (_address: string, _currencyId: string, _amount: string) => false
 	} = $props<{
-		debts: DebtInfo[];
+		debtAmount?: string;
 		credits: CreditInfo[];
 		loading?: boolean;
 		error?: string;
 		currentUserBalance?: number;
 		claimableAmount?: string;
+		hasDebtors?: boolean;
 		currencyId?: string;
 		paying?: boolean;
 		payError?: string;
 		claiming?: boolean;
 		claimError?: string;
 		onClose: () => void;
-		onPaySettlement: (debtIndex: number, address: string, currencyId: string) => Promise<boolean>;
+		onPaySettlement: (amount: string, address: string, currencyId: string) => Promise<boolean>;
 		onClaim: (address: string, currencyId: string, amount: string) => Promise<boolean>;
 	}>();
 
@@ -52,37 +48,28 @@
 	let isCreditor = $derived(currentUserBalance > 0.01);
 	let isSettled = $derived(!isDebtor && !isCreditor);
 
-	let selectedDebts = $state<Set<number>>(new Set());
-	let initialized = $state(false);
+	let totalDebt = $derived(Math.abs(currentUserBalance));
+
 	let senderAddress = $state('');
 	let claimAddress = $state('');
+	let payAmount = $state('');
 
-	$effect(() => {
-		if (debts.length > 0 && !initialized) {
-			selectedDebts = new Set(debts.map((_d: DebtInfo, i: number) => i));
-			initialized = true;
-		}
+	let payAmountValid = $derived.by(() => {
+		if (!payAmount) return false;
+		const n = Number(payAmount);
+		return Number.isFinite(n) && n > 0 && n <= totalDebt;
 	});
-
-	let allSelected = $derived(selectedDebts.size === debts.length);
-	let selectedCount = $derived(selectedDebts.size);
-
-	function toggleDebt(index: number) {
-		const next = new Set(selectedDebts);
-		if (next.has(index)) next.delete(index);
-		else next.add(index);
-		selectedDebts = next;
-	}
 
 	function displayName(name: string): string {
 		return name.startsWith('0x') ? shortenAddress(name) : name;
 	}
 
-	async function handleSettle() {
-		for (const i of selectedDebts) {
-			const ok = await onPaySettlement(i, senderAddress, currencyId);
-			if (!ok) break;
-		}
+	async function handleSettleAll() {
+		await onPaySettlement(debtAmount, senderAddress, currencyId);
+	}
+
+	async function handleSettlePartial() {
+		await onPaySettlement(payAmount, senderAddress, currencyId);
 	}
 
 	async function handleClaim() {
@@ -111,7 +98,7 @@
 					{#if loading}
 						Cargando...
 					{:else if isDebtor}
-						Seleccioná cuáles querés saldar
+						Elegí cuánto querés pagar
 					{:else if isCreditor}
 						{credits.length === 1
 							? 'Una persona te debe plata'
@@ -144,26 +131,28 @@
 					{error}
 				</div>
 			{:else if isDebtor}
-				<div class="space-y-2">
-					{#each debts as debt, i (debt.creditorId)}
-						<label
-							class="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 transition hover:border-input hover:bg-accent"
-						>
-							<input
-								type="checkbox"
-								checked={selectedDebts.has(i)}
-								onchange={() => toggleDebt(i)}
-								disabled={paying}
-								class="h-4 w-4 accent-foreground"
-							/>
-							<span class="flex-1 text-sm font-medium text-foreground">
-								{displayName(debt.creditorName)}
-							</span>
-							<span class="text-sm font-semibold text-foreground tabular-nums">
-								${Number(debt.amount).toFixed(2)}
-							</span>
-						</label>
-					{/each}
+				<div
+					class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
+				>
+					<TriangleAlert class="mt-0.5 h-4 w-4 shrink-0" />
+					<div>
+						<span class="font-medium">Debés ${totalDebt.toFixed(2)} al grupo</span>
+					</div>
+				</div>
+
+				<div>
+					<label for="pay-amount" class="mb-1.5 block text-sm font-medium text-foreground"
+						>Monto a pagar</label
+					>
+					<input
+						id="pay-amount"
+						type="text"
+						inputmode="decimal"
+						placeholder={totalDebt.toFixed(2)}
+						bind:value={payAmount}
+						disabled={paying}
+						class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground transition focus:border-foreground focus:outline-none disabled:opacity-50"
+					/>
 				</div>
 
 				<UserWalletSelectField
@@ -189,20 +178,32 @@
 					{/each}
 				</div>
 
-				<div
-					class="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300"
-				>
-					<CircleCheckBig class="mt-0.5 h-4 w-4 shrink-0" />
-					<span class="font-medium">Podés retirar ${currentUserBalance.toFixed(2)}</span>
-				</div>
+				{#if hasDebtors}
+					<div
+						class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300"
+					>
+						<CircleAlert class="mt-0.5 h-4 w-4 shrink-0" />
+						<span
+							>Tu plata está segura en el grupo. Cuando se paguen todas las deudas la vas a poder
+							retirar.</span
+						>
+					</div>
+				{:else}
+					<div
+						class="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300"
+					>
+						<CircleCheckBig class="mt-0.5 h-4 w-4 shrink-0" />
+						<span class="font-medium">Podés retirar ${currentUserBalance.toFixed(2)}</span>
+					</div>
 
-				<UserWalletSelectField
-					id="settlement-claim-wallet"
-					label="Wallet de destino"
-					currency_id={currencyId}
-					returnType="address"
-					bind:value={claimAddress}
-				/>
+					<UserWalletSelectField
+						id="settlement-claim-wallet"
+						label="Wallet de destino"
+						currency_id={currencyId}
+						returnType="address"
+						bind:value={claimAddress}
+					/>
+				{/if}
 			{:else}
 				<div class="flex flex-col items-center gap-3 py-6 text-center">
 					<CircleCheckBig class="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
@@ -230,15 +231,22 @@
 			<div class="flex items-center justify-between gap-2">
 				<Button label="Ver grupo" variant="ghost" onclick={onClose} />
 
-				{#if isDebtor && debts.length > 0}
-					<Button
-						label={paying ? 'Pagando...' : allSelected ? 'Saldar todo' : 'Saldar ' + selectedCount}
-						onclick={handleSettle}
-						disabled={selectedCount === 0 || paying || !senderAddress}
-					/>
+				{#if isDebtor}
+					<div class="flex items-center gap-2">
+						<Button
+							label={paying ? 'Pagando...' : 'Pagar'}
+							onclick={handleSettlePartial}
+							disabled={!payAmountValid || paying || !senderAddress}
+						/>
+						<Button
+							label={paying ? 'Pagando...' : 'Pagar todo'}
+							onclick={handleSettleAll}
+							disabled={paying || !senderAddress}
+						/>
+					</div>
 				{/if}
 
-				{#if isCreditor}
+				{#if isCreditor && !hasDebtors}
 					<Button
 						label={claiming ? 'Retirando...' : 'Retirar todo'}
 						onclick={handleClaim}
