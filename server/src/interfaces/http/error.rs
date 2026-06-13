@@ -9,6 +9,7 @@ use thiserror::Error;
 
 use crate::application::investment::InvestmentError;
 use crate::application::settlements::get_settlements::error::GetSettlementError;
+use crate::application::settlements::pay_settlement::error::PaySettlementError;
 use crate::application::treasury::list_user_transactions::ListUserTransactionsError;
 use crate::{
     application::{
@@ -527,6 +528,30 @@ impl From<GetSettlementError> for AppError {
     fn from(err: GetSettlementError) -> Self {
         match err {
             GetSettlementError::Internal => AppError::Internal,
+        }
+    }
+}
+
+impl From<PaySettlementError> for AppError {
+    fn from(err: PaySettlementError) -> Self {
+        match err {
+            PaySettlementError::InvalidAmount => {
+                AppError::BadRequest("El monto debe ser mayor a 0".into())
+            }
+            PaySettlementError::UserWalletNotFound => {
+                AppError::BadRequest("El usuario no tiene una wallet para esta moneda".into())
+            }
+            PaySettlementError::GroupWalletNotFound => {
+                AppError::BadRequest("El grupo no tiene una wallet para esta moneda".into())
+            }
+            PaySettlementError::InsufficientFunds => {
+                AppError::BadRequest("Saldo insuficiente".into())
+            }
+            PaySettlementError::Internal => AppError::Internal,
+            PaySettlementError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
+            PaySettlementError::GroupNotFound => AppError::NotFound,
         }
     }
 }
