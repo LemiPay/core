@@ -7,6 +7,7 @@ pub enum PaySettlementError {
     GroupWalletNotFound,
     InsufficientFunds,
     GroupNotActive,
+    GroupNotInDebtResolution,
     GroupNotFound,
     Internal,
 }

@@ -31,7 +31,8 @@ impl PaySettlementUseCase {
             .find_by_id(input.group_id)
             .map_err(|_| PaySettlementError::Internal)?
             .ok_or(PaySettlementError::GroupNotFound)?;
-        GroupPolicy::ensure_active(&group).map_err(|_| PaySettlementError::GroupNotActive)?;
+        GroupPolicy::ensure_in_debt_resolution(&group)
+            .map_err(|_| PaySettlementError::GroupNotInDebtResolution)?;
         let amount = Money::positive(input.amount, input.currency_id)?;
 
         let user_wallet = self

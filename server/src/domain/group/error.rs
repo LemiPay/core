@@ -10,4 +10,5 @@ pub enum GroupError {
     BalanceNotZero,
     NotAllBalancesZero,
     GroupNotActive,
+    GroupNotInDebtResolution,
 }

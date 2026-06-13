@@ -551,6 +551,9 @@ impl From<PaySettlementError> for AppError {
             PaySettlementError::GroupNotActive => {
                 AppError::Forbidden("El grupo no esta activo".into())
             }
+            PaySettlementError::GroupNotInDebtResolution => {
+                AppError::Forbidden("El grupo no esta en resolucion de deudas".into())
+            }
             PaySettlementError::GroupNotFound => AppError::NotFound,
         }
     }

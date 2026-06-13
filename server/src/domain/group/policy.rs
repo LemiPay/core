@@ -63,4 +63,10 @@ impl GroupPolicy {
         }
         Ok(())
     }
+    pub fn ensure_in_debt_resolution(group: &Group) -> Result<(), GroupError> {
+        if !matches!(group.status, GroupStatus::DebtResolution) {
+            return Err(GroupError::GroupNotInDebtResolution);
+        }
+        Ok(())
+    }
 }
