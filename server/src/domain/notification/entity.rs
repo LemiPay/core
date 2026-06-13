@@ -3,26 +3,26 @@ use crate::domain::notification::types::{NotificationChannelId, NotificationEven
 use crate::domain::user::UserId;
 
 pub struct NotificationChannel {
-    id: NotificationChannelId,
-    name: String,
+    pub id: NotificationChannelId,
+    pub name: String,
 }
 
 pub struct NotificationEvent {
-    id: NotificationEventId,
-    name: String,
+    pub id: NotificationEventId,
+    pub name: String,
 }
 
 pub struct UserNotificationPreference {
-    user_id: UserId,
-    event_id: NotificationEventId,
-    channel_id: NotificationChannelId,
-    enabled: bool,
+    pub user_id: UserId,
+    pub event_id: NotificationEventId,
+    pub channel_id: NotificationChannelId,
+    pub enabled: bool,
 }
 
 pub struct GroupNotificationPreference {
-    user_id: UserId,
-    group_id: GroupId,
-    event_id: NotificationEventId,
-    channel_id: NotificationChannelId,
-    enabled: bool,
+    pub user_id: UserId,
+    pub group_id: GroupId,
+    pub event_id: NotificationEventId,
+    pub channel_id: NotificationChannelId,
+    pub enabled: bool,
 }

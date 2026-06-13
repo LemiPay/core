@@ -1,22 +1,9 @@
 use std::fmt::{Display, Formatter};
-use uuid::Uuid;
 
 use crate::domain::user::UserValidationError;
+use crate::id_type;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct UserId(pub Uuid);
-
-impl UserId {
-    pub fn as_uuid(&self) -> &Uuid {
-        &self.0
-    }
-}
-
-impl Display for UserId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
+id_type!(UserId);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Email(pub String);

@@ -1,6 +1,4 @@
-use async_trait::async_trait;
-
-use crate::application::notifications::error::NotificationError;
+use crate::application::common::repo_error::RepoError;
 
 use crate::domain::{
     group::GroupId,
@@ -11,42 +9,41 @@ use crate::domain::{
     user::UserId,
 };
 
-#[async_trait]
 pub trait NotificationRepository: Send + Sync {
     // =========================
     // Metadata
     // =========================
 
-    async fn get_events(&self) -> Result<Vec<NotificationEvent>, NotificationError>;
+    fn get_events(&self) -> Result<Vec<NotificationEvent>, RepoError>;
 
-    async fn get_channels(&self) -> Result<Vec<NotificationChannel>, NotificationError>;
+    fn get_channels(&self) -> Result<Vec<NotificationChannel>, RepoError>;
 
     // =========================
     // User preferences
     // =========================
 
-    async fn get_user_preferences(
+    fn get_user_preferences(
         &self,
         user_id: UserId,
-    ) -> Result<Vec<UserNotificationPreference>, NotificationError>;
+    ) -> Result<Vec<UserNotificationPreference>, RepoError>;
 
-    async fn upsert_user_preference(
+    fn upsert_user_preference(
         &self,
         preference: UserNotificationPreference,
-    ) -> Result<(), NotificationError>;
+    ) -> Result<(), RepoError>;
 
     // =========================
     // Group preferences
     // =========================
 
-    async fn get_group_preferences(
+    fn get_group_preferences(
         &self,
         user_id: UserId,
         group_id: GroupId,
-    ) -> Result<Vec<GroupNotificationPreference>, NotificationError>;
+    ) -> Result<Vec<GroupNotificationPreference>, RepoError>;
 
-    async fn upsert_group_preference(
+    fn upsert_group_preference(
         &self,
         preference: GroupNotificationPreference,
-    ) -> Result<(), NotificationError>;
+    ) -> Result<(), RepoError>;
 }
