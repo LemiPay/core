@@ -1,9 +1,15 @@
-use crate::application::notifications::error::NotificationError;
-use crate::domain::notification::{
-    GroupNotificationPreference, NotificationChannel, NotificationEvent, UserNotificationPreference,
-};
 use async_trait::async_trait;
-use uuid::Uuid;
+
+use crate::application::notifications::error::NotificationError;
+
+use crate::domain::{
+    group::GroupId,
+    notification::{
+        GroupNotificationPreference, NotificationChannel, NotificationEvent,
+        UserNotificationPreference,
+    },
+    user::UserId,
+};
 
 #[async_trait]
 pub trait NotificationRepository: Send + Sync {
@@ -21,7 +27,7 @@ pub trait NotificationRepository: Send + Sync {
 
     async fn get_user_preferences(
         &self,
-        user_id: Uuid,
+        user_id: UserId,
     ) -> Result<Vec<UserNotificationPreference>, NotificationError>;
 
     async fn upsert_user_preference(
@@ -35,8 +41,8 @@ pub trait NotificationRepository: Send + Sync {
 
     async fn get_group_preferences(
         &self,
-        user_id: Uuid,
-        group_id: Uuid,
+        user_id: UserId,
+        group_id: GroupId,
     ) -> Result<Vec<GroupNotificationPreference>, NotificationError>;
 
     async fn upsert_group_preference(
