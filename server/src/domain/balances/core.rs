@@ -32,9 +32,8 @@ fn read_all_tx(
                 balances.subtract_from_user(tx.user_id, tx.amount.amount.clone())?
             }
             TransactionType::Expense => balances,
-            // TODO: implement proper Claim balance logic
             TransactionType::Claim => {
-                todo!()
+                balances.subtract_from_user(tx.user_id, tx.amount.amount.clone())?
             }
         };
     }
