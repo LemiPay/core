@@ -1,6 +1,6 @@
 ### Get - settlements
 GET {{host}}/core/get-settlements/1f819225-ff3d-438b-be16-f42337acea21
-Authorization: Bearer {{token}}
+Authorization: Bearer {{token2}}
 
 ### Post - pay settlement
 POST {{host}}/core/pay-settlement/1f819225-ff3d-438b-be16-f42337acea21
@@ -8,7 +8,7 @@ Authorization: Bearer {{token2}}
 Content-Type: application/json
 
 {
-  "address": "0x25942a0e25ec376bf9051a963581f1abf75dea45",
   "amount": "5.6639467463617513603350414405702577931564094240252725180365350569899884902724807034246623516082763671875000",
+  "address": "0x25942a0e25ec376bf9051a963581f1abf75dea45",
   "currency_id": "33de6c7c-62a2-4182-813a-9005183be70d"
 }

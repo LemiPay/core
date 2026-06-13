@@ -57,5 +57,6 @@ Authorization: Bearer {{token}}
 ###
 
 ### Wallet - Get one of my wallets by address + currency ticker
-GET {{host}}/wallet/{{wallet_address}}?currency=USDC
-Authorization: Bearer {{token}}
+GET {{host}}/wallet/0x25942a0e25ec376bf9051a963581f1abf75dea45?currency=USDC
+Authorization: Bearer {{token2}}
+
