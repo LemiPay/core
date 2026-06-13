@@ -16,7 +16,7 @@
 
 	let {
 		id = 'user-wallet-select',
-		label = 'Wallet de destino',
+		label = 'Wallet',
 		currency_id = '',
 		value = $bindable(''),
 		returnType = 'address',
@@ -91,7 +91,7 @@
 					? 'Buscando wallets compatibles...'
 					: wallets.length === 0
 						? 'Sin wallets compatibles'
-						: 'Elegí una wallet de destino'}
+						: 'Elegí una wallet'}
 			</option>
 
 			{#each wallets as wallet}
@@ -114,7 +114,7 @@
 	{#if showFeedback && !isValid && wallets.length > 0}
 		<p class="mt-1.5 flex items-center gap-1 text-xs text-red-500">
 			<X class="h-3.5 w-3.5 shrink-0" />
-			Seleccioná una wallet de destino
+			Seleccioná una wallet
 		</p>
 	{:else if wallets.length === 0 && !loading && !error}
 		<p class="mt-1.5 text-xs text-muted-foreground">

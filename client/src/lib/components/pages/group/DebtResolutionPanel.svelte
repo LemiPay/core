@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { X, CircleCheckBig, CircleAlert } from 'lucide-svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import UserWalletSelectField from '$lib/components/input_fields/UserWalletSelectField.svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
 
 	interface DebtInfo {
@@ -21,14 +22,22 @@
 		loading = false,
 		error = '',
 		currentUserBalance = 0,
-		onClose
+		currencyId = '',
+		paying = false,
+		payError = '',
+		onClose,
+		onPaySettlement = async (_debtIndex: number, _address: string, _currencyId: string) => false
 	} = $props<{
 		debts: DebtInfo[];
 		credits: CreditInfo[];
 		loading?: boolean;
 		error?: string;
 		currentUserBalance?: number;
+		currencyId?: string;
+		paying?: boolean;
+		payError?: string;
 		onClose: () => void;
+		onPaySettlement: (debtIndex: number, address: string, currencyId: string) => Promise<boolean>;
 	}>();
 
 	let isDebtor = $derived(currentUserBalance < -0.01);
@@ -37,6 +46,7 @@
 
 	let selectedDebts = $state<Set<number>>(new Set());
 	let initialized = $state(false);
+	let senderAddress = $state('');
 
 	$effect(() => {
 		if (debts.length > 0 && !initialized) {
@@ -59,8 +69,11 @@
 		return name.startsWith('0x') ? shortenAddress(name) : name;
 	}
 
-	function handleSettle() {
-		// no-op: funcionalidad próximamente
+	async function handleSettle() {
+		for (const i of selectedDebts) {
+			const ok = await onPaySettlement(i, senderAddress, currencyId);
+			if (!ok) break;
+		}
 	}
 </script>
 
@@ -127,6 +140,7 @@
 								type="checkbox"
 								checked={selectedDebts.has(i)}
 								onchange={() => toggleDebt(i)}
+								disabled={paying}
 								class="h-4 w-4 accent-foreground"
 							/>
 							<span class="flex-1 text-sm font-medium text-foreground">
@@ -138,6 +152,14 @@
 						</label>
 					{/each}
 				</div>
+
+				<UserWalletSelectField
+					id="settlement-sender-wallet"
+					label="Wallet de origen"
+					currency_id={currencyId}
+					returnType="address"
+					bind:value={senderAddress}
+				/>
 			{:else if isCreditor}
 				<div class="space-y-2">
 					{#each credits as credit (credit.debtorId)}
@@ -172,15 +194,25 @@
 			{/if}
 		</div>
 
-		<div class="mt-6 flex items-center justify-between gap-2">
-			<Button label="Ver grupo" variant="ghost" onclick={onClose} />
-
-			{#if isDebtor && debts.length > 0}
-				<Button
-					label={allSelected ? 'Saldar todo' : 'Saldar ' + selectedCount}
-					onclick={handleSettle}
-				/>
+		<div class="mt-6 flex flex-col gap-3">
+			{#if payError}
+				<div
+					class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
+				>
+					{payError}
+				</div>
 			{/if}
+			<div class="flex items-center justify-between gap-2">
+				<Button label="Ver grupo" variant="ghost" onclick={onClose} />
+
+				{#if isDebtor && debts.length > 0}
+					<Button
+						label={paying ? 'Pagando...' : allSelected ? 'Saldar todo' : 'Saldar ' + selectedCount}
+						onclick={handleSettle}
+						disabled={selectedCount === 0 || paying || !senderAddress}
+					/>
+				{/if}
+			</div>
 		</div>
 	</div>
 </div>

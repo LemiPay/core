@@ -6,7 +6,7 @@ import {
 	getGroupFundRoundProposals,
 	getMyFundRoundContribution
 } from '$lib/api/endpoints/fund_rounds';
-import { getGroupBalances, getGroupSettlements } from '$lib/api/endpoints/core';
+import { getGroupBalances, getGroupSettlements, paySettlement } from '$lib/api/endpoints/core';
 import { getExpenses, getGroupExpenses } from '$lib/api/endpoints/expenses';
 import { listGroupTransactions } from '$lib/api/endpoints/transactions';
 import { getMyWallets } from '$lib/api/endpoints/wallets';
@@ -66,6 +66,10 @@ export class GroupState {
 	loadingBalancesDetail = $state(false);
 	transactionsDetailError = $state('');
 	expensesDetailError = $state('');
+
+	// Settlement Payment State
+	settlementPaying = $state(false);
+	settlementPayError = $state('');
 
 	constructor(groupId: string) {
 		this.groupId = groupId;
@@ -135,7 +139,7 @@ export class GroupState {
 	}
 
 	get readonly() {
-		return this.groupData.status === 'DebtResolution';
+		return this.groupData.status === 'DebtResolution' || this.groupData.status === 'Ended';
 	}
 
 	// Settlements desde backend
@@ -340,6 +344,31 @@ export class GroupState {
 		} finally {
 			this.loadingExpenses = false;
 		}
+	}
+
+	async paySettlement(debtIndex: number, address: string, currencyId: string): Promise<boolean> {
+		const debts = this.userDebts;
+		if (debtIndex < 0 || debtIndex >= debts.length) return false;
+
+		const debt = debts[debtIndex];
+		this.settlementPaying = true;
+		this.settlementPayError = '';
+
+		const res = await paySettlement(this.groupId, {
+			amount: String(debt.amount),
+			address,
+			currency_id: currencyId
+		});
+
+		this.settlementPaying = false;
+
+		if (!isSuccess(res)) {
+			this.settlementPayError = res.message || 'Error al realizar el pago.';
+			return false;
+		}
+
+		await Promise.all([this.loadSettlements(), this.loadCoreBalances()]);
+		return true;
 	}
 
 	async handleContribute(status: FundRoundStatusResponse, selectedContribWalletId: string) {

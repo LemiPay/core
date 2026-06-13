@@ -61,6 +61,8 @@
 		groupState.members.some((m) => m.user_id === groupState.currentUserId && m.role === 'Admin')
 	);
 
+	let settlementCurrencyId = $derived(groupState.wallets[0]?.currency_id ?? '');
+
 	let selectedCurrencyIdToWithdraw = $state<string>('');
 	let selectedWalletIdToFund = $state<string>('');
 	let selectedCurrencyId = $state<string>('');
@@ -325,6 +327,10 @@
 				loading={groupState.settlementsLoading}
 				error={groupState.settlementsError}
 				{currentUserBalance}
+				currencyId={settlementCurrencyId}
+				paying={groupState.settlementPaying}
+				payError={groupState.settlementPayError}
+				onPaySettlement={(i, a, c) => groupState.paySettlement(i, a, c)}
 				onClose={() => (showDebtPanel = false)}
 			/>
 		{/if}
