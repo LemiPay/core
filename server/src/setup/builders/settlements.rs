@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::application::balances::BalancesService;
 use crate::application::group::traits::repository::GroupRepository;
+use crate::application::settlements::claim::ClaimUseCase;
 use crate::application::settlements::get_settlements::GetSettlementsUseCase;
 use crate::application::settlements::pay_settlement::PaySettlementUseCase;
 use crate::application::settlements::service::SettlementsService;
@@ -22,6 +23,13 @@ pub fn build_settlements_service(
             balances_service: balances_service.clone(),
         },
         pay_settlement: PaySettlementUseCase {
+            group_repo: group_repo.clone(),
+            user_wallet_repo: user_wallet_repo.clone(),
+            group_wallet_repo: group_wallet_repo.clone(),
+            transaction_repo: transaction_repo.clone(),
+            balances_service: balances_service.clone(),
+        },
+        claim: ClaimUseCase {
             group_repo,
             user_wallet_repo,
             group_wallet_repo,

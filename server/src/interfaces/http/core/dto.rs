@@ -94,3 +94,24 @@ pub struct PaySettlementResponse {
     pub tx_type: TransactionTypeResponse,
     pub created_at: NaiveDateTime,
 }
+
+#[derive(Deserialize)]
+pub struct ClaimRequest {
+    pub amount: BigDecimal,
+    pub address: String,
+    pub currency_id: Uuid,
+    pub description: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct ClaimResponse {
+    pub id: Uuid,
+    pub amount: BigDecimal,
+    pub user_id: Uuid,
+    pub group_id: Uuid,
+    pub currency_id: Uuid,
+    pub address: String,
+    pub description: Option<String>,
+    pub tx_type: TransactionTypeResponse,
+    pub created_at: NaiveDateTime,
+}

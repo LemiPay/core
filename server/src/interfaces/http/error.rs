@@ -8,6 +8,7 @@ use serde::Serialize;
 use thiserror::Error;
 
 use crate::application::investment::InvestmentError;
+use crate::application::settlements::claim::error::ClaimError;
 use crate::application::settlements::get_settlements::error::GetSettlementError;
 use crate::application::settlements::pay_settlement::error::PaySettlementError;
 use crate::application::treasury::list_user_transactions::ListUserTransactionsError;
@@ -559,6 +560,34 @@ impl From<PaySettlementError> for AppError {
                 AppError::BadRequest("El monto excede tu deuda".into())
             }
             PaySettlementError::GroupNotFound => AppError::NotFound,
+        }
+    }
+}
+
+impl From<ClaimError> for AppError {
+    fn from(err: ClaimError) -> Self {
+        match err {
+            ClaimError::InvalidAmount => AppError::BadRequest("El monto debe ser mayor a 0".into()),
+            ClaimError::UserWalletNotFound => {
+                AppError::BadRequest("El usuario no tiene una wallet para esta moneda".into())
+            }
+            ClaimError::GroupWalletNotFound => {
+                AppError::BadRequest("El grupo no tiene una wallet para esta moneda".into())
+            }
+            ClaimError::InsufficientFunds => {
+                AppError::BadRequest("Saldo insuficiente en la billetera del grupo".into())
+            }
+            ClaimError::Internal => AppError::Internal,
+            ClaimError::GroupNotInDebtResolution => {
+                AppError::Forbidden("El grupo no esta en resolucion de deudas".into())
+            }
+            ClaimError::NoCredit => {
+                AppError::BadRequest("No tienes saldo a favor en este grupo".into())
+            }
+            ClaimError::AmountExceedsCredit => {
+                AppError::BadRequest("El monto excede tu saldo disponible".into())
+            }
+            ClaimError::GroupNotFound => AppError::NotFound,
         }
     }
 }
