@@ -20,7 +20,6 @@ impl DieselTransactionRepository {
     pub fn new(db: DbPool) -> Self {
         Self { db }
     }
-
     fn get_conn(&self) -> Result<DbConn, RepoError> {
         self.db.get().map_err(|_| RepoError::Connection)
     }
