@@ -2,6 +2,10 @@
 
 pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "blockchain"))]
+    pub struct Blockchain;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "expense_status"))]
     pub struct ExpenseStatus;
 
@@ -35,10 +39,44 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    blockchain_event (id) {
+        id -> Uuid,
+        event_type -> Text,
+        sender -> Text,
+        wallet_address -> Text,
+        token_address -> Text,
+        currency_id -> Uuid,
+        gross_amount -> Numeric,
+        fee_amount -> Numeric,
+        net_amount -> Numeric,
+        tx_hash -> Text,
+        block_number -> Int8,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    blockchain_sync_state (sync_key) {
+        sync_key -> Text,
+        last_processed_block -> Int8,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::Blockchain;
+
     currency (currency_id) {
         currency_id -> Uuid,
         name -> Text,
         ticker -> Text,
+        blockchain -> Blockchain,
+        token_address -> Text,
+        token_currency_id -> Nullable<Text>,
+        decimals -> Int2,
+        is_active -> Bool,
+        created_at -> Timestamptz,
     }
 }
 
@@ -99,6 +137,16 @@ diesel::table! {
         status -> GroupStatus,
         created_at -> Date,
         updated_at -> Date,
+    }
+}
+
+diesel::table! {
+    group_notification_preference (user_id, group_id, event_id, channel_id) {
+        user_id -> Uuid,
+        group_id -> Uuid,
+        event_id -> Uuid,
+        channel_id -> Uuid,
+        enabled -> Bool,
     }
 }
 
@@ -185,6 +233,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    notification_channel (id) {
+        id -> Uuid,
+        name -> Text,
+    }
+}
+
+diesel::table! {
+    notification_event (id) {
+        id -> Uuid,
+        name -> Text,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::ProposalStatus;
 
@@ -252,6 +314,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    user_notification_preference (user_id, event_id, channel_id) {
+        user_id -> Uuid,
+        event_id -> Uuid,
+        channel_id -> Uuid,
+        enabled -> Bool,
+    }
+}
+
+diesel::table! {
     user_wallet (id) {
         id -> Uuid,
         address -> Text,
@@ -283,6 +354,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(blockchain_event -> currency (currency_id));
 diesel::joinable!(expense -> currency (currency_id));
 diesel::joinable!(expense -> group (group_id));
 diesel::joinable!(expense -> user (user_id));
@@ -293,6 +365,10 @@ diesel::joinable!(fund_round_contribution -> transaction (transaction_id));
 diesel::joinable!(fund_round_contribution -> user (user_id));
 diesel::joinable!(fund_round_proposal -> currency (currency_id));
 diesel::joinable!(fund_round_proposal -> proposal (proposal_id));
+diesel::joinable!(group_notification_preference -> group (group_id));
+diesel::joinable!(group_notification_preference -> notification_channel (channel_id));
+diesel::joinable!(group_notification_preference -> notification_event (event_id));
+diesel::joinable!(group_notification_preference -> user (user_id));
 diesel::joinable!(group_wallet -> currency (currency_id));
 diesel::joinable!(group_wallet -> group (group_id));
 diesel::joinable!(investment -> investment_proposal (proposal_id));
@@ -313,6 +389,9 @@ diesel::joinable!(transaction_participant -> transaction (transaction_id));
 diesel::joinable!(transaction_participant -> user (user_id));
 diesel::joinable!(user_in_group -> group (group_id));
 diesel::joinable!(user_in_group -> user (user_id));
+diesel::joinable!(user_notification_preference -> notification_channel (channel_id));
+diesel::joinable!(user_notification_preference -> notification_event (event_id));
+diesel::joinable!(user_notification_preference -> user (user_id));
 diesel::joinable!(user_wallet -> currency (currency_id));
 diesel::joinable!(user_wallet -> user (user_id));
 diesel::joinable!(vote -> proposal (proposal_id));
@@ -321,12 +400,15 @@ diesel::joinable!(withdraw_proposal -> currency (currency_id));
 diesel::joinable!(withdraw_proposal -> proposal (proposal_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    blockchain_event,
+    blockchain_sync_state,
     currency,
     expense,
     expense_participant,
     fund_round_contribution,
     fund_round_proposal,
     group,
+    group_notification_preference,
     group_wallet,
     investment,
     investment_member,
@@ -334,11 +416,14 @@ diesel::allow_tables_to_appear_in_same_query!(
     investment_strategy,
     investment_value_snapshot,
     new_member_proposal,
+    notification_channel,
+    notification_event,
     proposal,
     transaction,
     transaction_participant,
     user,
     user_in_group,
+    user_notification_preference,
     user_wallet,
     vote,
     withdraw_proposal,
