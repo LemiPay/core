@@ -1,3 +1,4 @@
+use crate::application::balances::error::BalancesError;
 use crate::domain::treasury::TreasuryError;
 
 #[derive(Debug)]
@@ -9,6 +10,8 @@ pub enum PaySettlementError {
     GroupNotActive,
     GroupNotInDebtResolution,
     GroupNotFound,
+    NoDebt,
+    AmountExceedsDebt,
     Internal,
 }
 
@@ -19,5 +22,11 @@ impl From<TreasuryError> for PaySettlementError {
             TreasuryError::InsufficientFunds => PaySettlementError::InsufficientFunds,
             _ => PaySettlementError::Internal,
         }
+    }
+}
+
+impl From<BalancesError> for PaySettlementError {
+    fn from(_: BalancesError) -> Self {
+        PaySettlementError::Internal
     }
 }

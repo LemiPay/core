@@ -554,6 +554,10 @@ impl From<PaySettlementError> for AppError {
             PaySettlementError::GroupNotInDebtResolution => {
                 AppError::Forbidden("El grupo no esta en resolucion de deudas".into())
             }
+            PaySettlementError::NoDebt => AppError::Forbidden("No tienes deudas pendientes".into()),
+            PaySettlementError::AmountExceedsDebt => {
+                AppError::BadRequest("El monto excede tu deuda".into())
+            }
             PaySettlementError::GroupNotFound => AppError::NotFound,
         }
     }

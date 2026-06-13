@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use bigdecimal::{BigDecimal, Zero};
+
+use crate::application::balances::BalancesService;
 use crate::application::group::traits::repository::GroupRepository;
 use crate::application::settlements::pay_settlement::dto::{
     PaySettlementInput, PaySettlementOutput,
@@ -19,6 +22,7 @@ pub struct PaySettlementUseCase {
     pub user_wallet_repo: Arc<dyn UserWalletRepository>,
     pub group_wallet_repo: Arc<dyn GroupWalletRepository>,
     pub transaction_repo: Arc<dyn TransactionRepository>,
+    pub balances_service: BalancesService,
 }
 
 impl PaySettlementUseCase {
@@ -33,6 +37,27 @@ impl PaySettlementUseCase {
             .ok_or(PaySettlementError::GroupNotFound)?;
         GroupPolicy::ensure_in_debt_resolution(&group)
             .map_err(|_| PaySettlementError::GroupNotInDebtResolution)?;
+
+        let balances_details = self
+            .balances_service
+            .get_balances(input.group_id)
+            .map_err(|_| PaySettlementError::Internal)?;
+
+        let user_balance = balances_details
+            .balances
+            .iter()
+            .find(|b| b.user_id == input.user_id.0)
+            .map(|b| &b.balance)
+            .ok_or(PaySettlementError::Internal)?;
+
+        if *user_balance >= BigDecimal::zero() {
+            return Err(PaySettlementError::NoDebt);
+        }
+
+        if input.amount > -user_balance.clone() {
+            return Err(PaySettlementError::AmountExceedsDebt);
+        }
+
         let amount = Money::positive(input.amount, input.currency_id)?;
 
         let user_wallet = self

@@ -18,12 +18,15 @@ pub fn build_settlements_service(
     transaction_repo: Arc<dyn TransactionRepository>,
 ) -> SettlementsService {
     SettlementsService {
-        get_settlements: GetSettlementsUseCase { balances_service },
+        get_settlements: GetSettlementsUseCase {
+            balances_service: balances_service.clone(),
+        },
         pay_settlement: PaySettlementUseCase {
             group_repo,
             user_wallet_repo,
             group_wallet_repo,
             transaction_repo,
+            balances_service,
         },
     }
 }
