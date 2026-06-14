@@ -112,6 +112,10 @@ impl InvestmentService {
         group_id: Uuid,
         proposal_id: Uuid,
     ) -> Result<InvestmentDetails, InvestmentError> {
+        let group = Self::map_repo(self.group_repo.find_by_id(GroupId(group_id)))?
+            .ok_or(InvestmentError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| InvestmentError::GroupNotActive)?;
+
         let proposal = Self::map_repo(self.investment_repo.find_investment_proposal(proposal_id))?
             .ok_or(InvestmentError::ProposalNotFound)?;
 
@@ -199,6 +203,10 @@ impl InvestmentService {
         if stored.group_id != group_id {
             return Err(InvestmentError::NotFound);
         }
+
+        let group = Self::map_repo(self.group_repo.find_by_id(GroupId(group_id)))?
+            .ok_or(InvestmentError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| InvestmentError::GroupNotActive)?;
 
         let domain = Investment::rehydrate(
             crate::domain::investment::InvestmentId(stored.id),

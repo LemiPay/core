@@ -96,6 +96,13 @@ impl GovernanceService {
         )?
         .ok_or(GovernanceError::NotFound)?;
 
+        let group = Self::map_repo(
+            self.group_repo
+                .find_by_id(GroupId(stored.proposal.group_id)),
+        )?
+        .ok_or(GovernanceError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| GovernanceError::GroupNotActive)?;
+
         let domain = to_domain_new_member(&stored);
         GovernancePolicy::ensure_destination_matches(&domain, UserId(destination))?;
         if domain.proposal.status != ProposalStatus::Approved {
