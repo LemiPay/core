@@ -343,6 +343,24 @@
 			/>
 		{/if}
 
+		{#if groupState.readonly && !showDebtPanel && !groupState.loading}
+			<div class="group fixed right-5 bottom-5 z-40 flex items-center gap-3">
+				<div
+					class="pointer-events-none hidden translate-x-2 rounded-2xl border border-border bg-card px-3 py-2 text-sm font-semibold opacity-0 shadow-xl transition group-hover:translate-x-0 group-hover:opacity-100 sm:block"
+				>
+					Ver liquidaciones
+				</div>
+				<button
+					aria-label="Ver liquidaciones"
+					class="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-2xl ring-4 shadow-emerald-500/20 ring-emerald-400/20 transition hover:scale-105 hover:bg-emerald-600 hover:shadow-emerald-500/30 focus:ring-2 focus:ring-ring focus:outline-none active:scale-95"
+					onclick={() => (showDebtPanel = true)}
+					type="button"
+				>
+					<HandCoins class="size-6" />
+				</button>
+			</div>
+		{/if}
+
 		<InviteUserToGroup
 			group_id={groupState.groupData.id}
 			open={showNewMemberModal}
