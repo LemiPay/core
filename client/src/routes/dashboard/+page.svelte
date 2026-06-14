@@ -24,7 +24,7 @@
 	import DashboardLayout from './DashboardLayout.svelte';
 
 	type FilterRole = 'all' | 'Admin' | 'Member';
-	type FilterStatus = 'all' | 'Active' | 'Ended';
+	type FilterStatus = 'all' | 'Active' | 'DebtResolution' | 'Ended';
 	type GroupMeta = {
 		members: number;
 		treasury: number;
@@ -78,6 +78,7 @@
 	const statusOptions: { val: FilterStatus; label: string; dot: string }[] = [
 		{ val: 'all', label: 'Todos', dot: 'bg-foreground' },
 		{ val: 'Active', label: 'Activos', dot: 'bg-emerald-500' },
+		{ val: 'DebtResolution', label: 'En resolución', dot: 'bg-amber-400' },
 		{ val: 'Ended', label: 'Finalizados', dot: 'bg-rose-400' }
 	];
 
@@ -249,9 +250,24 @@
 	}
 
 	function getStatusClasses(status: string) {
-		return status.toLowerCase() === 'active'
-			? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300'
-			: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300';
+		if (status.toLowerCase() === 'active')
+			return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300';
+		if (status.toLowerCase() === 'debtresolution')
+			return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300';
+		return 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300';
+	}
+
+	function getStatusDot(status: string) {
+		if (status.toLowerCase() === 'active') return 'bg-emerald-500 shadow-emerald-500/30';
+		if (status.toLowerCase() === 'debtresolution') return 'bg-amber-400 shadow-amber-400/30';
+		return 'bg-rose-400 shadow-rose-400/30';
+	}
+
+	function translateStatus(status: string) {
+		if (status === 'Active') return 'Activo';
+		if (status === 'DebtResolution') return 'En resolución';
+		if (status === 'Ended') return 'Finalizado';
+		return status;
 	}
 
 	function getHealthClasses(health: GroupMeta['health']) {
@@ -561,13 +577,9 @@
 													getStatusClasses(grupo.status)
 												]}
 											>
-												<span
-													class={[
-														'size-1.5 rounded-full shadow-lg',
-														getHealthClasses(grupo.meta.health)
-													]}
+												<span class="size-1.5 rounded-full shadow-lg {getStatusDot(grupo.status)}"
 												></span>
-												{grupo.status}
+												{translateStatus(grupo.status)}
 											</span>
 										</div>
 									</div>
