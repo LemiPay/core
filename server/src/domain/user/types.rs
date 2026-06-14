@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::user::UserValidationError;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct UserId(pub Uuid);
 
 impl UserId {

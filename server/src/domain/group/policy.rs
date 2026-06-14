@@ -45,11 +45,15 @@ impl GroupPolicy {
     }
     pub fn can_end_group(balances: BalancesMap) -> Result<(), GroupError> {
         let epsilon = BigDecimal::from_str("0.000000000001").expect("valid epsilon literal"); // 10^-12
-        let all_zero = balances
+        let non_zero: Vec<String> = balances
             .get_all_balances()
-            .values()
-            .all(|b| b.abs() < epsilon);
-        if !all_zero {
+            .iter()
+            .filter(|(_, b)| b.abs() >= epsilon)
+            .map(|(u, b)| format!("user={} balance={}", u, b))
+            .collect();
+
+        if !non_zero.is_empty() {
+            eprintln!("[can_end_group] FAILED — balances not zero: {:?}", non_zero);
             return Err(GroupError::NotAllBalancesZero);
         }
         Ok(())
