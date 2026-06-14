@@ -69,7 +69,14 @@
 	}
 
 	async function handleSettlePartial() {
-		await onPaySettlement(payAmount, senderAddress, currencyId);
+		const entered = Number(payAmount);
+		const totalRounded = Math.round(totalDebt * 100) / 100;
+		const enteredRounded = Math.round(entered * 100) / 100;
+		if (enteredRounded >= totalRounded) {
+			await onPaySettlement(debtAmount, senderAddress, currencyId);
+		} else {
+			await onPaySettlement(payAmount, senderAddress, currencyId);
+		}
 	}
 
 	async function handleClaim() {

@@ -1,10 +1,13 @@
+use std::str::FromStr;
+
+use bigdecimal::{BigDecimal, Zero};
+
 use crate::domain::balances::BalancesMap;
 use crate::domain::group::GroupStatus;
 use crate::domain::group::entity::Group;
 use crate::domain::group::error::GroupError;
 use crate::domain::group::member::{GroupMember, GroupRole};
 use crate::domain::user::UserId;
-use bigdecimal::Zero;
 
 pub struct GroupPolicy;
 
@@ -41,7 +44,11 @@ impl GroupPolicy {
         Ok(())
     }
     pub fn can_end_group(balances: BalancesMap) -> Result<(), GroupError> {
-        let all_zero = balances.get_all_balances().values().all(|b| b.is_zero());
+        let epsilon = BigDecimal::from_str("0.000000000001").expect("valid epsilon literal"); // 10^-12
+        let all_zero = balances
+            .get_all_balances()
+            .values()
+            .all(|b| b.abs() < epsilon);
         if !all_zero {
             return Err(GroupError::NotAllBalancesZero);
         }
