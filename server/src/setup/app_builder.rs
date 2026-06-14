@@ -30,6 +30,7 @@ use crate::{
                 group_repo_impl::DieselGroupRepository,
                 group_wallet_repo_impl::DieselGroupWalletRepository,
                 investment_repo_impl::DieselInvestmentRepository,
+                notifications_repo_impl::DieselNotificationRepository,
                 transaction_repo_impl::DieselTransactionRepository,
                 user_repo_impl::DieselUserRepository,
                 user_wallet_repo_impl::DieselUserWalletRepository,
@@ -64,6 +65,7 @@ pub fn build_app() -> Router {
     let governance_repo = Arc::new(DieselGovernanceRepository::new(pool.clone()));
     let expense_repo = Arc::new(DieselExpenseRepository::new(pool.clone()));
     let investment_repo = Arc::new(DieselInvestmentRepository::new(pool.clone()));
+    let notification_repo = Arc::new(DieselNotificationRepository::new(pool.clone()));
 
     let hash_service = Arc::new(Argon2Hasher::new().expect("argon2 fail"));
     let token_service = Arc::new(JwtService::new(db_config.jwt_secret));
@@ -79,11 +81,12 @@ pub fn build_app() -> Router {
         token_service,
         web_3_service,
         user_wallet_repo.clone(),
+        notification_repo.clone(),
     );
 
     let user_service = build_user_service(user_repo.clone());
 
-    let group_service = build_group_service(group_repo.clone());
+    let group_service = build_group_service(group_repo.clone(), notification_repo.clone());
 
     let treasury_service = build_treasury_service(
         user_wallet_repo.clone(),
@@ -123,6 +126,7 @@ pub fn build_app() -> Router {
         expense_service,
         balances_service,
         investment_service,
+        notification_repo,
     });
 
     // -------------------------

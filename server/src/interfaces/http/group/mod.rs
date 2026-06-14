@@ -18,6 +18,10 @@ use handlers::{
     update_group::update_group,
 };
 
+use crate::interfaces::http::notifications::handlers::{
+    get_group_preferences, upsert_group_preference,
+};
+
 use crate::setup::state::SharedState;
 
 pub fn routes(state: SharedState) -> Router<SharedState> {
@@ -53,6 +57,15 @@ pub fn routes(state: SharedState) -> Router<SharedState> {
                 state.clone(),
                 is_in_group_middleware,
             )),
+        )
+        .route(
+            "/{id}/notification-preferences",
+            get(get_group_preferences)
+                .post(upsert_group_preference)
+                .route_layer(middleware::from_fn_with_state(
+                    state.clone(),
+                    is_in_group_middleware,
+                )),
         )
         .route("/my-groups", get(list_user_groups))
         .route("/my", get(list_user_groups))

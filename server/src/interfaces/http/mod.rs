@@ -5,6 +5,7 @@ pub mod governance;
 pub mod group;
 pub mod group_wallet;
 pub mod investment;
+pub mod notifications;
 pub mod transaction;
 pub mod users;
 pub mod wallet;

@@ -3,6 +3,7 @@ use crate::application::{
     governance::GovernanceService, group::GroupService, investment::InvestmentService,
     treasury::TreasuryService, users::UserService,
 };
+use crate::infrastructure::db::repositories::notifications_repo_impl::DieselNotificationRepository;
 use std::sync::Arc;
 
 use super::config::AppConfig;
@@ -22,6 +23,7 @@ pub struct AppState {
     pub expense_service: ExpenseService,
     pub balances_service: BalancesService,
     pub investment_service: InvestmentService,
+    pub notification_repo: Arc<DieselNotificationRepository>,
 }
 
 pub type SharedState = Arc<AppState>;

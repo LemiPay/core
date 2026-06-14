@@ -7,13 +7,20 @@ use crate::{
         leave_group::LeaveGroupUseCase, list_user_groups::ListUserGroupsUseCase,
         make_group_admin::MakeGroupAdminUseCase, update_group::UpdateGroupUseCase,
     },
-    infrastructure::db::repositories::group_repo_impl::DieselGroupRepository,
+    infrastructure::db::repositories::{
+        group_repo_impl::DieselGroupRepository,
+        notifications_repo_impl::DieselNotificationRepository,
+    },
 };
 
-pub fn build_group_service(group_repo: Arc<DieselGroupRepository>) -> GroupService {
+pub fn build_group_service(
+    group_repo: Arc<DieselGroupRepository>,
+    notification_repo: Arc<DieselNotificationRepository>,
+) -> GroupService {
     GroupService {
         create_group: CreateGroupUseCase {
             group_repo: group_repo.clone(),
+            notification_repo,
         },
         get_group: GetGroupUseCase {
             group_repo: group_repo.clone(),

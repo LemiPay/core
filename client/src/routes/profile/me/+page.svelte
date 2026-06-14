@@ -39,6 +39,7 @@
 	import UserTransactionHistory from '$lib/components/UserTransactionHistory.svelte';
 	import type { Transaction } from '$lib/types/endpoints/transactions.types';
 	import { listUserTransactions } from '$lib/api/endpoints/transactions';
+	import NotificationPreferences from '$lib/components/NotificationPreferences.svelte';
 
 	// --- ESTADOS DE DATOS ---
 	let loadingUserInfo = $state(true);
@@ -60,6 +61,15 @@
 	let linkingInFlight = $state(false);
 	let linkingError = $state('');
 	let linkingAddress = $state('' as string | undefined);
+
+	// --- TABS (Billeteras + Configuraciones de notificaciones) ---
+	type ProfileTab = 'wallets' | 'settings';
+	let activeProfileTab = $state<ProfileTab>('wallets');
+
+	const PROFILE_TABS: { key: ProfileTab; label: string }[] = [
+		{ key: 'wallets', label: 'Billeteras' },
+		{ key: 'settings', label: 'Configuraciones' }
+	];
 
 	// --- ESTADO DERIVADO ---
 	let totalBalance = $derived(
@@ -380,232 +390,255 @@
 			</div>
 		</section>
 
+		<!-- Profile sub-tabs -->
+		<div class="mt-6 flex border-b border-border">
+			{#each PROFILE_TABS as tab (tab.key)}
+				<button
+					onclick={() => (activeProfileTab = tab.key)}
+					class={[
+						'px-4 py-3 text-sm font-medium transition-colors',
+						activeProfileTab === tab.key
+							? 'border-b-2 border-foreground text-foreground'
+							: 'text-muted-foreground hover:text-foreground'
+					].join(' ')}
+				>
+					{tab.label}
+				</button>
+			{/each}
+		</div>
+
 		<!-- Wallets section -->
-		<section class="mt-6 space-y-4" in:fly={{ y: 14, duration: 450, delay: 80 }}>
-			<div class="flex items-center justify-between">
-				<div>
-					<h2 class="mt-0.5 text-2xl font-semibold tracking-tight">Mis billeteras</h2>
-				</div>
-				<div class="flex items-center gap-2">
-					{#if walletAuthState.isConnected}
-						<button
-							onclick={handleOpenReown}
-							disabled={linkingInFlight}
-							class="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:-translate-y-0.5 hover:border-border/80 hover:text-foreground hover:shadow-lg hover:shadow-black/5 disabled:cursor-not-allowed disabled:opacity-60"
-						>
-							<Wallet class="size-4" />
-						</button>
-						<button
-							onclick={handleDisconnectReown}
-							disabled={linkingInFlight}
-							aria-label="Desconectar"
-							title="Desconectar"
-							class="inline-flex items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-						>
-							<LogOut class="size-4" />
-						</button>
-					{/if}
-					<button
-						onclick={handleLinkWallet}
-						disabled={linkingInFlight || loadingUserInfo}
-						class="inline-flex items-center gap-2 rounded-2xl border border-border bg-background px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-lime-300 hover:shadow-lg hover:shadow-lime-500/10 disabled:cursor-not-allowed disabled:opacity-60"
-					>
-						{#if linkingInFlight}
-							<svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-								<circle
-									class="opacity-25"
-									cx="12"
-									cy="12"
-									r="10"
-									stroke="currentColor"
-									stroke-width="4"
-								/>
-								<path
-									class="opacity-75"
-									fill="currentColor"
-									d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-								/>
-							</svg>
-							Conectando...
-						{:else}
-							<Link2 class="size-4" />
-							Conectar wallet
+		{#if activeProfileTab === 'wallets'}
+			<section class="mt-6 space-y-4" in:fly={{ y: 14, duration: 450, delay: 80 }}>
+				<div class="flex items-center justify-between">
+					<div>
+						<h2 class="mt-0.5 text-2xl font-semibold tracking-tight">Mis billeteras</h2>
+					</div>
+					<div class="flex items-center gap-2">
+						{#if walletAuthState.isConnected}
+							<button
+								onclick={handleOpenReown}
+								disabled={linkingInFlight}
+								class="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:-translate-y-0.5 hover:border-border/80 hover:text-foreground hover:shadow-lg hover:shadow-black/5 disabled:cursor-not-allowed disabled:opacity-60"
+							>
+								<Wallet class="size-4" />
+							</button>
+							<button
+								onclick={handleDisconnectReown}
+								disabled={linkingInFlight}
+								aria-label="Desconectar"
+								title="Desconectar"
+								class="inline-flex items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+							>
+								<LogOut class="size-4" />
+							</button>
 						{/if}
-					</button>
-					<button
-						onclick={() => (openCreateWalletModal = true)}
-						class="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-lime-300 hover:shadow-lg hover:shadow-lime-500/10"
-					>
-						<Plus class="size-4" />
-						Nueva dirección
-					</button>
-				</div>
-			</div>
-
-			{#if linkingError}
-				<div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-					{linkingError}
-				</div>
-			{/if}
-
-			{#if loadingWalletsInfo}
-				<!-- Skeleton loaders -->
-				<div class="space-y-4">
-					{#each { length: 2 }, i}
-						<div
-							class="rounded-[2rem] border border-border bg-card p-5"
-							in:fade={{ delay: i * 60 }}
+						<button
+							onclick={handleLinkWallet}
+							disabled={linkingInFlight || loadingUserInfo}
+							class="inline-flex items-center gap-2 rounded-2xl border border-border bg-background px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-lime-300 hover:shadow-lg hover:shadow-lime-500/10 disabled:cursor-not-allowed disabled:opacity-60"
 						>
-							<div class="h-5 w-48 animate-pulse rounded-lg bg-muted"></div>
-							<div class="mt-4 grid grid-cols-2 gap-3">
-								<div class="h-16 animate-pulse rounded-2xl bg-muted"></div>
-								<div class="h-16 animate-pulse rounded-2xl bg-muted"></div>
+							{#if linkingInFlight}
+								<svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+									<circle
+										class="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										stroke-width="4"
+									/>
+									<path
+										class="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+									/>
+								</svg>
+								Conectando...
+							{:else}
+								<Link2 class="size-4" />
+								Conectar wallet
+							{/if}
+						</button>
+						<button
+							onclick={() => (openCreateWalletModal = true)}
+							class="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-lime-300 hover:shadow-lg hover:shadow-lime-500/10"
+						>
+							<Plus class="size-4" />
+							Nueva dirección
+						</button>
+					</div>
+				</div>
+
+				{#if linkingError}
+					<div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+						{linkingError}
+					</div>
+				{/if}
+
+				{#if loadingWalletsInfo}
+					<!-- Skeleton loaders -->
+					<div class="space-y-4">
+						{#each { length: 2 }, i}
+							<div
+								class="rounded-[2rem] border border-border bg-card p-5"
+								in:fade={{ delay: i * 60 }}
+							>
+								<div class="h-5 w-48 animate-pulse rounded-lg bg-muted"></div>
+								<div class="mt-4 grid grid-cols-2 gap-3">
+									<div class="h-16 animate-pulse rounded-2xl bg-muted"></div>
+									<div class="h-16 animate-pulse rounded-2xl bg-muted"></div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{:else if walletsArray.length === 0}
+					<div
+						class="rounded-[2rem] border border-dashed border-border bg-card p-10 text-center"
+						transition:scale={{ duration: 220 }}
+					>
+						<div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-muted">
+							<Wallet class="size-6 text-muted-foreground" />
+						</div>
+						<h3 class="mt-4 font-semibold">Ninguna billetera creada</h3>
+						<p class="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+							Creá tu primera dirección para recibir y enviar tokens.
+						</p>
+						<button
+							onclick={() => (openCreateWalletModal = true)}
+							class="mt-5 inline-flex items-center gap-2 rounded-2xl bg-foreground px-4 py-2 text-sm font-semibold text-background transition hover:bg-foreground/90"
+						>
+							<Plus class="size-4" />
+							Crear billetera
+						</button>
+					</div>
+				{:else}
+					{#each walletsArray as group, wi (group.address)}
+						<div
+							class="overflow-hidden rounded-[2rem] border border-border/80 bg-card shadow-sm shadow-black/5 dark:shadow-none"
+							in:fly={{ y: 10, duration: 300, delay: wi * 60 }}
+						>
+							<!-- Wallet header -->
+							<div
+								class="flex items-center justify-between border-b border-border/60 bg-linear-to-r from-muted/40 to-muted/10 px-5 py-3.5"
+							>
+								<div class="flex items-center gap-2.5">
+									<div
+										class="flex size-8 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+									>
+										<Wallet class="size-4" />
+									</div>
+									<div>
+										<p class="font-mono text-sm font-semibold">
+											{shortenAddress(group.address)}
+										</p>
+										<p class="text-[11px] text-muted-foreground">
+											{group.currencies.length} token{group.currencies.length !== 1 ? 's' : ''}
+										</p>
+									</div>
+								</div>
+
+								<button
+									onclick={() => handleCopy(group.address)}
+									class={[
+										'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition',
+										copiedAddress === group.address
+											? 'border-emerald-300/60 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300'
+											: 'border-border bg-background/70 text-muted-foreground hover:border-border/80 hover:text-foreground'
+									]}
+								>
+									{#if copiedAddress === group.address}
+										<CheckCircle class="size-3.5" />
+										Copiado
+									{:else}
+										<Copy class="size-3.5" />
+										Copiar
+									{/if}
+								</button>
+							</div>
+
+							<!-- Token rows -->
+							<div class="divide-y divide-border/40 px-5">
+								{#each group.currencies as currency, ci (currency.ticker)}
+									<div
+										class="flex items-center justify-between py-4"
+										in:fly={{ x: 8, duration: 220, delay: ci * 40 }}
+									>
+										<div class="flex items-center gap-3">
+											<!-- Token avatar -->
+											<div
+												class={[
+													'flex size-10 items-center justify-center rounded-2xl text-xs font-bold',
+													currency.ticker === 'USDC'
+														? 'bg-sky-100 text-sky-700 dark:bg-sky-400/10 dark:text-sky-300'
+														: currency.ticker === 'ETH'
+															? 'bg-violet-100 text-violet-700 dark:bg-violet-400/10 dark:text-violet-300'
+															: 'bg-lime-100 text-lime-700 dark:bg-lime-400/10 dark:text-lime-300'
+												]}
+											>
+												{currency.ticker.slice(0, 3)}
+											</div>
+											<div>
+												<p class="font-semibold">{currency.ticker}</p>
+												<p class="text-xs text-muted-foreground">
+													{Number(currency.balance).toLocaleString('en-US', {
+														maximumFractionDigits: 6
+													})} disponibles
+												</p>
+											</div>
+										</div>
+
+										<div class="flex items-center gap-2">
+											<span class="mr-2 text-right text-lg font-semibold tabular-nums">
+												{Number(currency.balance).toLocaleString('en-US', {
+													maximumFractionDigits: 4
+												})}
+											</span>
+											<button
+												onclick={() =>
+													(faucetTarget = {
+														wallet_id: currency.wallet_id,
+														ticker: currency.ticker
+													})}
+												class="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-border/80 hover:text-foreground"
+											>
+												<ArrowDownToLine class="size-3.5" />
+												Recibir
+											</button>
+											<button
+												onclick={() =>
+													(transferTarget = {
+														sender_wallet_id: currency.wallet_id,
+														ticker: currency.ticker
+													})}
+												class="inline-flex items-center gap-1.5 rounded-xl bg-foreground px-3 py-1.5 text-xs font-semibold text-background shadow-sm transition hover:bg-foreground/85"
+											>
+												<Send class="size-3.5" />
+												Enviar
+											</button>
+										</div>
+									</div>
+								{/each}
+							</div>
+
+							<!-- Wallet footer -->
+							<div class="border-t border-border/40 bg-muted/20 px-5 py-3">
+								<button
+									class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+								>
+									<Plus class="size-3.5" />
+									Agregar token
+								</button>
 							</div>
 						</div>
 					{/each}
-				</div>
-			{:else if walletsArray.length === 0}
-				<div
-					class="rounded-[2rem] border border-dashed border-border bg-card p-10 text-center"
-					transition:scale={{ duration: 220 }}
-				>
-					<div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-muted">
-						<Wallet class="size-6 text-muted-foreground" />
-					</div>
-					<h3 class="mt-4 font-semibold">Ninguna billetera creada</h3>
-					<p class="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-						Creá tu primera dirección para recibir y enviar tokens.
-					</p>
-					<button
-						onclick={() => (openCreateWalletModal = true)}
-						class="mt-5 inline-flex items-center gap-2 rounded-2xl bg-foreground px-4 py-2 text-sm font-semibold text-background transition hover:bg-foreground/90"
-					>
-						<Plus class="size-4" />
-						Crear billetera
-					</button>
-				</div>
-			{:else}
-				{#each walletsArray as group, wi (group.address)}
-					<div
-						class="overflow-hidden rounded-[2rem] border border-border/80 bg-card shadow-sm shadow-black/5 dark:shadow-none"
-						in:fly={{ y: 10, duration: 300, delay: wi * 60 }}
-					>
-						<!-- Wallet header -->
-						<div
-							class="flex items-center justify-between border-b border-border/60 bg-linear-to-r from-muted/40 to-muted/10 px-5 py-3.5"
-						>
-							<div class="flex items-center gap-2.5">
-								<div
-									class="flex size-8 items-center justify-center rounded-xl bg-muted text-muted-foreground"
-								>
-									<Wallet class="size-4" />
-								</div>
-								<div>
-									<p class="font-mono text-sm font-semibold">
-										{shortenAddress(group.address)}
-									</p>
-									<p class="text-[11px] text-muted-foreground">
-										{group.currencies.length} token{group.currencies.length !== 1 ? 's' : ''}
-									</p>
-								</div>
-							</div>
-
-							<button
-								onclick={() => handleCopy(group.address)}
-								class={[
-									'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition',
-									copiedAddress === group.address
-										? 'border-emerald-300/60 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300'
-										: 'border-border bg-background/70 text-muted-foreground hover:border-border/80 hover:text-foreground'
-								]}
-							>
-								{#if copiedAddress === group.address}
-									<CheckCircle class="size-3.5" />
-									Copiado
-								{:else}
-									<Copy class="size-3.5" />
-									Copiar
-								{/if}
-							</button>
-						</div>
-
-						<!-- Token rows -->
-						<div class="divide-y divide-border/40 px-5">
-							{#each group.currencies as currency, ci (currency.ticker)}
-								<div
-									class="flex items-center justify-between py-4"
-									in:fly={{ x: 8, duration: 220, delay: ci * 40 }}
-								>
-									<div class="flex items-center gap-3">
-										<!-- Token avatar -->
-										<div
-											class={[
-												'flex size-10 items-center justify-center rounded-2xl text-xs font-bold',
-												currency.ticker === 'USDC'
-													? 'bg-sky-100 text-sky-700 dark:bg-sky-400/10 dark:text-sky-300'
-													: currency.ticker === 'ETH'
-														? 'bg-violet-100 text-violet-700 dark:bg-violet-400/10 dark:text-violet-300'
-														: 'bg-lime-100 text-lime-700 dark:bg-lime-400/10 dark:text-lime-300'
-											]}
-										>
-											{currency.ticker.slice(0, 3)}
-										</div>
-										<div>
-											<p class="font-semibold">{currency.ticker}</p>
-											<p class="text-xs text-muted-foreground">
-												{Number(currency.balance).toLocaleString('en-US', {
-													maximumFractionDigits: 6
-												})} disponibles
-											</p>
-										</div>
-									</div>
-
-									<div class="flex items-center gap-2">
-										<span class="mr-2 text-right text-lg font-semibold tabular-nums">
-											{Number(currency.balance).toLocaleString('en-US', {
-												maximumFractionDigits: 4
-											})}
-										</span>
-										<button
-											onclick={() =>
-												(faucetTarget = {
-													wallet_id: currency.wallet_id,
-													ticker: currency.ticker
-												})}
-											class="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-border/80 hover:text-foreground"
-										>
-											<ArrowDownToLine class="size-3.5" />
-											Recibir
-										</button>
-										<button
-											onclick={() =>
-												(transferTarget = {
-													sender_wallet_id: currency.wallet_id,
-													ticker: currency.ticker
-												})}
-											class="inline-flex items-center gap-1.5 rounded-xl bg-foreground px-3 py-1.5 text-xs font-semibold text-background shadow-sm transition hover:bg-foreground/85"
-										>
-											<Send class="size-3.5" />
-											Enviar
-										</button>
-									</div>
-								</div>
-							{/each}
-						</div>
-
-						<!-- Wallet footer -->
-						<div class="border-t border-border/40 bg-muted/20 px-5 py-3">
-							<button
-								class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
-							>
-								<Plus class="size-3.5" />
-								Agregar token
-							</button>
-						</div>
-					</div>
-				{/each}
-			{/if}
-		</section>
+				{/if}
+			</section>
+		{:else if activeProfileTab === 'settings'}
+			<div class="mt-6">
+				<NotificationPreferences />
+			</div>
+		{/if}
 
 		<!-- Account settings teaser -->
 		<section
