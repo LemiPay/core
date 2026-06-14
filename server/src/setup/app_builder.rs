@@ -7,10 +7,10 @@ use super::router::create_router;
 
 use crate::setup::{
     builders::{
-        auth::build_auth_service, balances::build_balances_service, expense::build_expense_service,
-        governance::build_governance_service, group::build_group_service,
-        investment::build_investment_service, treasury::build_treasury_service,
-        users::build_user_service,
+        auth::build_auth_service, balances::build_balances_service, email::build_email_service,
+        expense::build_expense_service, governance::build_governance_service,
+        group::build_group_service, investment::build_investment_service,
+        treasury::build_treasury_service, users::build_user_service,
     },
     state::AppState,
 };
@@ -98,8 +98,8 @@ pub fn build_app() -> Router {
     let governance_service = build_governance_service(
         governance_repo,
         group_repo.clone(),
-        user_repo,
-        user_wallet_repo,
+        user_repo.clone(),
+        user_wallet_repo.clone(),
     );
     let expense_service = build_expense_service(expense_repo.clone());
     let balances_service =
@@ -110,6 +110,15 @@ pub fn build_app() -> Router {
         group_wallet_repo,
         balances_service.clone(),
     );
+
+    let email_service = build_email_service();
+
+    let notification_service = Arc::new(crate::application::notifications::NotificationService {
+        notification_repo: notification_repo.clone(),
+        email_service: email_service.clone(),
+        group_repo: group_repo.clone(),
+        user_repo: user_repo.clone(),
+    });
 
     // -------------------------
     // 5. State
@@ -127,6 +136,8 @@ pub fn build_app() -> Router {
         balances_service,
         investment_service,
         notification_repo,
+        email_service,
+        notification_service,
     });
 
     // -------------------------

@@ -1,3 +1,4 @@
+use crate::domain::group::GroupId;
 use axum::{
     Json,
     extract::{Path, State},
@@ -52,6 +53,13 @@ pub async fn create_investment_proposal(
             payload.currency_id,
         )
         .map_err(AppError::from)?;
+
+    let group_name = "el grupo";
+    state
+        .notification_service
+        .notify_group_event("investment_created", GroupId(group_id), group_name)
+        .await;
+
     Ok(Json(item.into()))
 }
 
@@ -65,6 +73,13 @@ pub async fn execute_investment_proposal(
         .investment_service
         .execute_investment_proposal(user.user_id.0, group_id, payload.proposal_id)
         .map_err(AppError::from)?;
+
+    let group_name = "el grupo";
+    state
+        .notification_service
+        .notify_group_event("proposal_executed", GroupId(group_id), group_name)
+        .await;
+
     Ok(Json(item.into()))
 }
 

@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod balances;
+pub mod email;
 pub mod expense;
 pub mod governance;
 pub mod group;

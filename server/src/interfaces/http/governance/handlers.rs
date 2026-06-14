@@ -74,6 +74,14 @@ pub async fn create_new_member_proposal(
             payload.user_email,
         )
         .map_err(AppError::from)?;
+
+    // Fire observer for "proposal created" (email if user has the pref).
+    let group_name = "el grupo";
+    state
+        .notification_service
+        .notify_group_event("proposal_created", GroupId(group_id), group_name)
+        .await;
+
     Ok(Json(item.into()))
 }
 
@@ -101,6 +109,22 @@ pub async fn respond_new_member_proposal(
             "Warning: failed to initialize notification defaults for new member {} in group {}: {:?}",
             new_member_id, group_id, e
         );
+    }
+
+    // Fire the observer for email (prefs-checked).
+    // Web channel for proposals stays client-polled (NotificationDropdown etc.).
+    let group_name = "el grupo";
+    if payload.response {
+        state
+            .notification_service
+            .notify_group_event("proposal_approved", group_id, group_name)
+            .await;
+        // When actually joined (in auto-approve or after), we also fire new_member_added from the join path.
+    } else {
+        state
+            .notification_service
+            .notify_group_event("proposal_rejected", group_id, group_name)
+            .await;
     }
 
     Ok(Json(item.into()))
@@ -134,6 +158,13 @@ pub async fn create_withdraw_proposal(
             payload.currency_id,
         )
         .map_err(AppError::from)?;
+
+    let group_name = "el grupo";
+    state
+        .notification_service
+        .notify_group_event("proposal_created", GroupId(group_id), group_name)
+        .await;
+
     Ok(Json(item.into()))
 }
 
@@ -157,6 +188,13 @@ pub async fn execute_withdraw_proposal(
         .governance_service
         .find_proposal(payload.proposal_id)
         .map_err(AppError::from)?;
+
+    let group_name = "el grupo";
+    state
+        .notification_service
+        .notify_group_event("proposal_executed", GroupId(group_id), group_name)
+        .await;
+
     Ok(Json(proposal.into()))
 }
 
@@ -186,6 +224,13 @@ pub async fn create_fund_round_proposal(
             payload.currency_id,
         )
         .map_err(AppError::from)?;
+
+    let group_name = "el grupo";
+    state
+        .notification_service
+        .notify_group_event("fund_round_created", GroupId(group_id), group_name)
+        .await;
+
     Ok(Json(item.into()))
 }
 

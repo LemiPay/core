@@ -4,6 +4,7 @@ use crate::application::{
     treasury::TreasuryService, users::UserService,
 };
 use crate::infrastructure::db::repositories::notifications_repo_impl::DieselNotificationRepository;
+use crate::infrastructure::email::email_sender::EmailService;
 use std::sync::Arc;
 
 use super::config::AppConfig;
@@ -24,6 +25,8 @@ pub struct AppState {
     pub balances_service: BalancesService,
     pub investment_service: InvestmentService,
     pub notification_repo: Arc<DieselNotificationRepository>,
+    pub email_service: Arc<dyn EmailService>,
+    pub notification_service: Arc<crate::application::notifications::NotificationService>,
 }
 
 pub type SharedState = Arc<AppState>;

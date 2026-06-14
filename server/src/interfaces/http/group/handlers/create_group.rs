@@ -1,6 +1,7 @@
 use axum::{Json, extract::State};
 
 use crate::application::group::create_group::dto::CreateGroupInput;
+use crate::domain::group::GroupId;
 
 use crate::interfaces::http::{
     auth::extractor::AuthUser,
@@ -23,7 +24,7 @@ pub async fn create_group(
         .ok_or_else(|| AppError::BadRequest("Descripción requerida".into()))?;
 
     let input = CreateGroupInput {
-        name,
+        name: name.clone(),
         description,
         creator_id: user.user_id,
     };
@@ -33,6 +34,12 @@ pub async fn create_group(
         .create_group
         .execute(input)
         .map_err(AppError::from)?;
+
+    // Seed a notification for the creator (and any initial members) so email can fire if prefs allow.
+    state
+        .notification_service
+        .notify_group_event("new_member_added", GroupId(output.group_id.0), &name)
+        .await;
 
     Ok(Json(CreateGroupResponse {
         id: output.group_id.0,
