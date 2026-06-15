@@ -53,6 +53,11 @@ pub trait EmailService: Send + Sync {
         to: &Email,
         group_name: &str,
     ) -> Result<(), EmailServiceError>;
+    async fn send_investment_matured_email(
+        &self,
+        to: &Email,
+        group_name: &str,
+    ) -> Result<(), EmailServiceError>;
     async fn send_expense_created_email(
         &self,
         to: &Email,

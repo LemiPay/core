@@ -277,6 +277,7 @@ impl InvestmentService {
             return Ok(PulseResult {
                 updated: 0,
                 matured: 0,
+                matured_group_ids: Vec::new(),
             });
         }
 
@@ -284,6 +285,7 @@ impl InvestmentService {
         let now = Utc::now().naive_utc();
         let mut updated = 0;
         let mut matured = 0;
+        let mut matured_group_ids = Vec::new();
 
         for inv in &active {
             let snapshot_count = self
@@ -329,6 +331,7 @@ impl InvestmentService {
                     .map_err(|e| format!("Failed to insert snapshot: {:?}", e))?;
 
                 matured += 1;
+                matured_group_ids.push(inv.group_id);
             } else {
                 self.investment_repo
                     .update_current_value(inv.id, current_value.clone(), now)
@@ -344,7 +347,14 @@ impl InvestmentService {
             updated += 1;
         }
 
-        Ok(PulseResult { updated, matured })
+        matured_group_ids.sort_unstable();
+        matured_group_ids.dedup();
+
+        Ok(PulseResult {
+            updated,
+            matured,
+            matured_group_ids,
+        })
     }
 }
 

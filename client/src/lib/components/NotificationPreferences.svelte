@@ -39,7 +39,8 @@
 		proposal_executed: 'Propuesta ejecutada',
 		fund_round_created: 'Ronda de fondeo creada',
 		investment_created: 'Inversión creada',
-		new_member_added: 'Nuevo miembro agregado',
+		investment_matured: 'Inversión madurada',
+		new_member_added: 'Invitación a un grupo',
 		expense_created: 'Gasto creado'
 	};
 

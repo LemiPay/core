@@ -6,6 +6,7 @@ WHERE name IN (
     'proposal_rejected',
     'proposal_executed',
     'investment_created',
+    'investment_matured',
     'fund_round_created',
     'new_member_added',
     'expense_created'

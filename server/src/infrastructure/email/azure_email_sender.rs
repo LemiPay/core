@@ -267,17 +267,20 @@ impl EmailService for AzureEmailSender {
         group_name: &str,
     ) -> Result<(), EmailServiceError> {
         let template = EventNotificationTemplate {
-            email_title: "Nuevo miembro en el grupo",
-            heading: "Nuevo miembro en el grupo",
-            intro_text: &format!("Se agregó un nuevo miembro al grupo {}.", group_name),
+            email_title: "Invitación a un grupo",
+            heading: "Te invitaron a un grupo",
+            intro_text: &format!(
+                "Recibiste una invitación para unirte al grupo {}. Ingresá a LemiPay para aceptarla o rechazarla.",
+                group_name
+            ),
             detail_label: "Grupo",
             detail_value: group_name,
-            closing_text: "Revisa los miembros del grupo para conocer quién se sumó.",
+            closing_text: "Podés revisar la invitación desde las notificaciones de tu cuenta.",
         };
         let html = template.render().map_err(|_| EmailServiceError::Internal)?;
         let body = AzureWelcomeRequest {
             to: to.to_string(),
-            subject: format!("LemiPay: Nuevo miembro en {}", group_name),
+            subject: format!("LemiPay: Invitación al grupo {}", group_name),
             text: html,
         };
         self.send(to, &body);
@@ -330,6 +333,32 @@ impl EmailService for AzureEmailSender {
         let body = AzureWelcomeRequest {
             to: to.to_string(),
             subject: format!("LemiPay: Nueva inversión en {}", group_name),
+            text: html,
+        };
+        self.send(to, &body);
+        Ok(())
+    }
+
+    async fn send_investment_matured_email(
+        &self,
+        to: &Email,
+        group_name: &str,
+    ) -> Result<(), EmailServiceError> {
+        let template = EventNotificationTemplate {
+            email_title: "Inversión madurada",
+            heading: "Una inversión maduró",
+            intro_text: &format!(
+                "Una inversión del grupo {} alcanzó su fecha de maduración. Ya podés retirar los fondos.",
+                group_name
+            ),
+            detail_label: "Grupo",
+            detail_value: group_name,
+            closing_text: "Ingresá a LemiPay para revisar el rendimiento y retirar si corresponde.",
+        };
+        let html = template.render().map_err(|_| EmailServiceError::Internal)?;
+        let body = AzureWelcomeRequest {
+            to: to.to_string(),
+            subject: format!("LemiPay: Inversión madurada en {}", group_name),
             text: html,
         };
         self.send(to, &body);

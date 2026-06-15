@@ -75,10 +75,14 @@ pub async fn create_new_member_proposal(
         )
         .map_err(AppError::from)?;
 
-    // Fire observer for "proposal created" (email if user has the pref).
+    // Notify the invited user when the proposal is created, not when they accept/join.
     state
         .notification_service
-        .notify_group_event("proposal_created", GroupId(group_id))
+        .notify_user_event(
+            "new_member_added",
+            UserId(item.new_member_id),
+            GroupId(group_id),
+        )
         .await;
 
     Ok(Json(item.into()))
@@ -108,21 +112,6 @@ pub async fn respond_new_member_proposal(
             "Warning: failed to initialize notification defaults for new member {} in group {}: {:?}",
             new_member_id, group_id, e
         );
-    }
-
-    // Fire the observer for email (prefs-checked).
-    // Web channel for proposals stays client-polled (NotificationDropdown etc.).
-    if payload.response {
-        state
-            .notification_service
-            .notify_group_event("proposal_approved", group_id)
-            .await;
-        // When actually joined (in auto-approve or after), we also fire new_member_added from the join path.
-    } else {
-        state
-            .notification_service
-            .notify_group_event("proposal_rejected", group_id)
-            .await;
     }
 
     Ok(Json(item.into()))

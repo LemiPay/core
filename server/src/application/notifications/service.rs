@@ -18,7 +18,6 @@ pub struct NotificationService {
     pub notification_repo: Arc<dyn NotificationRepository>,
     pub email_service: Arc<dyn EmailService>,
     pub group_repo: Arc<dyn GroupRepository>,
-    #[allow(dead_code)]
     pub user_repo: Arc<dyn UserRepository>,
 }
 
@@ -32,6 +31,20 @@ impl NotificationService {
             eprintln!(
                 "notification dispatch error (non-fatal): {:?} for event {} in group {}",
                 e, event_name, group_id
+            );
+        }
+    }
+
+    /// Notify a specific user about a group-related event (e.g. an invitee who is not yet a member).
+    /// Only user-level preferences are checked because group-level prefs do not apply yet.
+    pub async fn notify_user_event(&self, event_name: &str, user_id: UserId, group_id: GroupId) {
+        if let Err(e) = self
+            .notify_user_event_inner(event_name, user_id, group_id)
+            .await
+        {
+            eprintln!(
+                "notification dispatch error (non-fatal): {:?} for event {} to user {} in group {}",
+                e, event_name, user_id, group_id
             );
         }
     }
@@ -123,6 +136,68 @@ impl NotificationService {
         Ok(())
     }
 
+    async fn notify_user_event_inner(
+        &self,
+        event_name: &str,
+        user_id: UserId,
+        group_id: GroupId,
+    ) -> Result<(), RepoError> {
+        let group_name = match self.group_repo.get_group_details(group_id)? {
+            Some(details) => details.name,
+            None => return Ok(()),
+        };
+
+        let user = match self.user_repo.find_by_id(&user_id)? {
+            Some(user) => user,
+            None => return Ok(()),
+        };
+
+        let events = self.notification_repo.get_events()?;
+        let event_id: Option<NotificationEventId> = events
+            .into_iter()
+            .find(|e| e.name == event_name)
+            .map(|e| e.id);
+
+        let Some(event_id) = event_id else {
+            return Ok(());
+        };
+
+        let channels = self.notification_repo.get_channels()?;
+        let email_channel_id = channels
+            .into_iter()
+            .find(|c| c.name == "email")
+            .map(|c| c.id);
+
+        let Some(email_channel_id) = email_channel_id else {
+            return Ok(());
+        };
+
+        let user_enabled = self
+            .notification_repo
+            .get_user_preferences(user_id)
+            .map(|prefs| {
+                prefs.iter().any(|p| {
+                    p.event_id == event_id && p.channel_id == email_channel_id && p.enabled
+                })
+            })
+            .unwrap_or(false);
+
+        if !user_enabled {
+            return Ok(());
+        }
+
+        let recipient = match user.email.parse() {
+            Ok(addr) => DomainEmail(addr),
+            Err(_) => return Ok(()),
+        };
+
+        let _ = self
+            .send_for_event(event_name, &recipient, &group_name)
+            .await;
+
+        Ok(())
+    }
+
     async fn send_for_event(
         &self,
         event_name: &str,
@@ -165,6 +240,11 @@ impl NotificationService {
             "investment_created" => {
                 self.email_service
                     .send_investment_created_email(to, group_name)
+                    .await
+            }
+            "investment_matured" => {
+                self.email_service
+                    .send_investment_matured_email(to, group_name)
                     .await
             }
             "expense_created" => {

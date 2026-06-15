@@ -16,6 +16,7 @@ use crate::setup::{
 };
 
 use crate::application::notifications::NotificationService;
+use crate::domain::group::GroupId;
 use crate::infrastructure::auth::web_3_auth::Web3Auth;
 use crate::setup::builders::settlements::build_settlements_service;
 use crate::{
@@ -171,6 +172,7 @@ pub fn build_app() -> Router {
     // 6. Background pulse scheduler — 1 pulse every 10s = 1 simulated day
     // -------------------------
     let pulse_svc = state.investment_service.clone();
+    let pulse_notifier = state.notification_service.clone();
 
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(10));
@@ -178,11 +180,18 @@ pub fn build_app() -> Router {
         loop {
             interval.tick().await;
             let svc = pulse_svc.clone();
+            let notifier = pulse_notifier.clone();
 
             match tokio::task::spawn_blocking(move || svc.process_pulse()).await {
                 Ok(Ok(res)) => {
                     if res.updated > 0 || res.matured > 0 {
                         println!("Pulse: {} updated, {} matured", res.updated, res.matured)
+                    }
+
+                    for group_id in res.matured_group_ids {
+                        notifier
+                            .notify_group_event("investment_matured", GroupId(group_id))
+                            .await;
                     }
                 }
                 Ok(Err(e)) => eprintln!("Pulse error: {}", e),

@@ -588,27 +588,35 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 .inner_join(schema::investment_proposal::table.on(
                     schema::investment::proposal_id.eq(schema::investment_proposal::proposal_id),
                 ))
+                .inner_join(
+                    schema::proposal::table
+                        .on(schema::investment_proposal::proposal_id.eq(schema::proposal::id)),
+                )
                 .inner_join(schema::investment_strategy::table.on(
                     schema::investment_proposal::strategy_id.eq(schema::investment_strategy::id),
                 ))
                 .select((
                     schema::investment::id,
+                    schema::proposal::group_id,
                     schema::investment::amount,
                     schema::investment_strategy::expected_return_percentage,
                     schema::investment_strategy::risk_level,
                     schema::investment_strategy::duration_days,
                 ))
-                .load::<(Uuid, BigDecimal, BigDecimal, String, i32)>(&mut conn)
+                .load::<(Uuid, Uuid, BigDecimal, BigDecimal, String, i32)>(&mut conn)
                 .map_err(|_| RepoError::Query)?;
         Ok(rows
             .into_iter()
-            .map(|(id, amount, pct, risk, days)| ActiveInvestmentDto {
-                id,
-                amount,
-                expected_return_percentage: pct,
-                risk_level: risk,
-                duration_days: days,
-            })
+            .map(
+                |(id, group_id, amount, pct, risk, days)| ActiveInvestmentDto {
+                    id,
+                    group_id,
+                    amount,
+                    expected_return_percentage: pct,
+                    risk_level: risk,
+                    duration_days: days,
+                },
+            )
             .collect())
     }
 
