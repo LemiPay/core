@@ -18,9 +18,11 @@
 
 	interface Props {
 		groupId?: string;
+		/** Oculta el encabezado interno cuando el componente va embebido en una página con su propio título. */
+		embedded?: boolean;
 	}
 
-	let { groupId }: Props = $props();
+	let { groupId, embedded = false }: Props = $props();
 
 	let loading = $state(true);
 	let error = $state('');
@@ -33,7 +35,7 @@
 	let enabledMap = $state<Record<string, boolean>>({});
 
 	const EVENT_LABELS: Record<string, string> = {
-		proposal_created: 'Nueva propuesta creada',
+		withdraw_proposal_created: 'Propuesta de retiro',
 		proposal_approved: 'Propuesta aprobada',
 		proposal_rejected: 'Propuesta rechazada',
 		proposal_executed: 'Propuesta ejecutada',
@@ -153,29 +155,42 @@
 </script>
 
 <div class="space-y-6">
-	<!-- Header -->
-	<div class="flex items-start gap-3">
-		<div
-			class="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl border border-border bg-muted/50 text-muted-foreground"
-		>
-			<Mail class="h-4 w-4" />
-		</div>
-		<div class="min-w-0 flex-1">
-			<div class="flex items-center gap-2">
-				<h3 class="text-base font-semibold tracking-tight text-foreground">
-					Preferencias de notificaciones
-				</h3>
-				<span
-					class="rounded-full border border-border bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-				>
-					{contextLabel}
-				</span>
+	{#if !embedded}
+		<!-- Header -->
+		<div class="flex items-start gap-3">
+			<div
+				class="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl border border-border bg-muted/50 text-muted-foreground"
+			>
+				<Mail class="h-4 w-4" />
 			</div>
-			<p class="mt-1 text-sm text-muted-foreground">
-				Elige qué notificaciones recibir y por qué medio. Los cambios se guardan automáticamente.
-			</p>
+			<div class="min-w-0 flex-1">
+				<div class="flex items-center gap-2">
+					<h3 class="text-base font-semibold tracking-tight text-foreground">
+						Preferencias de notificaciones
+					</h3>
+					<span
+						class="rounded-full border border-border bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+					>
+						{contextLabel}
+					</span>
+				</div>
+				<p class="mt-1 text-sm text-muted-foreground">
+					Elige qué notificaciones recibir y por qué medio. Los cambios se guardan automáticamente.
+				</p>
+			</div>
 		</div>
-	</div>
+	{:else if !isGroupMode}
+		<div class="flex items-center gap-2">
+			<h2 class="text-base font-semibold tracking-tight text-foreground">
+				Preferencias de notificaciones
+			</h2>
+			<span
+				class="rounded-full border border-border bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+			>
+				{contextLabel}
+			</span>
+		</div>
+	{/if}
 
 	{#if loading}
 		<div class="rounded-3xl border border-border bg-card p-8">

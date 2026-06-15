@@ -20,7 +20,13 @@ pub fn create_router(state: SharedState) -> Router {
         // Permitimos que el front en el puerto 5173 nos hable
         .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
         // HTTP Methods Permitidos
-        .allow_methods([Method::POST, Method::GET, Method::PUT, Method::DELETE])
+        .allow_methods([
+            Method::POST,
+            Method::GET,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+        ])
         // Headers Permitidos
         .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
 

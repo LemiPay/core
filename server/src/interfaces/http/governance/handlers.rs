@@ -148,7 +148,7 @@ pub async fn create_withdraw_proposal(
 
     state
         .notification_service
-        .notify_group_event("proposal_created", GroupId(group_id))
+        .notify_group_event("withdraw_proposal_created", GroupId(group_id))
         .await;
 
     Ok(Json(item.into()))

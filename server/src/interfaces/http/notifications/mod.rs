@@ -1,4 +1,7 @@
-use axum::{Router, middleware, routing::get};
+use axum::{
+    Router, middleware,
+    routing::{get, patch},
+};
 
 pub mod dto;
 pub mod handlers;
@@ -6,10 +9,16 @@ pub mod handlers;
 use crate::interfaces::http::middlewares::auth_middleware::auth_middleware;
 use crate::setup::state::SharedState;
 
-use handlers::{get_channels, get_events, get_my_preferences, upsert_my_preference};
+use handlers::{
+    get_channels, get_events, get_my_preferences, list_my_notifications,
+    mark_all_notifications_read, mark_notification_read, upsert_my_preference,
+};
 
 pub fn routes(state: SharedState) -> Router<SharedState> {
     let protected = Router::new()
+        .route("/", get(list_my_notifications))
+        .route("/read-all", patch(mark_all_notifications_read))
+        .route("/{notification_id}/read", patch(mark_notification_read))
         .route(
             "/preferences",
             get(get_my_preferences).post(upsert_my_preference),

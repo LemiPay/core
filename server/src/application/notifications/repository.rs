@@ -2,8 +2,9 @@ use crate::application::common::repo_error::RepoError;
 
 use crate::domain::{
     group::GroupId,
+    notification::types::NotificationRecordId,
     notification::{
-        GroupNotificationPreference, NotificationChannel, NotificationEvent,
+        GroupNotificationPreference, NotificationChannel, NotificationEvent, NotificationRecord,
         UserNotificationPreference,
     },
     user::UserId,
@@ -62,4 +63,23 @@ pub trait NotificationRepository: Send + Sync {
         user_id: UserId,
         group_id: GroupId,
     ) -> Result<(), RepoError>;
+
+    // =========================
+    // Persistent web notifications
+    // =========================
+
+    fn list_user_notifications(
+        &self,
+        user_id: UserId,
+        read_filter: Option<bool>,
+        limit: Option<i64>,
+    ) -> Result<Vec<NotificationRecord>, RepoError>;
+
+    fn mark_notification_read(
+        &self,
+        user_id: UserId,
+        notification_id: NotificationRecordId,
+    ) -> Result<bool, RepoError>;
+
+    fn mark_all_notifications_read(&self, user_id: UserId) -> Result<u64, RepoError>;
 }

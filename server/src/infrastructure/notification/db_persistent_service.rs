@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use diesel::RunQueryDsl;
 
 use crate::domain::group::GroupId;
@@ -69,7 +68,7 @@ impl PersistentNotificationService for DbPersistentNotificationService {
         self.insert(user_id, None, "login_alert", None)
     }
 
-    fn save_proposal_created(
+    fn save_withdraw_proposal_created(
         &self,
         user_id: UserId,
         group_id: GroupId,
@@ -78,7 +77,7 @@ impl PersistentNotificationService for DbPersistentNotificationService {
         self.insert(
             user_id,
             Some(group_id),
-            "proposal_created",
+            "withdraw_proposal_created",
             Some(group_name),
         )
     }
@@ -162,6 +161,20 @@ impl PersistentNotificationService for DbPersistentNotificationService {
             user_id,
             Some(group_id),
             "investment_created",
+            Some(group_name),
+        )
+    }
+
+    fn save_investment_matured(
+        &self,
+        user_id: UserId,
+        group_id: GroupId,
+        group_name: &str,
+    ) -> Result<(), PersistentNotificationError> {
+        self.insert(
+            user_id,
+            Some(group_id),
+            "investment_matured",
             Some(group_name),
         )
     }

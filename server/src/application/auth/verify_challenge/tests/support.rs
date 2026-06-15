@@ -9,8 +9,10 @@ use crate::application::notifications::repository::NotificationRepository;
 use crate::application::treasury::traits::user_wallet_repo::UserWalletRepository;
 use crate::application::users::traits::repository::UserRepository;
 use crate::domain::group::GroupId;
+use crate::domain::notification::types::NotificationRecordId;
 use crate::domain::notification::{
-    GroupNotificationPreference, NotificationChannel, NotificationEvent, UserNotificationPreference,
+    GroupNotificationPreference, NotificationChannel, NotificationEvent, NotificationRecord,
+    UserNotificationPreference,
 };
 use crate::domain::treasury::{CurrencyId, Money, UserWallet, UserWalletId};
 use crate::domain::user::{Email, User, UserId};
@@ -450,6 +452,27 @@ impl NotificationRepository for InMemoryNotificationRepo {
         _group_id: GroupId,
     ) -> Result<(), RepoError> {
         Ok(())
+    }
+
+    fn list_user_notifications(
+        &self,
+        _user_id: UserId,
+        _read_filter: Option<bool>,
+        _limit: Option<i64>,
+    ) -> Result<Vec<NotificationRecord>, RepoError> {
+        Ok(vec![])
+    }
+
+    fn mark_notification_read(
+        &self,
+        _user_id: UserId,
+        _notification_id: NotificationRecordId,
+    ) -> Result<bool, RepoError> {
+        Ok(false)
+    }
+
+    fn mark_all_notifications_read(&self, _user_id: UserId) -> Result<u64, RepoError> {
+        Ok(0)
     }
 }
 

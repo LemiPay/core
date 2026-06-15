@@ -6,8 +6,34 @@ import type {
 	NotificationChannel,
 	UserNotificationPreference,
 	GroupNotificationPreference,
-	UpsertPreferenceRequest
+	UpsertPreferenceRequest,
+	NotificationRecord,
+	GetNotificationsParams
 } from '$lib/types/endpoints/notifications.types';
+
+export async function getNotifications(
+	params?: GetNotificationsParams
+): ApiResponse<NotificationRecord[]> {
+	const search = new URLSearchParams();
+	if (params?.read !== undefined) search.set('read', String(params.read));
+	if (params?.limit !== undefined) search.set('limit', String(params.limit));
+	const query = search.toString();
+	return authedApiFetch(`/notifications${query ? `?${query}` : ''}`, { method: 'GET' });
+}
+
+export async function markNotificationRead(id: string): ApiResponse<void> {
+	return authedApiFetch(`/notifications/${id}/read`, {
+		method: 'PATCH',
+		body: JSON.stringify({})
+	});
+}
+
+export async function markAllNotificationsRead(): ApiResponse<void> {
+	return authedApiFetch('/notifications/read-all', {
+		method: 'PATCH',
+		body: JSON.stringify({})
+	});
+}
 
 export async function getNotificationEvents(): ApiResponse<NotificationEvent[]> {
 	return authedApiFetch('/notifications/events', { method: 'GET' });

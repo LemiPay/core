@@ -1,6 +1,6 @@
 -- Seed notification events (the ones previously commented + a couple practical ones)
 INSERT INTO notification_event (name)
-VALUES ('proposal_created'),
+VALUES ('withdraw_proposal_created'),
 --     ('proposal_approved'),
 --     ('proposal_rejected'),
        ('proposal_executed'),

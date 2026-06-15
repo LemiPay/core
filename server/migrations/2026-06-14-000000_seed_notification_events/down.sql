@@ -1,7 +1,7 @@
 -- Remove seeded events (only if no preferences reference them; safe for dev)
 DELETE FROM notification_event
 WHERE name IN (
-    'proposal_created',
+    'withdraw_proposal_created',
     'proposal_approved',
     'proposal_rejected',
     'proposal_executed',

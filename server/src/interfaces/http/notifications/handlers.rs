@@ -1,17 +1,18 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
 };
 use uuid::Uuid;
 
 use crate::application::notifications::repository::NotificationRepository;
 use crate::domain::group::GroupId;
+use crate::domain::notification::types::NotificationRecordId;
 use crate::domain::notification::{GroupNotificationPreference, UserNotificationPreference};
 use crate::interfaces::http::auth::extractor::AuthUser;
 use crate::interfaces::http::error::AppError;
 use crate::interfaces::http::notifications::dto::{
-    ChannelResponse, EventResponse, GroupPreferenceResponse, PreferenceResponse,
-    UpsertPreferenceRequest,
+    ChannelResponse, EventResponse, GroupPreferenceResponse, ListNotificationsQuery,
+    NotificationRecordResponse, PreferenceResponse, UpsertPreferenceRequest,
 };
 use crate::setup::state::SharedState;
 
@@ -51,6 +52,64 @@ pub async fn get_channels(
         })
         .collect();
     Ok(Json(resp))
+}
+
+// =========================
+// Persistent web notifications
+// =========================
+
+pub async fn list_my_notifications(
+    State(state): State<SharedState>,
+    user: AuthUser,
+    Query(query): Query<ListNotificationsQuery>,
+) -> Result<Json<Vec<NotificationRecordResponse>>, AppError> {
+    let records = state
+        .notification_repo
+        .list_user_notifications(user.user_id, query.read, query.limit)
+        .map_err(|_| AppError::Internal)?;
+
+    let body = records
+        .into_iter()
+        .map(|record| NotificationRecordResponse {
+            id: record.id.to_string(),
+            event_name: record.event_name,
+            group_id: record.group_id.map(|id| id.to_string()),
+            group_name: record.group_name,
+            read: record.read,
+            created_at: record.created_at.format("%Y-%m-%dT%H:%M:%S").to_string(),
+        })
+        .collect();
+
+    Ok(Json(body))
+}
+
+pub async fn mark_notification_read(
+    State(state): State<SharedState>,
+    user: AuthUser,
+    Path(notification_id): Path<Uuid>,
+) -> Result<Json<()>, AppError> {
+    let updated = state
+        .notification_repo
+        .mark_notification_read(user.user_id, NotificationRecordId(notification_id))
+        .map_err(|_| AppError::Internal)?;
+
+    if !updated {
+        return Err(AppError::NotFound);
+    }
+
+    Ok(Json(()))
+}
+
+pub async fn mark_all_notifications_read(
+    State(state): State<SharedState>,
+    user: AuthUser,
+) -> Result<Json<()>, AppError> {
+    state
+        .notification_repo
+        .mark_all_notifications_read(user.user_id)
+        .map_err(|_| AppError::Internal)?;
+
+    Ok(Json(()))
 }
 
 // =========================

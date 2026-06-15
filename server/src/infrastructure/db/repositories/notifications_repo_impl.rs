@@ -6,8 +6,9 @@ use crate::application::{
 
 use crate::domain::{
     group::GroupId,
+    notification::types::NotificationRecordId,
     notification::{
-        GroupNotificationPreference, NotificationChannel, NotificationEvent,
+        GroupNotificationPreference, NotificationChannel, NotificationEvent, NotificationRecord,
         UserNotificationPreference,
     },
     user::UserId,
@@ -15,7 +16,7 @@ use crate::domain::{
 
 use crate::infrastructure::db::models::notifications::{
     GroupNotificationPreferenceModel, NewGroupNotificationPreference,
-    NewUserNotificationPreference, UserNotificationPreferenceModel,
+    NewUserNotificationPreference, NotificationRecordModel, UserNotificationPreferenceModel,
 };
 use crate::infrastructure::db::{
     models::notifications::{NotificationChannelModel, NotificationEventModel},
@@ -217,6 +218,70 @@ impl NotificationRepository for DieselNotificationRepository {
         }
 
         Ok(())
+    }
+
+    fn list_user_notifications(
+        &self,
+        user_id: UserId,
+        read_filter: Option<bool>,
+        limit: Option<i64>,
+    ) -> Result<Vec<NotificationRecord>, RepoError> {
+        let mut conn = self.get_conn()?;
+
+        let mut query = schema::notification::table
+            .filter(schema::notification::user_id.eq(user_id.0))
+            .order(schema::notification::created_at.desc())
+            .select(NotificationRecordModel::as_select())
+            .into_boxed();
+
+        if let Some(read) = read_filter {
+            query = query.filter(schema::notification::read.eq(read));
+        }
+
+        if let Some(limit) = limit {
+            query = query.limit(limit);
+        }
+
+        let rows = query
+            .load::<NotificationRecordModel>(&mut conn)
+            .map_err(|_| RepoError::Query)?;
+
+        Ok(rows.into_iter().map(NotificationRecord::from).collect())
+    }
+
+    fn mark_notification_read(
+        &self,
+        user_id: UserId,
+        notification_id: NotificationRecordId,
+    ) -> Result<bool, RepoError> {
+        let mut conn = self.get_conn()?;
+
+        let updated = diesel::update(
+            schema::notification::table
+                .filter(schema::notification::id.eq(notification_id.0))
+                .filter(schema::notification::user_id.eq(user_id.0))
+                .filter(schema::notification::read.eq(false)),
+        )
+        .set(schema::notification::read.eq(true))
+        .execute(&mut conn)
+        .map_err(|_| RepoError::Query)?;
+
+        Ok(updated > 0)
+    }
+
+    fn mark_all_notifications_read(&self, user_id: UserId) -> Result<u64, RepoError> {
+        let mut conn = self.get_conn()?;
+
+        let updated = diesel::update(
+            schema::notification::table
+                .filter(schema::notification::user_id.eq(user_id.0))
+                .filter(schema::notification::read.eq(false)),
+        )
+        .set(schema::notification::read.eq(true))
+        .execute(&mut conn)
+        .map_err(|_| RepoError::Query)?;
+
+        Ok(updated as u64)
     }
 }
 

@@ -28,3 +28,17 @@ export type UpsertPreferenceRequest = {
 	channel_id: string;
 	enabled: boolean;
 };
+
+export type NotificationRecord = {
+	id: string;
+	event_name: string;
+	group_id: string | null;
+	group_name: string | null;
+	read: boolean;
+	created_at: string;
+};
+
+export type GetNotificationsParams = {
+	read?: boolean;
+	limit?: number;
+};

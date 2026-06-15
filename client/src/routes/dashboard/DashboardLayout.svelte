@@ -11,7 +11,15 @@
 	import AsideMenu from './AsideMenu.svelte';
 	import { page } from '$app/state';
 
-	import { Activity, LayoutDashboard, Landmark, ReceiptText, Settings, Users } from 'lucide-svelte';
+	import {
+		Activity,
+		BellRing,
+		LayoutDashboard,
+		Landmark,
+		ReceiptText,
+		Settings,
+		Users
+	} from 'lucide-svelte';
 
 	const baseSidebarItems: {
 		label: string;
@@ -19,6 +27,7 @@
 		link: string;
 	}[] = [
 		{ label: 'Dashboard', icon: LayoutDashboard, link: '/dashboard' },
+		{ label: 'Actividad', icon: BellRing, link: '/dashboard/activity' },
 		{ label: 'Grupos', icon: Users, link: '/dashboard/groups' },
 		{ label: 'Expenses', icon: ReceiptText, link: '/dashboard/expenses' },
 		{ label: 'Governance', icon: Activity, link: '/dashboard/governance' },

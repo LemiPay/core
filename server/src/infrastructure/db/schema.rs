@@ -151,19 +151,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::GroupRole;
-
-    group_permission (group_id, role, action) {
-        group_id -> Uuid,
-        role -> GroupRole,
-        #[max_length = 50]
-        action -> Varchar,
-        created_at -> Timestamp,
-    }
-}
-
-diesel::table! {
     group_wallet (id) {
         id -> Uuid,
         address -> Text,
@@ -394,7 +381,6 @@ diesel::joinable!(group_notification_preference -> group (group_id));
 diesel::joinable!(group_notification_preference -> notification_channel (channel_id));
 diesel::joinable!(group_notification_preference -> notification_event (event_id));
 diesel::joinable!(group_notification_preference -> user (user_id));
-diesel::joinable!(group_permission -> group (group_id));
 diesel::joinable!(group_wallet -> currency (currency_id));
 diesel::joinable!(group_wallet -> group (group_id));
 diesel::joinable!(investment -> investment_proposal (proposal_id));
@@ -437,7 +423,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     fund_round_proposal,
     group,
     group_notification_preference,
-    group_permission,
     group_wallet,
     investment,
     investment_member,

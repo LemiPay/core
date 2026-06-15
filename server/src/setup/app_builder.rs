@@ -18,6 +18,7 @@ use crate::setup::{
 use crate::application::notifications::NotificationService;
 use crate::domain::group::GroupId;
 use crate::infrastructure::auth::web_3_auth::Web3Auth;
+use crate::infrastructure::notification::db_persistent_service::DbPersistentNotificationService;
 use crate::setup::builders::settlements::build_settlements_service;
 use crate::{
     application::startup::live_sync::LiveSyncService,
@@ -136,10 +137,13 @@ pub fn build_app() -> Router {
     let fund_event_repo = Arc::new(DieselFundEventRepository::new(pool.clone()));
 
     let email_service = build_email_service();
+    let persistent_notification_service =
+        Arc::new(DbPersistentNotificationService::new(pool.clone()));
 
     let notification_service = NotificationService {
         notification_repo: notification_repo.clone(),
         email_service: email_service.clone(),
+        persistent_notification_service,
         group_repo: group_repo.clone(),
         user_repo: user_repo.clone(),
     };

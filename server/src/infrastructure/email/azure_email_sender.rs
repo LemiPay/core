@@ -163,16 +163,16 @@ impl EmailService for AzureEmailSender {
 
     // --- Business notifications using the reusable template.html ---
 
-    async fn send_proposal_created_email(
+    async fn send_withdraw_proposal_created_email(
         &self,
         to: &Email,
         group_name: &str,
     ) -> Result<(), EmailServiceError> {
         let template = EventNotificationTemplate {
-            email_title: "Nueva propuesta en LemiPay",
-            heading: "Nueva propuesta creada",
+            email_title: "Propuesta de retiro en LemiPay",
+            heading: "Propuesta de retiro creada",
             intro_text: &format!(
-                "Se creó una nueva propuesta en el grupo {}. Revisa los detalles y vota si es necesario.",
+                "Se creó una propuesta de retiro en el grupo {}. Revisa los detalles y vota si es necesario.",
                 group_name
             ),
             detail_label: "Grupo",
@@ -182,7 +182,7 @@ impl EmailService for AzureEmailSender {
         let html = template.render().map_err(|_| EmailServiceError::Internal)?;
         let body = AzureWelcomeRequest {
             to: to.to_string(),
-            subject: format!("LemiPay: Nueva propuesta en {}", group_name),
+            subject: format!("LemiPay: Propuesta de retiro en {}", group_name),
             text: html,
         };
         self.send(to, &body);

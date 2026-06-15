@@ -1,5 +1,3 @@
-use async_trait::async_trait;
-
 use crate::domain::group::GroupId;
 use crate::domain::user::UserId;
 
@@ -25,7 +23,7 @@ pub trait PersistentNotificationService: Send + Sync {
     ) -> Result<(), PersistentNotificationError>;
 
     // Business event notifications
-    fn save_proposal_created(
+    fn save_withdraw_proposal_created(
         &self,
         user_id: UserId,
         group_id: GroupId,
@@ -68,6 +66,13 @@ pub trait PersistentNotificationService: Send + Sync {
     ) -> Result<(), PersistentNotificationError>;
 
     fn save_investment_created(
+        &self,
+        user_id: UserId,
+        group_id: GroupId,
+        group_name: &str,
+    ) -> Result<(), PersistentNotificationError>;
+
+    fn save_investment_matured(
         &self,
         user_id: UserId,
         group_id: GroupId,

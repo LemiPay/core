@@ -1,7 +1,12 @@
-use crate::domain::notification::types::{NotificationChannelId, NotificationEventId};
-use crate::domain::notification::{
-    GroupNotificationPreference, NotificationChannel, NotificationEvent, UserNotificationPreference,
+use crate::domain::group::GroupId;
+use crate::domain::notification::types::{
+    NotificationChannelId, NotificationEventId, NotificationRecordId,
 };
+use crate::domain::notification::{
+    GroupNotificationPreference, NotificationChannel, NotificationEvent, NotificationRecord,
+    UserNotificationPreference,
+};
+use crate::domain::user::UserId;
 use crate::infrastructure::db::schema;
 use diesel::prelude::*;
 use uuid::Uuid;
@@ -205,4 +210,18 @@ pub struct NewNotificationRecord {
     pub event_name: String,
     pub group_name: Option<String>,
     pub read: bool,
+}
+
+impl From<NotificationRecordModel> for NotificationRecord {
+    fn from(value: NotificationRecordModel) -> Self {
+        Self {
+            id: NotificationRecordId::from(value.id),
+            user_id: UserId::from(value.user_id),
+            group_id: value.group_id.map(GroupId::from),
+            event_name: value.event_name,
+            group_name: value.group_name,
+            read: value.read,
+            created_at: value.created_at,
+        }
+    }
 }
