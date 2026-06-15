@@ -10,10 +10,7 @@ use crate::{
             get_expenses, update_expense,
         },
         middlewares::{
-            auth_middleware::auth_middleware,
-            group_guard_middleware::{
-                is_group_admin_for_resource_middleware, is_in_group_middleware,
-            },
+            auth_middleware::auth_middleware, group_guard_middleware::is_in_group_middleware,
         },
     },
     setup::state::SharedState,
@@ -44,7 +41,7 @@ pub fn routes(state: SharedState) -> Router<SharedState> {
                 .delete(admin_delete_expense)
                 .route_layer(middleware::from_fn_with_state(
                     state.clone(),
-                    is_group_admin_for_resource_middleware,
+                    is_in_group_middleware,
                 )),
         )
         .route(

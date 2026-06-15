@@ -1,3 +1,4 @@
+use crate::domain::permission::action::Action;
 use axum::{
     Json,
     extract::{Path, State},
@@ -15,6 +16,11 @@ pub async fn delete_group(
     user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<Json<GroupResponse>, AppError> {
+    state
+        .permission_service
+        .check_allowed(user.user_id, GroupId(id), &Action::DeleteGroup)
+        .map_err(AppError::from)?;
+
     let group = state
         .group_service
         .delete_group

@@ -4,8 +4,7 @@ use axum::{
 };
 
 use crate::interfaces::http::middlewares::{
-    auth_middleware::auth_middleware,
-    group_guard_middleware::{is_group_admin_middleware, is_in_group_middleware},
+    auth_middleware::auth_middleware, group_guard_middleware::is_in_group_middleware,
 };
 use crate::setup::state::SharedState;
 
@@ -50,7 +49,7 @@ pub fn routes(state: SharedState) -> Router<SharedState> {
             "/{group_id}",
             delete(delete_proposal).route_layer(middleware::from_fn_with_state(
                 state.clone(),
-                is_group_admin_middleware,
+                is_in_group_middleware,
             )),
         )
         .route("/respond/{proposal_id}", put(respond_new_member_proposal))
@@ -72,7 +71,7 @@ pub fn routes(state: SharedState) -> Router<SharedState> {
             "/fund-round/create/{group_id}",
             post(create_fund_round_proposal).route_layer(middleware::from_fn_with_state(
                 state.clone(),
-                is_group_admin_middleware,
+                is_in_group_middleware,
             )),
         )
         .route(

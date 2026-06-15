@@ -1,3 +1,4 @@
+use crate::domain::permission::action::Action;
 use axum::{
     Json,
     extract::{Path, State},
@@ -16,6 +17,11 @@ pub async fn enter_debt_resolution(
     user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<Json<GroupResponse>, AppError> {
+    state
+        .permission_service
+        .check_allowed(user.user_id, GroupId(id), &Action::EnterDebtResolution)
+        .map_err(AppError::from)?;
+
     let output = state
         .group_service
         .enter_debt_resolution

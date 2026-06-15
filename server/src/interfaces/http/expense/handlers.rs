@@ -1,3 +1,5 @@
+use crate::domain::group::GroupId;
+use crate::domain::permission::action::Action;
 use axum::{
     Json,
     extract::{Path, State},
@@ -81,8 +83,14 @@ pub async fn update_expense(
 pub async fn admin_update_expense(
     State(state): State<SharedState>,
     Path((group_id, expense_id)): Path<(Uuid, Uuid)>,
+    user: AuthUser,
     Json(payload): Json<UpdateExpenseRequest>,
 ) -> Result<Json<ExpenseResponse>, AppError> {
+    state
+        .permission_service
+        .check_allowed(user.user_id, GroupId(group_id), &Action::ManageAnyExpense)
+        .map_err(AppError::from)?;
+
     let item = state
         .expense_service
         .update_as_admin(
@@ -121,7 +129,13 @@ pub async fn delete_expense(
 pub async fn admin_delete_expense(
     State(state): State<SharedState>,
     Path((group_id, expense_id)): Path<(Uuid, Uuid)>,
+    user: AuthUser,
 ) -> Result<Json<ExpenseResponse>, AppError> {
+    state
+        .permission_service
+        .check_allowed(user.user_id, GroupId(group_id), &Action::ManageAnyExpense)
+        .map_err(AppError::from)?;
+
     let item = state
         .expense_service
         .delete_as_admin(group_id, expense_id)

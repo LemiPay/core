@@ -52,7 +52,7 @@ pub fn routes(state: SharedState) -> Router<SharedState> {
             "/{id}/debt-resolution",
             post(enter_debt_resolution).route_layer(middleware::from_fn_with_state(
                 state.clone(),
-                is_group_admin_middleware,
+                is_in_group_middleware,
             )),
         )
         .route(

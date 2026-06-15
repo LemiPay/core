@@ -96,8 +96,14 @@ pub async fn respond_new_member_proposal(
 pub async fn delete_proposal(
     State(state): State<SharedState>,
     Path(group_id): Path<Uuid>,
+    user: AuthUser,
     Query(params): Query<ProposalParams>,
 ) -> Result<Json<ProposalResponse>, AppError> {
+    state
+        .permission_service
+        .check_allowed(user.user_id, GroupId(group_id), &Action::CancelProposal)
+        .map_err(AppError::from)?;
+
     let item = state
         .governance_service
         .cancel_proposal(params.proposal_id, group_id)
@@ -164,6 +170,11 @@ pub async fn create_fund_round_proposal(
     Path(group_id): Path<Uuid>,
     Json(payload): Json<CreateFundRoundRequest>,
 ) -> Result<Json<FundRoundProposalResponse>, AppError> {
+    state
+        .permission_service
+        .check_allowed(user.user_id, GroupId(group_id), &Action::CreateFundRound)
+        .map_err(AppError::from)?;
+
     let item = state
         .governance_service
         .create_fund_round_proposal(
