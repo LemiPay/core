@@ -52,15 +52,15 @@
 <div class="flex min-h-[calc(100vh-64px)] flex-col items-center px-4 pt-16">
 	{#if loadingInit}
 		<div
-			class="mt-20 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-black"
+			class="mt-20 h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground"
 		></div>
 	{:else if detailState.detailError}
 		<div class="mt-20 space-y-4 text-center">
-			<h1 class="text-2xl font-bold tracking-tight text-black">Error</h1>
-			<p class="text-sm text-gray-500">{detailState.detailError}</p>
+			<h1 class="text-2xl font-bold tracking-tight text-foreground">Error</h1>
+			<p class="text-sm text-muted-foreground">{detailState.detailError}</p>
 			<a
 				href={`/groups/${groupId}/investments`}
-				class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-400 transition hover:text-black"
+				class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
 			>
 				<ArrowLeft class="h-4 w-4" /> Volver a inversiones
 			</a>
@@ -72,7 +72,7 @@
 
 		<div class="w-full max-w-4xl pt-8 pb-6">
 			<div class="flex items-center gap-3">
-				<h1 class="text-2xl font-bold tracking-tight text-black">{inv.strategy_name}</h1>
+				<h1 class="text-2xl font-bold tracking-tight text-foreground">{inv.strategy_name}</h1>
 				<span class="rounded-full border px-2.5 py-0.5 text-xs font-medium {risk.bg} {risk.color}">
 					{risk.label}
 				</span>
@@ -81,18 +81,18 @@
 
 		<div class="w-full max-w-4xl space-y-8 pb-16">
 			<div class="grid gap-4 sm:grid-cols-3">
-				<div class="rounded-xl border border-gray-200 bg-white p-5">
-					<p class="mb-1 text-[11px] font-medium tracking-wider text-gray-400 uppercase">
+				<div class="rounded-xl border border-border bg-card p-5">
+					<p class="mb-1 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
 						Invertido
 					</p>
-					<p class="text-2xl font-bold text-black">
+					<p class="text-2xl font-bold text-foreground">
 						${formatAmount(detailState.investedAmount)}
 						{currency}
 					</p>
 				</div>
 
-				<div class="rounded-xl border border-gray-200 bg-white p-5">
-					<p class="mb-1 text-[11px] font-medium tracking-wider text-gray-400 uppercase">
+				<div class="rounded-xl border border-border bg-card p-5">
+					<p class="mb-1 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
 						Valor actual
 					</p>
 					<p
@@ -113,9 +113,11 @@
 					</p>
 				</div>
 
-				<div class="rounded-xl border border-gray-200 bg-white p-5">
-					<p class="mb-1 text-[11px] font-medium tracking-wider text-gray-400 uppercase">Estado</p>
-					<p class="flex items-center gap-1.5 text-2xl font-bold text-black">
+				<div class="rounded-xl border border-border bg-card p-5">
+					<p class="mb-1 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+						Estado
+					</p>
+					<p class="flex items-center gap-1.5 text-2xl font-bold text-foreground">
 						{#if inv.status === 'active'}
 							<Rocket class="h-5 w-5 text-blue-600" />
 							<span class="text-base font-medium">Activa</span>
@@ -123,28 +125,28 @@
 							<Check class="h-5 w-5 text-emerald-600" />
 							<span class="text-base font-medium text-emerald-700">Finalizada</span>
 						{:else}
-							<Clock class="h-5 w-5 text-gray-600" />
-							<span class="text-base font-medium text-gray-600">Retirada</span>
+							<Clock class="h-5 w-5 text-muted-foreground" />
+							<span class="text-base font-medium text-muted-foreground">Retirada</span>
 						{/if}
 					</p>
 				</div>
 			</div>
 
 			<div class="grid gap-4 sm:grid-cols-2">
-				<div class="rounded-xl border border-gray-200 bg-white p-5">
-					<p class="mb-1 text-[11px] font-medium tracking-wider text-gray-400 uppercase">
+				<div class="rounded-xl border border-border bg-card p-5">
+					<p class="mb-1 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
 						Retorno esperado
 					</p>
 					<p class="flex items-center gap-1.5 text-lg font-bold text-emerald-700">
 						+{inv.expected_return_percentage}%
 					</p>
 				</div>
-				<div class="rounded-xl border border-gray-200 bg-white p-5">
-					<p class="mb-1 text-[11px] font-medium tracking-wider text-gray-400 uppercase">
+				<div class="rounded-xl border border-border bg-card p-5">
+					<p class="mb-1 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
 						Fecha inicio
 					</p>
-					<p class="flex items-center gap-1.5 text-lg font-bold text-black">
-						<Calendar class="h-4 w-4 text-gray-500" />
+					<p class="flex items-center gap-1.5 text-lg font-bold text-foreground">
+						<Calendar class="h-4 w-4 text-muted-foreground" />
 						{formatDate(inv.started_at)}
 					</p>
 				</div>
@@ -164,12 +166,12 @@
 				{@const areaPath = `${linePath} L ${points[points.length - 1].x} ${baselineY} L ${points[0].x} ${baselineY} Z`}
 
 				<section class="space-y-4">
-					<h2 class="flex items-center gap-2 text-sm font-medium text-black">
-						<BarChart3 class="h-4 w-4 text-gray-600" />
+					<h2 class="flex items-center gap-2 text-sm font-medium text-foreground">
+						<BarChart3 class="h-4 w-4 text-muted-foreground" />
 						Evolución del valor
 					</h2>
 
-					<div class="rounded-xl border border-gray-200 bg-white p-6">
+					<div class="rounded-xl border border-border bg-card p-6">
 						<svg
 							viewBox="0 0 {W} {H}"
 							class="w-full"
@@ -232,12 +234,12 @@
 							/>
 						</svg>
 
-						<div class="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
-							<p class="text-xs text-gray-500">
-								Base: <span class="font-medium text-black">${formatAmount(baseline)}</span>
+						<div class="mt-3 flex items-center justify-between border-t border-border pt-3">
+							<p class="text-xs text-muted-foreground">
+								Base: <span class="font-medium text-foreground">${formatAmount(baseline)}</span>
 							</p>
-							<p class="text-xs text-gray-500">
-								Actual: <span class="font-medium text-black"
+							<p class="text-xs text-muted-foreground">
+								Actual: <span class="font-medium text-foreground"
 									>${formatAmount(detailState.currentValue)}</span
 								>
 							</p>
@@ -247,36 +249,34 @@
 			{/if}
 
 			<section class="space-y-3">
-				<h2 class="flex items-center gap-2 text-sm font-medium text-black">
-					<Info class="h-4 w-4 text-gray-600" />
+				<h2 class="flex items-center gap-2 text-sm font-medium text-foreground">
+					<Info class="h-4 w-4 text-muted-foreground" />
 					Detalles
 				</h2>
-				<div
-					class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white"
-				>
+				<div class="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
 					<div class="flex items-center justify-between px-4 py-3 text-sm">
-						<span class="text-gray-500">Estrategia</span>
-						<span class="font-medium text-black">{inv.strategy_name}</span>
+						<span class="text-muted-foreground">Estrategia</span>
+						<span class="font-medium text-foreground">{inv.strategy_name}</span>
 					</div>
 					<div class="flex items-center justify-between px-4 py-3 text-sm">
-						<span class="text-gray-500">Riesgo</span>
+						<span class="text-muted-foreground">Riesgo</span>
 						<span class="font-medium {risk.color}">{risk.label}</span>
 					</div>
 					<div class="flex items-center justify-between px-4 py-3 text-sm">
-						<span class="text-gray-500">Retorno esperado</span>
+						<span class="text-muted-foreground">Retorno esperado</span>
 						<span class="font-medium text-emerald-700">+{inv.expected_return_percentage}%</span>
 					</div>
 					<div class="flex items-center justify-between px-4 py-3 text-sm">
-						<span class="text-gray-500">Moneda</span>
-						<span class="font-medium text-black">{currency}</span>
+						<span class="text-muted-foreground">Moneda</span>
+						<span class="font-medium text-foreground">{currency}</span>
 					</div>
 					<div class="flex items-center justify-between px-4 py-3 text-sm">
-						<span class="text-gray-500">Iniciada</span>
-						<span class="text-black">{formatDate(inv.started_at)}</span>
+						<span class="text-muted-foreground">Iniciada</span>
+						<span class="text-foreground">{formatDate(inv.started_at)}</span>
 					</div>
 					{#if inv.actual_return}
 						<div class="flex items-center justify-between px-4 py-3 text-sm">
-							<span class="text-gray-500">Retorno generado</span>
+							<span class="text-muted-foreground">Retorno generado</span>
 							<span class="font-medium text-emerald-700">
 								+${formatAmount(detailState.actualReturn)}
 								{currency}
@@ -290,7 +290,7 @@
 		<div class="w-full max-w-4xl pb-10">
 			<a
 				href={`/groups/${groupId}/investments`}
-				class="text-sm font-medium text-gray-400 transition hover:text-black hover:underline"
+				class="text-sm font-medium text-muted-foreground transition hover:text-foreground hover:underline"
 			>
 				← Volver a inversiones
 			</a>
