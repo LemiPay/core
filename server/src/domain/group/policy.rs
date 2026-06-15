@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use bigdecimal::{BigDecimal, Zero};
+use bigdecimal::BigDecimal;
 
 use crate::domain::balances::BalancesMap;
 use crate::domain::group::GroupStatus;

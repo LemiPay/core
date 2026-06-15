@@ -11,8 +11,8 @@ use axum::{
 use tower_http::cors::CorsLayer;
 
 use crate::interfaces::http::{
-    auth, blockchain_event, core, expense, governance, group, group_wallet, investment, permission,
-    transaction, users, wallet,
+    auth, blockchain_event, core, expense, governance, group, group_wallet, investment,
+    notifications, permission, transaction, users, wallet,
 };
 
 pub fn create_router(state: SharedState) -> Router {
@@ -20,7 +20,13 @@ pub fn create_router(state: SharedState) -> Router {
         // Permitimos que el front en el puerto 5173 nos hable
         .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
         // HTTP Methods Permitidos
-        .allow_methods([Method::POST, Method::GET, Method::PUT, Method::DELETE])
+        .allow_methods([
+            Method::POST,
+            Method::GET,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+        ])
         // Headers Permitidos
         .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
 
@@ -36,6 +42,7 @@ pub fn create_router(state: SharedState) -> Router {
         .nest("/investment", investment::routes(state.clone()))
         .nest("/permission", permission::routes(state.clone()))
         .nest("/transaction", transaction::routes(state.clone()))
+        .nest("/notifications", notifications::routes(state.clone()))
         .nest("/blockchain-event", blockchain_event::routes(state.clone()))
         .layer(cors)
         .with_state(state)

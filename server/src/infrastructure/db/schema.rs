@@ -141,6 +141,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    group_notification_preference (user_id, group_id, event_id, channel_id) {
+        user_id -> Uuid,
+        group_id -> Uuid,
+        event_id -> Uuid,
+        channel_id -> Uuid,
+        enabled -> Bool,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::GroupRole;
 
@@ -236,6 +246,32 @@ diesel::table! {
 }
 
 diesel::table! {
+    notification (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        group_id -> Nullable<Uuid>,
+        event_name -> Text,
+        group_name -> Nullable<Text>,
+        read -> Bool,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    notification_channel (id) {
+        id -> Uuid,
+        name -> Text,
+    }
+}
+
+diesel::table! {
+    notification_event (id) {
+        id -> Uuid,
+        name -> Text,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::ProposalStatus;
 
@@ -303,6 +339,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    user_notification_preference (user_id, event_id, channel_id) {
+        user_id -> Uuid,
+        event_id -> Uuid,
+        channel_id -> Uuid,
+        enabled -> Bool,
+    }
+}
+
+diesel::table! {
     user_wallet (id) {
         id -> Uuid,
         address -> Text,
@@ -346,6 +391,10 @@ diesel::joinable!(fund_round_contribution -> user (user_id));
 diesel::joinable!(fund_round_proposal -> currency (currency_id));
 diesel::joinable!(fund_round_proposal -> proposal (proposal_id));
 diesel::joinable!(group_permission -> group (group_id));
+diesel::joinable!(group_notification_preference -> group (group_id));
+diesel::joinable!(group_notification_preference -> notification_channel (channel_id));
+diesel::joinable!(group_notification_preference -> notification_event (event_id));
+diesel::joinable!(group_notification_preference -> user (user_id));
 diesel::joinable!(group_wallet -> currency (currency_id));
 diesel::joinable!(group_wallet -> group (group_id));
 diesel::joinable!(investment -> investment_proposal (proposal_id));
@@ -357,6 +406,8 @@ diesel::joinable!(investment_proposal -> proposal (proposal_id));
 diesel::joinable!(investment_value_snapshot -> investment (investment_id));
 diesel::joinable!(new_member_proposal -> proposal (proposal_id));
 diesel::joinable!(new_member_proposal -> user (new_member_id));
+diesel::joinable!(notification -> group (group_id));
+diesel::joinable!(notification -> user (user_id));
 diesel::joinable!(proposal -> group (group_id));
 diesel::joinable!(proposal -> user (created_by));
 diesel::joinable!(transaction -> currency (currency_id));
@@ -366,6 +417,9 @@ diesel::joinable!(transaction_participant -> transaction (transaction_id));
 diesel::joinable!(transaction_participant -> user (user_id));
 diesel::joinable!(user_in_group -> group (group_id));
 diesel::joinable!(user_in_group -> user (user_id));
+diesel::joinable!(user_notification_preference -> notification_channel (channel_id));
+diesel::joinable!(user_notification_preference -> notification_event (event_id));
+diesel::joinable!(user_notification_preference -> user (user_id));
 diesel::joinable!(user_wallet -> currency (currency_id));
 diesel::joinable!(user_wallet -> user (user_id));
 diesel::joinable!(vote -> proposal (proposal_id));
@@ -382,6 +436,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     fund_round_contribution,
     fund_round_proposal,
     group,
+    group_notification_preference,
     group_permission,
     group_wallet,
     investment,
@@ -390,11 +445,15 @@ diesel::allow_tables_to_appear_in_same_query!(
     investment_strategy,
     investment_value_snapshot,
     new_member_proposal,
+    notification,
+    notification_channel,
+    notification_event,
     proposal,
     transaction,
     transaction_participant,
     user,
     user_in_group,
+    user_notification_preference,
     user_wallet,
     vote,
     withdraw_proposal,

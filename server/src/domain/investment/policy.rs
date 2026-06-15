@@ -45,7 +45,6 @@ mod tests {
             types::{InvestmentId, InvestmentStrategyId},
         },
         treasury::CurrencyId,
-        user::UserId,
     };
 
     fn make_investment(status: InvestmentStatus) -> Investment {

@@ -6,6 +6,7 @@ use crate::application::auth::{
     register::dto::{RegisterInput, RegisterOutput},
     traits::{password_hasher::PasswordHasher, repository::AuthRepository},
 };
+use crate::application::notifications::repository::NotificationRepository;
 use crate::application::users::traits::repository::UserRepository;
 use crate::domain::user::{Email, UserName};
 
@@ -16,6 +17,7 @@ pub struct RegisterUseCase {
     pub auth_repo: Arc<dyn AuthRepository>,
     pub user_repo: Arc<dyn UserRepository>,
     pub hash_service: Arc<dyn PasswordHasher>,
+    pub notification_repo: Arc<dyn NotificationRepository>,
 }
 
 impl RegisterUseCase {
@@ -51,6 +53,11 @@ impl RegisterUseCase {
             .auth_repo
             .save(&auth_user)
             .map_err(|_| AuthError::InternalError)?;
+
+        // Create explicit default notification preference rows for the new user (all true)
+        let _ = self
+            .notification_repo
+            .initialize_defaults_for_user(saved_user.user.id);
 
         Ok(RegisterOutput {
             user_id: saved_user.user.id,

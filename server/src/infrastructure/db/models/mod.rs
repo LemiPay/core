@@ -2,6 +2,7 @@ pub mod expense;
 pub mod governance;
 pub mod group;
 pub mod investment;
+pub mod notifications;
 pub mod permission;
 pub mod treasury;
 pub mod user;

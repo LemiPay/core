@@ -6,6 +6,7 @@ use crate::domain::investment::InvestmentStatus;
 
 pub struct ActiveInvestmentDto {
     pub id: Uuid,
+    pub group_id: Uuid,
     pub amount: BigDecimal,
     pub expected_return_percentage: BigDecimal,
     pub risk_level: String,
@@ -25,6 +26,7 @@ pub struct InvestmentStrategyDto {
 pub struct PulseResult {
     pub updated: usize,
     pub matured: usize,
+    pub matured_group_ids: Vec<Uuid>,
 }
 
 pub struct InvestmentProposalDetails {

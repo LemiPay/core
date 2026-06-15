@@ -6,6 +6,10 @@ use axum::{
 };
 use uuid::Uuid;
 
+use crate::application::notifications::repository::NotificationRepository;
+use crate::domain::group::GroupId;
+use crate::domain::user::UserId;
+
 use crate::interfaces::http::{
     auth::extractor::AuthUser,
     error::AppError,
@@ -77,6 +81,17 @@ pub async fn create_new_member_proposal(
             payload.user_email,
         )
         .map_err(AppError::from)?;
+
+    // Notify the invited user when the proposal is created, not when they accept/join.
+    state
+        .notification_service
+        .notify_user_event(
+            "new_member_added",
+            UserId(item.new_member_id),
+            GroupId(group_id),
+        )
+        .await;
+
     Ok(Json(item.into()))
 }
 
@@ -90,6 +105,22 @@ pub async fn respond_new_member_proposal(
         .governance_service
         .respond_new_member_proposal(user.user_id.0, proposal_id, payload.response)
         .map_err(AppError::from)?;
+
+    // Explicitly create the default notification preference rows (enabled=true) for this user in the group.
+    // This happens when a user accepts/joins via new member proposal.
+    let new_member_id = UserId(item.new_member_id);
+    let group_id = GroupId(item.proposal.group_id);
+    if let Err(e) = state
+        .notification_repo
+        .initialize_defaults_for_user_in_group(new_member_id, group_id)
+    {
+        // Do not fail the join because of prefs seeding; log for visibility.
+        eprintln!(
+            "Warning: failed to initialize notification defaults for new member {} in group {}: {:?}",
+            new_member_id, group_id, e
+        );
+    }
+
     Ok(Json(item.into()))
 }
 
@@ -127,6 +158,12 @@ pub async fn create_withdraw_proposal(
             payload.currency_id,
         )
         .map_err(AppError::from)?;
+
+    state
+        .notification_service
+        .notify_group_event("withdraw_proposal_created", GroupId(group_id))
+        .await;
+
     Ok(Json(item.into()))
 }
 
@@ -150,6 +187,12 @@ pub async fn execute_withdraw_proposal(
         .governance_service
         .find_proposal(payload.proposal_id)
         .map_err(AppError::from)?;
+
+    state
+        .notification_service
+        .notify_group_event("proposal_executed", GroupId(group_id))
+        .await;
+
     Ok(Json(proposal.into()))
 }
 
@@ -184,6 +227,12 @@ pub async fn create_fund_round_proposal(
             payload.currency_id,
         )
         .map_err(AppError::from)?;
+
+    state
+        .notification_service
+        .notify_group_event("fund_round_created", GroupId(group_id))
+        .await;
+
     Ok(Json(item.into()))
 }
 

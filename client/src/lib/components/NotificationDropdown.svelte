@@ -6,16 +6,11 @@
 	import { isSuccess } from '$lib/types/client.types';
 	import type { ReceivedNewMemberProposalExpanded } from '$lib/types/endpoints/proposals.types';
 
-	type NotificationData = {
+	type GroupInviteNotification = {
+		id: string;
 		groupId: string;
 		senderName: string;
 		groupName: string;
-	};
-
-	type Notification = {
-		id: string;
-		type: string;
-		data: NotificationData;
 	};
 
 	const clickOutside: Action<HTMLElement, () => void> = (node, callback) => {
@@ -37,7 +32,7 @@
 		};
 	};
 
-	let notifications = $state<Notification[]>([]);
+	let notifications = $state<GroupInviteNotification[]>([]);
 	let isOpen = $state(false);
 
 	async function loadNotifications() {
@@ -48,21 +43,14 @@
 				return;
 			}
 
-			const proposals = response.body;
-
-			notifications = proposals.map((p: ReceivedNewMemberProposalExpanded) => {
-				return {
-					id: p.proposal?.id || p.new_member_proposal?.proposal_id,
-					type: 'group_invite',
-					data: {
-						groupId: p.proposal.group_id,
-						senderName: p.sender_name,
-						groupName: p.group_name
-					}
-				};
-			});
+			notifications = response.body.map((p: ReceivedNewMemberProposalExpanded) => ({
+				id: p.proposal?.id || p.new_member_proposal?.proposal_id,
+				groupId: p.proposal.group_id,
+				senderName: p.sender_name,
+				groupName: p.group_name
+			}));
 		} catch (error) {
-			console.error('Error catcheado:', error);
+			console.error('Error loading group invites:', error);
 		}
 	}
 
@@ -70,6 +58,9 @@
 
 	function toggleDropdown() {
 		isOpen = !isOpen;
+		if (isOpen) {
+			void loadNotifications();
+		}
 	}
 
 	function closeDropdown() {
@@ -83,9 +74,6 @@
 	}
 
 	async function handleDecline(proposalId: string) {
-		// 1. Lo borramos localmente del estado para que desaparezca al instante (Optimistic update)
-		//notifications = notifications.filter((n) => n.id !== proposalId);
-
 		await respondToReceivedProposal(false, proposalId);
 		await loadNotifications();
 	}
@@ -112,7 +100,7 @@
 			class="absolute right-0 z-50 mt-[7px] w-80 origin-top-right overflow-hidden rounded-xl bg-background shadow-lg ring-1 ring-border focus:outline-none"
 		>
 			<div class="border-b border-border bg-muted/30 px-4 py-3">
-				<h3 class="text-sm font-semibold text-foreground">Notificaciones</h3>
+				<h3 class="text-sm font-semibold text-foreground">Invitaciones a grupos</h3>
 			</div>
 
 			<div class="max-h-96 overflow-y-auto">
@@ -121,19 +109,17 @@
 						class="flex flex-col items-center gap-2 p-6 text-center text-sm text-muted-foreground"
 					>
 						<Bell size={24} class="opacity-50" />
-						No tienes notificaciones nuevas.
+						No tienes invitaciones pendientes.
 					</div>
 				{:else}
 					{#each notifications as notif (notif.id)}
 						<div class="bg-primary/5 transition-colors hover:bg-muted/50">
-							{#if notif.type === 'group_invite'}
-								<GroupInvite
-									senderName={notif.data.senderName}
-									groupName={notif.data.groupName}
-									onAccept={() => handleAccept(notif.id, notif.data.groupId)}
-									onDecline={() => handleDecline(notif.id)}
-								/>
-							{/if}
+							<GroupInvite
+								senderName={notif.senderName ?? 'Alguien'}
+								groupName={notif.groupName}
+								onAccept={() => handleAccept(notif.id, notif.groupId)}
+								onDecline={() => handleDecline(notif.id)}
+							/>
 						</div>
 					{/each}
 				{/if}

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::application::balances::BalancesService;
 use crate::application::group::enter_debt_resolution::EnterDebtResolutionUseCase;
+
 use crate::{
     application::group::{
         GroupService, create_group::CreateGroupUseCase, delete_group::DeleteGroupUseCase,
@@ -13,18 +14,21 @@ use crate::{
     infrastructure::db::repositories::group_repo_impl::DieselGroupRepository,
     infrastructure::db::repositories::investment_repo_impl::DieselInvestmentRepository,
     infrastructure::db::repositories::permission_repo_impl::DieselPermissionRepository,
+    notifications_repo_impl::DieselNotificationRepository,
 };
 
 pub fn build_group_service(
     group_repo: Arc<DieselGroupRepository>,
     investment_repo: Arc<DieselInvestmentRepository>,
     governance_repo: Arc<DieselGovernanceRepository>,
+    notification_repo: Arc<DieselNotificationRepository>,
     balances_service: BalancesService,
     permission_repo: Arc<DieselPermissionRepository>,
 ) -> GroupService {
     GroupService {
         create_group: CreateGroupUseCase {
             group_repo: group_repo.clone(),
+            notification_repo,
             permission_repo: permission_repo.clone(),
         },
         get_group: GetGroupUseCase {
