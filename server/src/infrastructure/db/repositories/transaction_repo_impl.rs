@@ -20,7 +20,6 @@ impl DieselTransactionRepository {
     pub fn new(db: DbPool) -> Self {
         Self { db }
     }
-
     fn get_conn(&self) -> Result<DbConn, RepoError> {
         self.db.get().map_err(|_| RepoError::Connection)
     }
@@ -63,7 +62,7 @@ impl TransactionRepository for DieselTransactionRepository {
                 let debited_user = diesel::update(
                     schema::user_wallet::table
                         .filter(schema::user_wallet::user_id.eq(user_id))
-                        .filter(schema::user_wallet::address.eq(&address))
+                        .filter(schema::user_wallet::address.eq(&address.to_lowercase()))
                         .filter(schema::user_wallet::currency_id.eq(currency_id))
                         .filter(schema::user_wallet::balance.ge(&amount_value)),
                 )
@@ -89,6 +88,78 @@ impl TransactionRepository for DieselTransactionRepository {
                 .execute(tx_conn)?;
 
                 if credited_group != 1 {
+                    return Err(diesel::result::Error::NotFound);
+                }
+
+                let new_row = NewTransactionModel {
+                    tx_hash,
+                    amount: amount_value,
+                    user_id,
+                    group_id,
+                    currency_id,
+                    address,
+                    description,
+                    tx_type,
+                };
+
+                let inserted = diesel::insert_into(schema::transaction::table)
+                    .values(&new_row)
+                    .returning(TransactionModel::as_returning())
+                    .get_result::<TransactionModel>(tx_conn)?;
+
+                Ok(inserted)
+            })
+            .map_err(|_| RepoError::Insert)?;
+
+        Ok(model_to_details(model))
+    }
+
+    fn create_group_to_user_withdrawal(
+        &self,
+        new_tx: NewTransaction,
+    ) -> Result<TransactionDetails, RepoError> {
+        let mut conn = self.get_conn()?;
+
+        let amount_value = new_tx.amount.amount.clone();
+        let currency_id = new_tx.currency_id.0;
+        let user_id = new_tx.user_id.0;
+        let group_id = new_tx.group_id.0;
+        let address = new_tx.address.clone();
+        let description = new_tx.description.clone();
+        let tx_hash = new_tx.tx_hash.clone();
+        let tx_type: TransactionTypeModel = new_tx.tx_type.into();
+
+        let model = conn
+            .transaction::<TransactionModel, diesel::result::Error, _>(|tx_conn| {
+                let debited_group = diesel::update(
+                    schema::group_wallet::table
+                        .filter(schema::group_wallet::group_id.eq(group_id))
+                        .filter(schema::group_wallet::currency_id.eq(currency_id))
+                        .filter(schema::group_wallet::balance.ge(&amount_value)),
+                )
+                .set((
+                    schema::group_wallet::balance.eq(schema::group_wallet::balance - &amount_value),
+                    schema::group_wallet::updated_at.eq(chrono::Utc::now().naive_utc()),
+                ))
+                .execute(tx_conn)?;
+
+                if debited_group != 1 {
+                    return Err(diesel::result::Error::NotFound);
+                }
+
+                let credited_user = diesel::update(
+                    schema::user_wallet::table
+                        .filter(schema::user_wallet::user_id.eq(user_id))
+                        .filter(schema::user_wallet::address.eq(&address))
+                        .filter(schema::user_wallet::currency_id.eq(currency_id)),
+                )
+                .set((
+                    schema::user_wallet::balance.eq(schema::user_wallet::balance + &amount_value),
+                    schema::user_wallet::updated_at.eq(chrono::Utc::now().naive_utc()),
+                ))
+                .execute(tx_conn)?;
+
+                if credited_user != 1 {
                     return Err(diesel::result::Error::NotFound);
                 }
 

@@ -65,8 +65,11 @@ Authorization: Bearer {{token}}
 POST {{host}}/group/{{group_id}}/leave
 Authorization: Bearer {{token}}
 
-###
 
 ### Group - Verify left (should not include the group)
 GET {{host}}/group/my-groups
+Authorization: Bearer {{token}}
+
+### Group - Enter debt resolution status
+POST {{host}}/group/c5f1f44b-a0bc-4ce3-9904-4e320bff6170/debt-resolution
 Authorization: Bearer {{token}}

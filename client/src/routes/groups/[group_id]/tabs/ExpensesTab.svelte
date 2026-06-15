@@ -1,10 +1,15 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
-	import { formatDate } from '$lib/utils/format_utils';
+	import { formatAmount, formatDate } from '$lib/utils/format_utils';
 	import type { GroupState } from '../group.svelte';
 
-	let { groupState, onCreateExpense } = $props<{
+	let {
+		groupState,
+		readonly = false,
+		onCreateExpense
+	} = $props<{
 		groupState: GroupState;
+		readonly?: boolean;
 		onCreateExpense: () => void;
 	}>();
 </script>
@@ -15,7 +20,9 @@
 			<h3 class="text-sm font-semibold text-foreground">Últimos Gastos</h3>
 			<p class="text-xs text-muted-foreground">Se muestran los gastos más recientes del grupo.</p>
 		</div>
-		<Button label="Agregar Gasto" onclick={onCreateExpense} />
+		{#if !readonly}
+			<Button label="Agregar Gasto" onclick={onCreateExpense} />
+		{/if}
 	</div>
 
 	{#if groupState.loadingExpenses}
@@ -52,7 +59,7 @@
 							</p>
 						</div>
 						<div class="text-right">
-							<p class="text-sm font-semibold text-foreground">${expense.amount}</p>
+							<p class="text-sm font-semibold text-foreground">${formatAmount(expense.amount)}</p>
 							<p class="text-xs text-muted-foreground">{formatDate(expense.created_at)}</p>
 						</div>
 					</div>

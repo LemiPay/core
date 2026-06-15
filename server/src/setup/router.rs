@@ -11,8 +11,8 @@ use axum::{
 use tower_http::cors::CorsLayer;
 
 use crate::interfaces::http::{
-    auth, core, expense, governance, group, group_wallet, investment, notifications, transaction,
-    users, wallet,
+    auth, blockchain_event, core, expense, governance, group, group_wallet, investment,
+    notifications, transaction, users, wallet,
 };
 
 pub fn create_router(state: SharedState) -> Router {
@@ -36,6 +36,7 @@ pub fn create_router(state: SharedState) -> Router {
         .nest("/investment", investment::routes(state.clone()))
         .nest("/transaction", transaction::routes(state.clone()))
         .nest("/notifications", notifications::routes(state.clone()))
+        .nest("/blockchain-event", blockchain_event::routes(state.clone()))
         .layer(cors)
         .with_state(state)
 }

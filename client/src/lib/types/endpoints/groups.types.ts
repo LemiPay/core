@@ -7,6 +7,7 @@ export type UpdateGroupData = {
 	name?: string;
 	description?: string;
 };
+export type GroupStatus = 'Active' | 'Ended' | 'DebtResolution';
 
 export type GroupSummary = {
 	user_id: string;
@@ -14,14 +15,14 @@ export type GroupSummary = {
 	role: string;
 	group_name: string;
 	group_description: string;
-	status: string;
+	status: GroupStatus;
 };
 
 export type Group = {
 	id: string;
 	name: string;
 	description: string;
-	status: string;
+	status: GroupStatus;
 	created_at: string;
 };
 

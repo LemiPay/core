@@ -12,6 +12,14 @@ pub trait TransactionRepository: Send + Sync {
         new_tx: NewTransaction,
     ) -> Result<TransactionDetails, RepoError>;
 
+    /// Atomic withdrawal from a group wallet to a user wallet.
+    /// The repo debits the group wallet (with balance check) and credits the user wallet
+    /// inside a DB transaction.
+    fn create_group_to_user_withdrawal(
+        &self,
+        new_tx: NewTransaction,
+    ) -> Result<TransactionDetails, RepoError>;
+
     fn list_by_group(&self, group_id: GroupId) -> Result<Vec<TransactionDetails>, RepoError>;
 
     fn list_by_user(&self, user_id: UserId) -> Result<Vec<TransactionDetails>, RepoError>;

@@ -4,6 +4,7 @@
 	import type { WalletCurrency } from '$lib/types/endpoints/wallets.types';
 	import { X, ChevronDown } from 'lucide-svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
+	import { formatAmount } from '$lib/utils/format_utils';
 
 	interface Props {
 		id?: string;
@@ -16,7 +17,7 @@
 
 	let {
 		id = 'user-wallet-select',
-		label = 'Wallet de destino',
+		label = 'Wallet',
 		currency_id = '',
 		value = $bindable(''),
 		returnType = 'address',
@@ -91,14 +92,14 @@
 					? 'Buscando wallets compatibles...'
 					: wallets.length === 0
 						? 'Sin wallets compatibles'
-						: 'Elegí una wallet de destino'}
+						: 'Elegí una wallet'}
 			</option>
 
 			{#each wallets as wallet}
 				<option value={returnType === 'wallet_id' ? wallet.wallet_id : wallet.address}>
 					{shortenAddress(wallet.address)} — {wallet.ticker}
 					{#if wallet.balance}
-						(Saldo: ${wallet.balance})
+						(Saldo: ${formatAmount(wallet.balance)})
 					{/if}
 				</option>
 			{/each}
@@ -114,7 +115,7 @@
 	{#if showFeedback && !isValid && wallets.length > 0}
 		<p class="mt-1.5 flex items-center gap-1 text-xs text-red-500">
 			<X class="h-3.5 w-3.5 shrink-0" />
-			Seleccioná una wallet de destino
+			Seleccioná una wallet
 		</p>
 	{:else if wallets.length === 0 && !loading && !error}
 		<p class="mt-1.5 text-xs text-muted-foreground">

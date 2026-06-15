@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod blockchain_event;
 pub mod core;
 pub mod expense;
 pub mod governance;

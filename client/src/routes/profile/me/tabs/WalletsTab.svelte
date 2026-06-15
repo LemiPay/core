@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Wallet, Copy, Plus, ArrowDownToLine, Send } from 'lucide-svelte';
 	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
+	import { formatAmount } from '$lib/utils/format_utils';
 	import type { WalletInfo } from '$lib/types/endpoints/user_wallet.types';
 
 	interface Props {
@@ -52,7 +53,7 @@
 						>
 							<div class="flex flex-col">
 								<span class="text-2xl font-bold text-black">
-									{currency.balance}
+									{formatAmount(currency.balance)}
 									<span class="text-base font-medium text-gray-500">{currency.ticker}</span>
 								</span>
 							</div>

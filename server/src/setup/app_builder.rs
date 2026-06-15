@@ -15,17 +15,22 @@ use crate::setup::{
     state::AppState,
 };
 
+use crate::application::notifications::NotificationService;
 use crate::infrastructure::auth::web_3_auth::Web3Auth;
+use crate::setup::builders::settlements::build_settlements_service;
 use crate::{
+    application::startup::live_sync::LiveSyncService,
     // infrastructure
     infrastructure::{
         auth::{argon2_hasher::Argon2Hasher, jwt_service::JwtService},
+        blockchain::ethereum_service::EthereumService,
         db::{
             config::DbConfig,
             pool::{DbPool, create_pool},
             repositories::{
                 auth_repo_impl::DieselAuthRepository, currency_repo_impl::DieselCurrencyRepository,
                 expense_repo_impl::DieselExpenseRepository,
+                fund_event_repo_impl::DieselFundEventRepository,
                 governance_repo_impl::DieselGovernanceRepository,
                 group_repo_impl::DieselGroupRepository,
                 group_wallet_repo_impl::DieselGroupWalletRepository,
@@ -86,9 +91,8 @@ pub fn build_app() -> Router {
 
     let user_service = build_user_service(user_repo.clone());
 
-    let group_service = build_group_service(group_repo.clone(), notification_repo.clone());
-
     let treasury_service = build_treasury_service(
+        group_repo.clone(),
         user_wallet_repo.clone(),
         group_wallet_repo.clone(),
         transaction_repo.clone(),
@@ -96,29 +100,48 @@ pub fn build_app() -> Router {
     );
 
     let governance_service = build_governance_service(
-        governance_repo,
+        governance_repo.clone(),
         group_repo.clone(),
         user_repo.clone(),
         user_wallet_repo.clone(),
     );
-    let expense_service = build_expense_service(expense_repo.clone());
+    let expense_service = build_expense_service(group_repo.clone(), expense_repo.clone());
     let balances_service =
-        build_balances_service(transaction_repo, group_repo.clone(), expense_repo);
-    let investment_service = build_investment_service(
-        investment_repo,
+        build_balances_service(transaction_repo.clone(), group_repo.clone(), expense_repo);
+
+    let group_service = build_group_service(
         group_repo.clone(),
-        group_wallet_repo,
+        investment_repo.clone(),
+        governance_repo.clone(),
+        notification_repo.clone(),
         balances_service.clone(),
     );
 
+    let investment_service = build_investment_service(
+        investment_repo,
+        group_repo.clone(),
+        group_wallet_repo.clone(),
+        balances_service.clone(),
+    );
+    let settlements_service = build_settlements_service(
+        balances_service.clone(),
+        group_repo.clone(),
+        user_wallet_repo.clone(),
+        group_wallet_repo.clone(),
+        transaction_repo.clone(),
+    );
+
+    let blockchain_service = Arc::new(EthereumService::new());
+    let fund_event_repo = Arc::new(DieselFundEventRepository::new(pool.clone()));
+
     let email_service = build_email_service();
 
-    let notification_service = Arc::new(crate::application::notifications::NotificationService {
+    let notification_service = NotificationService {
         notification_repo: notification_repo.clone(),
         email_service: email_service.clone(),
         group_repo: group_repo.clone(),
         user_repo: user_repo.clone(),
-    });
+    };
 
     // -------------------------
     // 5. State
@@ -134,24 +157,33 @@ pub fn build_app() -> Router {
         governance_service,
         expense_service,
         balances_service,
+        settlements_service,
         investment_service,
         notification_repo,
         email_service,
         notification_service,
+        blockchain_service: blockchain_service.clone(),
+        fund_event_repo: fund_event_repo.clone(),
+        currency_repo: currency_repo.clone(),
     });
 
     // -------------------------
     // 6. Background pulse scheduler — 1 pulse every 10s = 1 simulated day
     // -------------------------
     let pulse_svc = state.investment_service.clone();
+
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(10));
+
         loop {
             interval.tick().await;
             let svc = pulse_svc.clone();
+
             match tokio::task::spawn_blocking(move || svc.process_pulse()).await {
                 Ok(Ok(res)) => {
-                    println!("Pulse: {} updated, {} matured", res.updated, res.matured)
+                    if res.updated > 0 || res.matured > 0 {
+                        println!("Pulse: {} updated, {} matured", res.updated, res.matured)
+                    }
                 }
                 Ok(Err(e)) => eprintln!("Pulse error: {}", e),
                 Err(e) => eprintln!("Pulse task panicked: {}", e),
@@ -160,7 +192,16 @@ pub fn build_app() -> Router {
     });
 
     // -------------------------
-    // 7. Router
+    // 7. Background live blockchain sync — polls every N seconds
+    // -------------------------
+    let live_sync = LiveSyncService::new(fund_event_repo, blockchain_service.clone());
+
+    tokio::spawn(async move {
+        live_sync.start().await;
+    });
+
+    // -------------------------
+    // 8. Router
     // -------------------------
     create_router(state)
 }

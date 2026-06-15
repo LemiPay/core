@@ -23,6 +23,13 @@ pub trait UserWalletRepository: Send + Sync {
         amount: &Money,
     ) -> Result<(), RepoError>;
 
+    /// Atomic withdraw: debits only when `balance >= amount` in the same SQL statement.
+    fn withdraw_atomic(
+        &self,
+        wallet_id: UserWalletId,
+        amount: &Money,
+    ) -> Result<UserWalletDetails, RepoError>;
+
     fn get_details(&self, id: UserWalletId) -> Result<Option<UserWalletDetails>, RepoError>;
     fn list_with_ticker_by_user(
         &self,

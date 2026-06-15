@@ -6,6 +6,8 @@ pub enum CreateGroupWalletError {
     CurrencyNotFound,
     GroupAlreadyHasCurrency,
     AddressAlreadyTaken,
+    GroupNotActive,
+    GroupNotFound,
     Internal,
 }
 

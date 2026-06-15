@@ -13,6 +13,7 @@ pub enum InvestmentError {
     ProposalNotFound,
     GroupWalletNotFound,
     InsufficientGroupFunds,
+    GroupNotActive,
     NotGroupAdmin,
     NotProposalCreator,
     NotGroupMember,

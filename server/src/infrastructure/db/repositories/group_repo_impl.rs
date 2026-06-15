@@ -12,7 +12,7 @@ use crate::application::{
     },
 };
 
-use crate::domain::group::{Group, GroupConfig, GroupId, GroupMember};
+use crate::domain::group::{Group, GroupConfig, GroupId, GroupMember, GroupStatus};
 use crate::domain::user::UserId;
 
 use crate::infrastructure::db::{
@@ -54,12 +54,17 @@ impl DieselGroupRepository {
 
     fn assemble_group(conn: &mut DbConn, group_model: GroupModel) -> Result<Group, RepoError> {
         let members = Self::load_active_members(conn, group_model.id)?;
+        let status = match group_model.status {
+            GroupStatusModel::Active => GroupStatus::Active,
+            GroupStatusModel::Ended => GroupStatus::Ended,
+            GroupStatusModel::DebtResolution => GroupStatus::DebtResolution,
+        };
 
         Ok(Group::rehydrate(
             GroupId(group_model.id),
             group_model.name,
             group_model.description,
-            matches!(group_model.status, GroupStatusModel::Active),
+            status,
             GroupConfig::default(),
             members,
         ))
@@ -87,10 +92,10 @@ impl GroupRepository for DieselGroupRepository {
         let mut conn = self.get_conn()?;
 
         conn.transaction::<(), diesel::result::Error, _>(|conn| {
-            let status = if group.is_active {
-                GroupStatusModel::Active
-            } else {
-                GroupStatusModel::Ended
+            let status = match group.status {
+                GroupStatus::Active => GroupStatusModel::Active,
+                GroupStatus::Ended => GroupStatusModel::Ended,
+                GroupStatus::DebtResolution => GroupStatusModel::DebtResolution,
             };
 
             let new_group = NewGroupModel {

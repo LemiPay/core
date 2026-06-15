@@ -20,6 +20,7 @@ use crate::application::{
     },
     treasury::traits::group_wallet_repo::GroupWalletRepository,
 };
+use crate::domain::group::GroupPolicy;
 use crate::domain::investment::member::NewInvestmentMember;
 use crate::domain::user::UserId;
 use crate::domain::{
@@ -67,6 +68,9 @@ impl InvestmentService {
         strategy_id: Uuid,
         currency_id: Uuid,
     ) -> Result<InvestmentProposalDetails, InvestmentError> {
+        let group = Self::map_repo(self.group_repo.find_by_id(GroupId(group_id)))?
+            .ok_or(InvestmentError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| InvestmentError::GroupNotActive)?;
         let amount = Self::parse_amount(&amount)?;
         InvestmentPolicy::ensure_positive_amount(&amount)?;
 
@@ -108,6 +112,10 @@ impl InvestmentService {
         group_id: Uuid,
         proposal_id: Uuid,
     ) -> Result<InvestmentDetails, InvestmentError> {
+        let group = Self::map_repo(self.group_repo.find_by_id(GroupId(group_id)))?
+            .ok_or(InvestmentError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| InvestmentError::GroupNotActive)?;
+
         let proposal = Self::map_repo(self.investment_repo.find_investment_proposal(proposal_id))?
             .ok_or(InvestmentError::ProposalNotFound)?;
 
@@ -123,7 +131,7 @@ impl InvestmentService {
 
         let balances = self
             .balances_service
-            .get_balances(group_id)
+            .get_balances(GroupId(group_id))
             .map_err(|_| InvestmentError::Internal)?;
 
         let positive_balances: Vec<UserBalanceDetails> = balances
@@ -195,6 +203,10 @@ impl InvestmentService {
         if stored.group_id != group_id {
             return Err(InvestmentError::NotFound);
         }
+
+        let group = Self::map_repo(self.group_repo.find_by_id(GroupId(group_id)))?
+            .ok_or(InvestmentError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| InvestmentError::GroupNotActive)?;
 
         let domain = Investment::rehydrate(
             crate::domain::investment::InvestmentId(stored.id),

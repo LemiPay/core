@@ -14,6 +14,7 @@
 	import type { FundRoundCardProps } from '$lib/components/pages/fundRound/FundRoundCard.types';
 	let {
 		status,
+		readonly = false,
 		expandedFundRoundId,
 		selectedContribWalletId = $bindable(),
 		recommended,
@@ -49,14 +50,16 @@
 	const myRemaining = $derived(Math.max(0, recommended - myContribution));
 
 	const canContribute = $derived(
-		proposalStatus === 'Approved' && !status.is_completed && !hasContributed
+		!readonly && proposalStatus === 'Approved' && !status.is_completed && !hasContributed
 	);
 
 	const isCreator = $derived(
 		!!currentUserId && status.fund_round.proposal.created_by === currentUserId
 	);
 
-	const canCancel = $derived(isCreator && proposalStatus === 'Approved' && !status.is_completed);
+	const canCancel = $derived(
+		!readonly && isCreator && proposalStatus === 'Approved' && !status.is_completed
+	);
 
 	const isOpen = $derived(expandedFundRoundId === proposalId);
 </script>
@@ -244,7 +247,7 @@
 						<option value="" disabled>Seleccionar wallet personal...</option>
 						{#each compatibleWallets as wallet (wallet.wallet_id)}
 							<option value={wallet.wallet_id}>
-								{shortenAddress(wallet.address)} — ${wallet.balance}
+								{shortenAddress(wallet.address)} — ${formatAmount(wallet.balance)}
 								{wallet.ticker}
 							</option>
 						{/each}

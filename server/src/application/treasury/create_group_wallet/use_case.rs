@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::group::traits::repository::GroupRepository;
 use crate::application::treasury::create_group_wallet::dto::{
     CreateGroupWalletInput, CreateGroupWalletOutput,
 };
@@ -7,10 +8,12 @@ use crate::application::treasury::create_group_wallet::error::CreateGroupWalletE
 use crate::application::treasury::traits::{
     currency_repo::CurrencyRepository, group_wallet_repo::GroupWalletRepository,
 };
+use crate::domain::group::GroupPolicy;
 use crate::domain::treasury::GroupWallet;
 
 #[derive(Clone)]
 pub struct CreateGroupWalletUseCase {
+    pub group_repo: Arc<dyn GroupRepository>,
     pub group_wallet_repo: Arc<dyn GroupWalletRepository>,
     pub currency_repo: Arc<dyn CurrencyRepository>,
 }
@@ -20,6 +23,12 @@ impl CreateGroupWalletUseCase {
         &self,
         input: CreateGroupWalletInput,
     ) -> Result<CreateGroupWalletOutput, CreateGroupWalletError> {
+        let group = self
+            .group_repo
+            .find_by_id(input.group_id)
+            .map_err(|_| CreateGroupWalletError::Internal)?
+            .ok_or(CreateGroupWalletError::GroupNotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| CreateGroupWalletError::GroupNotActive)?;
         let currency_id = self
             .currency_repo
             .find_id_by_ticker(&input.currency_ticker)

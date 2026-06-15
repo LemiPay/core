@@ -8,6 +8,7 @@ export interface StatusDisplay {
 
 export interface FundRoundCardProps {
 	status: FundRoundStatusResponse;
+	readonly?: boolean;
 
 	expandedFundRoundId: string | null;
 	selectedContribWalletId: string;
@@ -28,7 +29,7 @@ export interface FundRoundCardProps {
 
 	statusDisplay: StatusDisplay;
 
-	formatAmount: (value: number) => string;
+	formatAmount: (value: string | number) => string;
 	shortenAddress: (address: string) => string;
 
 	onToggleAccordion: (proposalId: string) => void;

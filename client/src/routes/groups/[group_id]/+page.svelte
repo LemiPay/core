@@ -1,15 +1,16 @@
 <script lang="ts">
-	import { Trash2, Pencil, HandCoins, LogOut, TrendingUp } from 'lucide-svelte';
+	import { Trash2, Pencil, HandCoins, LogOut, TrendingUp, ShieldAlert } from 'lucide-svelte';
 
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 
 	// API UI bindings (Solo las que borran/salen)
-	import { deleteGroup, leaveGroup } from '$lib/api/endpoints/groups';
+	import { deleteGroup, enterDebtResolution, leaveGroup } from '$lib/api/endpoints/groups';
 	import { cancelFundRoundProposal } from '$lib/api/endpoints/fund_rounds';
 
 	// Helpers y Estado Global
 	import { GroupState } from './group.svelte';
+	import { authStore } from '$lib/stores/auth';
 
 	// Components
 	import Button from '$lib/components/ui/Button.svelte';
@@ -22,6 +23,7 @@
 	import ProposeWithdrawModal from '$lib/components/modals/group_wallet/ProposeWithdrawModal.svelte';
 	import WithdrawProposalDrawer from '$lib/components/WithdrawProposalDrawer.svelte';
 	import CreateExpenseModal from '$lib/components/modals/group_wallet/CreateExpenseModal.svelte';
+	import DebtResolutionPanel from '$lib/components/pages/group/DebtResolutionPanel.svelte';
 
 	// Tabs
 	import GeneralTab from './tabs/GeneralTab.svelte';
@@ -57,6 +59,20 @@
 	let showCreateFundRoundModal = $state(false);
 	let showCreateExpenseModal = $state(false);
 	let showCancelFundRoundModal = $state(false);
+	let showDebtPanel = $state(true);
+	let showConfirmDebtResolution = $state(false);
+
+	let currentUserId = $derived($authStore.user?.id);
+
+	let currentUserBalance = $derived(
+		groupState.memberBalances.find((m) => m.user.user_id === currentUserId)?.balance ?? 0
+	);
+
+	let isCurrentUserAdmin = $derived(
+		groupState.members.some((m) => m.user_id === currentUserId && m.role === 'Admin')
+	);
+
+	let settlementCurrencyId = $derived(groupState.wallets[0]?.currency_id ?? '');
 
 	let selectedCurrencyIdToWithdraw = $state<string>('');
 	let selectedWalletIdToFund = $state<string>('');
@@ -95,6 +111,7 @@
 	groupState.loadWalletsData();
 	groupState.loadExpensesData();
 	groupState.loadCoreBalances();
+	groupState.loadSettlements();
 
 	// Tab Refetching Logic
 	$effect(() => {
@@ -206,27 +223,39 @@
 							<HandCoins class="h-4 w-4" />
 						{/snippet}
 					</Button>
-					<button
-						onclick={() => (showEditModal = true)}
-						class="rounded-md p-2 text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
-						title="Editar grupo"
-					>
-						<Pencil class="h-4 w-4" />
-					</button>
-					<button
-						onclick={() => (showLeaveModal = true)}
-						class="rounded-md p-2 text-muted-foreground transition hover:bg-orange-50 hover:text-orange-500 dark:hover:bg-orange-400/10 dark:hover:text-orange-300"
-						title="Salir del grupo"
-					>
-						<LogOut class="h-4 w-4" />
-					</button>
-					<button
-						onclick={() => (showDeleteModal = true)}
-						class="rounded-md p-2 text-muted-foreground transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-400/10 dark:hover:text-red-300"
-						title="Eliminar grupo"
-					>
-						<Trash2 class="h-4 w-4" />
-					</button>
+					{#if !groupState.readonly && isCurrentUserAdmin}
+						<button
+							onclick={() => (showConfirmDebtResolution = true)}
+							class="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 transition hover:bg-amber-100 hover:text-amber-800"
+							title="Iniciar resolución de deudas"
+						>
+							<ShieldAlert class="h-4 w-4" />
+							Finalizar grupo
+						</button>
+					{/if}
+					{#if !groupState.readonly}
+						<button
+							onclick={() => (showEditModal = true)}
+							class="rounded-md p-2 text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+							title="Editar grupo"
+						>
+							<Pencil class="h-4 w-4" />
+						</button>
+						<button
+							onclick={() => (showLeaveModal = true)}
+							class="rounded-md p-2 text-muted-foreground transition hover:bg-orange-50 hover:text-orange-500 dark:hover:bg-orange-400/10 dark:hover:text-orange-300"
+							title="Salir del grupo"
+						>
+							<LogOut class="h-4 w-4" />
+						</button>
+						<button
+							onclick={() => (showDeleteModal = true)}
+							class="rounded-md p-2 text-muted-foreground transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-400/10 dark:hover:text-red-300"
+							title="Eliminar grupo"
+						>
+							<Trash2 class="h-4 w-4" />
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -252,12 +281,14 @@
 				{#if activeTab === 'general'}
 					<GeneralTab
 						{groupState}
+						readonly={groupState.readonly}
 						onInviteClick={() => (showNewMemberModal = true)}
 						onGoToBalances={() => (activeTab = 'balances')}
 					/>
 				{:else if activeTab === 'wallets'}
 					<WalletsTab
 						{groupState}
+						readonly={groupState.readonly}
 						onCreateWallet={() => (showCreateWalletModal = true)}
 						onFundWallet={(wId, cId) => {
 							selectedWalletIdToFund = wId;
@@ -272,6 +303,7 @@
 				{:else if activeTab === 'fund_rounds'}
 					<FundRoundsTab
 						{groupState}
+						readonly={groupState.readonly}
 						onCreateFundRound={() => (showCreateFundRoundModal = true)}
 						onCancelFundRound={(id) => {
 							fundRoundToCancel = id;
@@ -281,7 +313,11 @@
 				{:else if activeTab === 'balances'}
 					<BalancesTab {groupState} />
 				{:else if activeTab === 'expenses'}
-					<ExpensesTab {groupState} onCreateExpense={() => (showCreateExpenseModal = true)} />
+					<ExpensesTab
+						{groupState}
+						readonly={groupState.readonly}
+						onCreateExpense={() => (showCreateExpenseModal = true)}
+					/>
 				{:else if activeTab === 'history'}
 					<HistoryTab {groupState} />
 				{:else if activeTab === 'settings'}
@@ -297,6 +333,44 @@
 				>← Volver al Dashboard</a
 			>
 		</div>
+
+		{#if groupState.readonly && showDebtPanel && !groupState.loading}
+			<DebtResolutionPanel
+				debtAmount={groupState.currentUserDebtRaw}
+				credits={groupState.userCredits}
+				loading={groupState.settlementsLoading}
+				error={groupState.settlementsError}
+				{currentUserBalance}
+				claimableAmount={groupState.currentUserBalanceRaw}
+				hasDebtors={groupState.hasDebtors}
+				currencyId={settlementCurrencyId}
+				paying={groupState.settlementPaying}
+				payError={groupState.settlementPayError}
+				claiming={groupState.claimPaying}
+				claimError={groupState.claimError}
+				onPaySettlement={(amt, a, c) => groupState.paySettlement(amt, a, c)}
+				onClaim={(a, c, amt) => groupState.claim(a, c, amt)}
+				onClose={() => (showDebtPanel = false)}
+			/>
+		{/if}
+
+		{#if groupState.readonly && !showDebtPanel && !groupState.loading}
+			<div class="group fixed right-5 bottom-5 z-40 flex items-center gap-3">
+				<div
+					class="pointer-events-none hidden translate-x-2 rounded-2xl border border-border bg-card px-3 py-2 text-sm font-semibold opacity-0 shadow-xl transition group-hover:translate-x-0 group-hover:opacity-100 sm:block"
+				>
+					Ver liquidaciones
+				</div>
+				<button
+					aria-label="Ver liquidaciones"
+					class="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-2xl ring-4 shadow-emerald-500/20 ring-emerald-400/20 transition hover:scale-105 hover:bg-emerald-600 hover:shadow-emerald-500/30 focus:ring-2 focus:ring-ring focus:outline-none active:scale-95"
+					onclick={() => (showDebtPanel = true)}
+					type="button"
+				>
+					<HandCoins class="size-6" />
+				</button>
+			</div>
+		{/if}
 
 		<InviteUserToGroup
 			group_id={groupState.groupData.id}
@@ -390,6 +464,16 @@
 			}}
 			onconfirm={() => cancelFundRoundProposal(fundRoundToCancel)}
 			onsuccess={() => groupState.loadFundRoundsData()}
+		/>
+		<Confirm
+			open={showConfirmDebtResolution}
+			title="Finalizar grupo"
+			description="Se va a inhabilitar la creación de gastos, billeteras, rondas de fondeo y más. Solo se podrá ver la historia y los balances."
+			message="¿Estás seguro de iniciar la resolución de deudas?"
+			successMsg="Resolución de deudas iniciada"
+			onclose={() => (showConfirmDebtResolution = false)}
+			onconfirm={() => enterDebtResolution(groupId)}
+			onsuccess={() => groupState.loadGroupData()}
 		/>
 	{/if}
 </div>

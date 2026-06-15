@@ -14,6 +14,7 @@ pub enum ExpenseError {
     AlreadyDeleted,
     NotOwner,
     GroupMismatch,
+    GroupNotActive,
 }
 
 impl From<RepoError> for ExpenseError {

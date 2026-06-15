@@ -49,6 +49,10 @@ export class InvestmentsState {
 		return authStore.getUserId();
 	}
 
+	get readonly() {
+		return this.groupData.status === 'DebtResolution' || this.groupData.status === 'Ended';
+	}
+
 	get activeInvestments() {
 		return this.investments.filter((i) => i.status === 'active');
 	}

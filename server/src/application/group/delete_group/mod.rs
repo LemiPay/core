@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::balances::BalancesService;
 use crate::{
     application::group::{dto::GroupDetails, traits::repository::GroupRepository},
     domain::{group::GroupId, user::UserId},
@@ -10,11 +11,13 @@ pub enum DeleteGroupError {
     Forbidden,
     NotFound,
     Internal,
+    NotAllBalancesZero,
 }
 
 #[derive(Clone)]
 pub struct DeleteGroupUseCase {
     pub group_repo: Arc<dyn GroupRepository>,
+    pub balances_service: BalancesService,
 }
 
 impl DeleteGroupUseCase {
@@ -36,7 +39,15 @@ impl DeleteGroupUseCase {
             .find_by_id(group_id)
             .map_err(|_| DeleteGroupError::Internal)?
             .ok_or(DeleteGroupError::NotFound)?;
-        let deactivated = group.deactivate();
+
+        let balances = self
+            .balances_service
+            .get_balances(group_id)
+            .map_err(|_| DeleteGroupError::Internal)?;
+
+        let deactivated = group
+            .deactivate(balances.to_domain())
+            .map_err(|_| DeleteGroupError::NotAllBalancesZero)?;
 
         self.group_repo
             .save(&deactivated)

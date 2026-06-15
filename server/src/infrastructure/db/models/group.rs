@@ -17,6 +17,7 @@ use crate::infrastructure::db::schema;
 pub enum GroupStatusModel {
     Active,
     Ended,
+    DebtResolution,
 }
 
 #[derive(Debug, DbEnum, Clone, Copy, PartialEq, Eq, Serialize)]

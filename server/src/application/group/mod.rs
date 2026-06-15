@@ -4,6 +4,7 @@ pub mod traits;
 // Use cases
 pub mod create_group;
 pub mod delete_group;
+pub mod enter_debt_resolution;
 pub mod get_group;
 pub mod get_group_members;
 pub mod leave_group;
