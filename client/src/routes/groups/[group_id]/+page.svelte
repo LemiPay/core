@@ -32,12 +32,20 @@
 	import BalancesTab from './tabs/BalancesTab.svelte';
 	import ExpensesTab from './tabs/ExpensesTab.svelte';
 	import HistoryTab from './tabs/HistoryTab.svelte';
+	import NotificationPreferences from '$lib/components/NotificationPreferences.svelte';
 
 	const groupId = page.params.group_id as string;
 	const groupState = new GroupState(groupId);
 
 	// UI States (Strictly UI Orchestration)
-	type Tab = 'general' | 'wallets' | 'fund_rounds' | 'balances' | 'expenses' | 'history';
+	type Tab =
+		| 'general'
+		| 'wallets'
+		| 'fund_rounds'
+		| 'balances'
+		| 'expenses'
+		| 'history'
+		| 'settings';
 	let activeTab = $state<Tab>('general');
 
 	let showNewMemberModal = $state(false);
@@ -93,7 +101,8 @@
 		{ key: 'fund_rounds', label: 'Rondas de Fondeo' },
 		{ key: 'balances', label: 'Balances' },
 		{ key: 'expenses', label: 'Gastos' },
-		{ key: 'history', label: 'Historial' }
+		{ key: 'history', label: 'Historial' },
+		{ key: 'settings', label: 'Configuraciones' }
 	];
 
 	// Initial load
@@ -311,6 +320,8 @@
 					/>
 				{:else if activeTab === 'history'}
 					<HistoryTab {groupState} />
+				{:else if activeTab === 'settings'}
+					<NotificationPreferences {groupId} />
 				{/if}
 			</div>
 		</div>

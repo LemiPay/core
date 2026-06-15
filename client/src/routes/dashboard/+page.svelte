@@ -19,7 +19,10 @@
 
 	import { getMyGroups } from '$lib/api/endpoints/groups';
 	import { getGroupBalances } from '$lib/api/endpoints/core';
+	import { getNotifications, markNotificationRead } from '$lib/api/endpoints/notifications';
 	import { isSuccess } from '$lib/types/client.types';
+	import type { NotificationRecord } from '$lib/types/endpoints/notifications.types';
+	import NotificationActivityList from '$lib/components/NotificationActivityList.svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { parseBalanceValue } from '$lib/utils/format_utils';
 	import NewGroup from '$lib/components/modals/group/NewGroup.svelte';
@@ -61,14 +64,10 @@
 		currency: string;
 	};
 
-	type ActivityItem = {
-		title: string;
-		detail: string;
-		time: string;
-		variant: 'green' | 'yellow' | 'purple' | 'blue';
-	};
-
 	let isLoading = $state(true);
+	let loadingActivity = $state(true);
+	let activityNotifications = $state<NotificationRecord[]>([]);
+	let activityShowingRead = $state(false);
 	let loadingBalances = $state(false);
 	let error = $state('');
 	let misGrupos = $state<GroupSummary[]>([]);
@@ -91,33 +90,6 @@
 		{ val: 'Active', label: 'Activos', dot: 'bg-emerald-500' },
 		{ val: 'DebtResolution', label: 'En resolución', dot: 'bg-amber-400' },
 		{ val: 'Ended', label: 'Finalizados', dot: 'bg-rose-400' }
-	];
-
-	const fallbackActivities: ActivityItem[] = [
-		{
-			title: 'Juan creó una propuesta',
-			detail: 'Retiro parcial desde tesorería compartida',
-			time: 'Hace 12 min',
-			variant: 'purple'
-		},
-		{
-			title: 'Se aprobó un retiro',
-			detail: '3 de 4 miembros votaron a favor',
-			time: 'Hace 48 min',
-			variant: 'green'
-		},
-		{
-			title: 'Mateo agregó un gasto',
-			detail: 'Cena del grupo · split automático',
-			time: 'Hoy',
-			variant: 'blue'
-		},
-		{
-			title: 'Nueva ronda de aporte',
-			detail: 'Pendiente de confirmación',
-			time: 'Ayer',
-			variant: 'yellow'
-		}
 	];
 
 	const userName = $derived($authStore.user?.name?.split(' ')[0] ?? 'Mateo');
@@ -153,27 +125,6 @@
 			pendingProposals,
 			yieldGenerated
 		};
-	});
-
-	const recentActivities = $derived.by(() => {
-		if (gruposEnriquecidos.length === 0) return fallbackActivities;
-
-		return gruposEnriquecidos.slice(0, 4).map((group, index) => ({
-			title:
-				index % 3 === 0
-					? `Nueva propuesta en ${group.group_name}`
-					: index % 3 === 1
-						? `Gasto registrado en ${group.group_name}`
-						: `Movimiento de tesorería en ${group.group_name}`,
-			detail:
-				index % 3 === 0
-					? `${group.meta.proposals} propuestas activas esperando votos`
-					: index % 3 === 1
-						? `${group.meta.expenses} expenses conciliados este mes`
-						: `${formatMoney(group.meta.treasury, group.meta.currency)} disponibles`,
-			time: group.meta.activityLabel,
-			variant: (['purple', 'blue', 'green', 'yellow'] as const)[index % 4]
-		}));
 	});
 
 	const allInvestments = $derived.by(() => {
@@ -300,11 +251,35 @@
 		return 'bg-rose-500 shadow-rose-500/30';
 	}
 
-	function getActivityVariantClasses(variant: ActivityItem['variant']) {
-		if (variant === 'green') return 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300';
-		if (variant === 'yellow') return 'bg-amber-500/15 text-amber-600 dark:text-amber-300';
-		if (variant === 'purple') return 'bg-violet-500/15 text-violet-600 dark:text-violet-300';
-		return 'bg-sky-500/15 text-sky-600 dark:text-sky-300';
+	const activityLimit = 3;
+
+	async function loadActivityNotifications() {
+		loadingActivity = true;
+
+		let unread: NotificationRecord[] = [];
+		const unreadResponse = await getNotifications({ read: false, limit: activityLimit });
+		if (isSuccess(unreadResponse)) {
+			unread = unreadResponse.body;
+		}
+
+		const remaining = activityLimit - unread.length;
+		let read: NotificationRecord[] = [];
+		if (remaining > 0) {
+			const readResponse = await getNotifications({ read: true, limit: remaining });
+			if (isSuccess(readResponse)) {
+				read = readResponse.body;
+			}
+		}
+
+		activityNotifications = [...unread, ...read];
+		activityShowingRead = unread.length === 0 && read.length > 0;
+		loadingActivity = false;
+	}
+
+	async function handleMarkActivityRead(id: string) {
+		const response = await markNotificationRead(id);
+		if (!isSuccess(response)) return;
+		await loadActivityNotifications();
 	}
 
 	async function load_my_groups() {
@@ -361,6 +336,7 @@
 
 	onMount(() => {
 		load_my_groups();
+		void loadActivityNotifications();
 	});
 </script>
 
@@ -745,49 +721,46 @@
 			</div>
 
 			<aside class="space-y-6">
-				<!--
-					<section
-						class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
-						in:fly={{ x: 14, duration: 380 }}
-					>
-						<div class="flex items-center justify-between">
-							<div>
-								<p class="text-sm font-medium text-muted-foreground">Actividad reciente</p>
-								<h2 class="mt-1 text-xl font-semibold">Sistema vivo</h2>
-							</div>
-							<div
-								class="flex size-10 items-center justify-center rounded-2xl bg-lime-400/15 text-lime-700 dark:text-lime-300"
-							>
-								<Activity class="size-4" />
-							</div>
+				<section
+					class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"
+					in:fly={{ x: 14, duration: 380 }}
+				>
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Actividad reciente</p>
+							<h2 class="mt-1 text-xl font-semibold">
+								{activityShowingRead ? 'Recientes' : 'Sin leer'}
+							</h2>
 						</div>
+						<div
+							class="flex size-10 items-center justify-center rounded-2xl bg-lime-400/15 text-lime-700 dark:text-lime-300"
+						>
+							<Activity class="size-4" />
+						</div>
+					</div>
 
-						<div class="mt-5 space-y-4">
-							{#each recentActivities as item, index (item.title)}
-								<div class="relative pl-8" in:fly={{ x: 10, duration: 260, delay: index * 70 }}>
-									<div
-										class="absolute top-1 left-0 flex size-5 items-center justify-center rounded-full border border-border bg-card"
-									>
-										<span class={['size-2 rounded-full', getActivityVariantClasses(item.variant)]}
-										></span>
-									</div>
-									{#if index !== recentActivities.length - 1}
-										<div class="absolute top-7 -bottom-4 left-2.5 w-px bg-border"></div>
-									{/if}
-									<div
-										class="rounded-2xl border border-border/70 bg-background p-3 transition hover:bg-muted/60"
-									>
-										<div class="flex items-start justify-between gap-3">
-											<p class="text-sm font-semibold">{item.title}</p>
-											<span class="shrink-0 text-[11px] text-muted-foreground">{item.time}</span>
-										</div>
-										<p class="mt-1 text-xs text-muted-foreground">{item.detail}</p>
-									</div>
-								</div>
-							{/each}
-						</div>
-					</section>
--->
+					<div class="mt-5">
+						{#if loadingActivity}
+							<p class="text-sm text-muted-foreground">Cargando actividad...</p>
+						{:else}
+							<NotificationActivityList
+								notifications={activityNotifications}
+								markRead={handleMarkActivityRead}
+								emptyMessage="No hay actividad para mostrar."
+								compact={true}
+							/>
+						{/if}
+					</div>
+
+					<div class="mt-4 border-t border-border pt-3 text-center">
+						<a
+							href={resolve('/dashboard/activity')}
+							class="text-xs font-medium text-muted-foreground transition hover:text-foreground hover:underline"
+						>
+							Ver toda la actividad
+						</a>
+					</div>
+				</section>
 				<!--
 					<section
 						class="rounded-[2rem] border border-border bg-card p-5 shadow-sm"

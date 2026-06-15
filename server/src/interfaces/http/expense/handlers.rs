@@ -1,3 +1,4 @@
+use crate::domain::group::GroupId;
 use axum::{
     Json,
     extract::{Path, State},
@@ -35,6 +36,12 @@ pub async fn create_expense(
                 .collect(),
         )
         .map_err(AppError::from)?;
+
+    state
+        .notification_service
+        .notify_group_event("expense_created", GroupId(group_id))
+        .await;
+
     Ok(Json(item.into()))
 }
 

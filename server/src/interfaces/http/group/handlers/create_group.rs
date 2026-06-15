@@ -23,7 +23,7 @@ pub async fn create_group(
         .ok_or_else(|| AppError::BadRequest("Descripción requerida".into()))?;
 
     let input = CreateGroupInput {
-        name,
+        name: name.clone(),
         description,
         creator_id: user.user_id,
     };

@@ -5,8 +5,15 @@ use crate::application::auth::traits::challenge_cache::{ChallengeCacheTrait, Web
 use crate::application::auth::traits::repository::AuthRepository;
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
 use crate::application::common::repo_error::RepoError;
+use crate::application::notifications::repository::NotificationRepository;
 use crate::application::treasury::traits::user_wallet_repo::UserWalletRepository;
 use crate::application::users::traits::repository::UserRepository;
+use crate::domain::group::GroupId;
+use crate::domain::notification::types::NotificationRecordId;
+use crate::domain::notification::{
+    GroupNotificationPreference, NotificationChannel, NotificationEvent, NotificationRecord,
+    UserNotificationPreference,
+};
 use crate::domain::treasury::{CurrencyId, Money, UserWallet, UserWalletId};
 use crate::domain::user::{Email, User, UserId};
 use crate::infrastructure::auth::jwt_service::JwtService;
@@ -394,6 +401,81 @@ impl ChallengeCacheTrait for FakeWeb3Auth {
 
 impl Web3AuthCacheTrait for FakeWeb3Auth {}
 
+#[derive(Default)]
+pub struct InMemoryNotificationRepo;
+
+impl NotificationRepository for InMemoryNotificationRepo {
+    fn get_events(&self) -> Result<Vec<NotificationEvent>, RepoError> {
+        Ok(vec![])
+    }
+
+    fn get_channels(&self) -> Result<Vec<NotificationChannel>, RepoError> {
+        Ok(vec![])
+    }
+
+    fn get_user_preferences(
+        &self,
+        _user_id: UserId,
+    ) -> Result<Vec<UserNotificationPreference>, RepoError> {
+        Ok(vec![])
+    }
+
+    fn upsert_user_preference(
+        &self,
+        _preference: UserNotificationPreference,
+    ) -> Result<(), RepoError> {
+        Ok(())
+    }
+
+    fn get_group_preferences(
+        &self,
+        _user_id: UserId,
+        _group_id: GroupId,
+    ) -> Result<Vec<GroupNotificationPreference>, RepoError> {
+        Ok(vec![])
+    }
+
+    fn upsert_group_preference(
+        &self,
+        _preference: GroupNotificationPreference,
+    ) -> Result<(), RepoError> {
+        Ok(())
+    }
+
+    fn initialize_defaults_for_user(&self, _user_id: UserId) -> Result<(), RepoError> {
+        Ok(())
+    }
+
+    fn initialize_defaults_for_user_in_group(
+        &self,
+        _user_id: UserId,
+        _group_id: GroupId,
+    ) -> Result<(), RepoError> {
+        Ok(())
+    }
+
+    fn list_user_notifications(
+        &self,
+        _user_id: UserId,
+        _read_filter: Option<bool>,
+        _limit: Option<i64>,
+    ) -> Result<Vec<NotificationRecord>, RepoError> {
+        Ok(vec![])
+    }
+
+    fn mark_notification_read(
+        &self,
+        _user_id: UserId,
+        _notification_id: NotificationRecordId,
+    ) -> Result<bool, RepoError> {
+        Ok(false)
+    }
+
+    fn mark_all_notifications_read(&self, _user_id: UserId) -> Result<u64, RepoError> {
+        Ok(0)
+    }
+}
+
 pub struct TestContext {
     pub use_case: VerifyChallengeUseCase,
     pub web3: Arc<FakeWeb3Auth>,
@@ -402,6 +484,8 @@ pub struct TestContext {
     pub auth_repo: Arc<FakeAuthRepo>,
     pub jwt_service: Arc<JwtService>,
     pub new_user_id: UserId,
+    #[allow(dead_code)]
+    pub notification_repo: Arc<InMemoryNotificationRepo>,
 }
 
 impl TestContext {
@@ -412,13 +496,14 @@ impl TestContext {
         let new_user_id = UserId(Uuid::new_v4());
         let auth_repo = Arc::new(FakeAuthRepo::new(new_user_id));
         let jwt_service = Arc::new(JwtService::new("test-secret".to_string()));
-
+        let notification_repo = Arc::new(InMemoryNotificationRepo::default());
         let use_case = VerifyChallengeUseCase::new(
             web3.clone(),
             user_repo.clone(),
             wallet_repo.clone(),
             jwt_service.clone(),
             auth_repo.clone(),
+            notification_repo.clone(),
         );
 
         Self {
@@ -429,6 +514,7 @@ impl TestContext {
             auth_repo,
             jwt_service,
             new_user_id,
+            notification_repo,
         }
     }
 

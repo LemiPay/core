@@ -7,8 +7,11 @@ use crate::application::{
     treasury::traits::fund_event_repo::FundEventRepository, users::UserService,
 };
 use crate::infrastructure::blockchain::BlockchainService;
-use std::sync::Arc;
+use crate::infrastructure::db::repositories::notifications_repo_impl::DieselNotificationRepository;
+use crate::infrastructure::email::email_sender::EmailService;
 
+use crate::application::notifications::NotificationService;
+use std::sync::Arc;
 // ----------------------
 // APP STATE
 // ----------------------
@@ -25,7 +28,9 @@ pub struct AppState {
     pub balances_service: BalancesService,
     pub settlements_service: SettlementsService,
     pub investment_service: InvestmentService,
-
+    pub notification_repo: Arc<DieselNotificationRepository>,
+    pub notification_service: NotificationService,
+    pub email_service: Arc<dyn EmailService>,
     pub blockchain_service: Arc<dyn BlockchainService>,
     pub fund_event_repo: Arc<dyn FundEventRepository>,
     pub currency_repo: Arc<dyn CurrencyRepository>,

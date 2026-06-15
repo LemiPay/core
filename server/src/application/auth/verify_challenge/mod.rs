@@ -7,6 +7,7 @@ use crate::application::auth::traits::challenge_cache::Web3AuthCacheTrait;
 use crate::application::auth::traits::repository::AuthRepository;
 use crate::application::auth::traits::token_service::TokenService;
 use crate::application::auth::verify_challenge::dto::{VerificationInput, VerificationOutput};
+use crate::application::notifications::repository::NotificationRepository;
 use crate::application::treasury::traits::user_wallet_repo::UserWalletRepository;
 use crate::application::users::traits::repository::UserRepository;
 use crate::domain::treasury::{CurrencyId, Money, UserWallet, UserWalletId};
@@ -22,6 +23,7 @@ pub struct VerifyChallengeUseCase {
     pub user_wallet_repository: Arc<dyn UserWalletRepository>,
     jwt_service: Arc<JwtService>,
     pub auth_repository: Arc<dyn AuthRepository>,
+    pub notification_repo: Arc<dyn NotificationRepository>,
 }
 
 impl VerifyChallengeUseCase {
@@ -31,6 +33,7 @@ impl VerifyChallengeUseCase {
         user_wallet_repository: Arc<dyn UserWalletRepository>,
         jwt_service: Arc<JwtService>,
         auth_repository: Arc<dyn AuthRepository>,
+        notification_repo: Arc<dyn NotificationRepository>,
     ) -> Self {
         Self {
             web3_service,
@@ -38,6 +41,7 @@ impl VerifyChallengeUseCase {
             user_wallet_repository,
             jwt_service,
             auth_repository,
+            notification_repo,
         }
     }
 
@@ -182,6 +186,11 @@ impl VerifyChallengeUseCase {
             .map_err(|_| AppError::Internal)?;
 
         let real_user_id = saved_user.user.id;
+
+        // Seed default notification preferences for users created via wallet auth / first link
+        let _ = self
+            .notification_repo
+            .initialize_defaults_for_user(real_user_id.clone());
 
         let user_wallet = UserWallet {
             id: UserWalletId(Uuid::new_v4()),

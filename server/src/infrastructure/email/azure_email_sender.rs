@@ -7,7 +7,9 @@ use std::env;
 use crate::domain::user::Email;
 use crate::infrastructure::email::email_sender::{EmailService, EmailServiceError};
 
-use crate::infrastructure::email::template::{LoginAlertTemplate, RegisterTemplate};
+use crate::infrastructure::email::template::{
+    EventNotificationTemplate, LoginAlertTemplate, RegisterTemplate,
+};
 use reqwest::Client;
 use serde::Serialize;
 
@@ -156,6 +158,233 @@ impl EmailService for AzureEmailSender {
 
         self.send(to, &body);
 
+        Ok(())
+    }
+
+    // --- Business notifications using the reusable template.html ---
+
+    async fn send_withdraw_proposal_created_email(
+        &self,
+        to: &Email,
+        group_name: &str,
+    ) -> Result<(), EmailServiceError> {
+        let template = EventNotificationTemplate {
+            email_title: "Propuesta de retiro en LemiPay",
+            heading: "Propuesta de retiro creada",
+            intro_text: &format!(
+                "Se creó una propuesta de retiro en el grupo {}. Revisa los detalles y vota si es necesario.",
+                group_name
+            ),
+            detail_label: "Grupo",
+            detail_value: group_name,
+            closing_text: "¡Gracias por participar en las decisiones del grupo!",
+        };
+        let html = template.render().map_err(|_| EmailServiceError::Internal)?;
+        let body = AzureWelcomeRequest {
+            to: to.to_string(),
+            subject: format!("LemiPay: Propuesta de retiro en {}", group_name),
+            text: html,
+        };
+        self.send(to, &body);
+        Ok(())
+    }
+
+    async fn send_proposal_approved_email(
+        &self,
+        to: &Email,
+        group_name: &str,
+    ) -> Result<(), EmailServiceError> {
+        let template = EventNotificationTemplate {
+            email_title: "Propuesta aprobada",
+            heading: "Propuesta aprobada",
+            intro_text: &format!("Una propuesta en el grupo {} fue aprobada.", group_name),
+            detail_label: "Grupo",
+            detail_value: group_name,
+            closing_text: "Revisa el historial del grupo para ver los detalles.",
+        };
+        let html = template.render().map_err(|_| EmailServiceError::Internal)?;
+        let body = AzureWelcomeRequest {
+            to: to.to_string(),
+            subject: format!("LemiPay: Propuesta aprobada en {}", group_name),
+            text: html,
+        };
+        self.send(to, &body);
+        Ok(())
+    }
+
+    async fn send_proposal_rejected_email(
+        &self,
+        to: &Email,
+        group_name: &str,
+    ) -> Result<(), EmailServiceError> {
+        let template = EventNotificationTemplate {
+            email_title: "Propuesta rechazada",
+            heading: "Propuesta rechazada",
+            intro_text: &format!("Una propuesta en el grupo {} fue rechazada.", group_name),
+            detail_label: "Grupo",
+            detail_value: group_name,
+            closing_text: "Puedes crear una nueva propuesta si lo consideras necesario.",
+        };
+        let html = template.render().map_err(|_| EmailServiceError::Internal)?;
+        let body = AzureWelcomeRequest {
+            to: to.to_string(),
+            subject: format!("LemiPay: Propuesta rechazada en {}", group_name),
+            text: html,
+        };
+        self.send(to, &body);
+        Ok(())
+    }
+
+    async fn send_proposal_executed_email(
+        &self,
+        to: &Email,
+        group_name: &str,
+    ) -> Result<(), EmailServiceError> {
+        let template = EventNotificationTemplate {
+            email_title: "Propuesta ejecutada",
+            heading: "Propuesta ejecutada",
+            intro_text: &format!(
+                "Una propuesta en el grupo {} fue ejecutada exitosamente.",
+                group_name
+            ),
+            detail_label: "Grupo",
+            detail_value: group_name,
+            closing_text: "El cambio ya está reflejado en los balances del grupo.",
+        };
+        let html = template.render().map_err(|_| EmailServiceError::Internal)?;
+        let body = AzureWelcomeRequest {
+            to: to.to_string(),
+            subject: format!("LemiPay: Propuesta ejecutada en {}", group_name),
+            text: html,
+        };
+        self.send(to, &body);
+        Ok(())
+    }
+
+    async fn send_new_member_added_email(
+        &self,
+        to: &Email,
+        group_name: &str,
+    ) -> Result<(), EmailServiceError> {
+        let template = EventNotificationTemplate {
+            email_title: "Invitación a un grupo",
+            heading: "Te invitaron a un grupo",
+            intro_text: &format!(
+                "Recibiste una invitación para unirte al grupo {}. Ingresá a LemiPay para aceptarla o rechazarla.",
+                group_name
+            ),
+            detail_label: "Grupo",
+            detail_value: group_name,
+            closing_text: "Podés revisar la invitación desde las notificaciones de tu cuenta.",
+        };
+        let html = template.render().map_err(|_| EmailServiceError::Internal)?;
+        let body = AzureWelcomeRequest {
+            to: to.to_string(),
+            subject: format!("LemiPay: Invitación al grupo {}", group_name),
+            text: html,
+        };
+        self.send(to, &body);
+        Ok(())
+    }
+
+    async fn send_fund_round_created_email(
+        &self,
+        to: &Email,
+        group_name: &str,
+    ) -> Result<(), EmailServiceError> {
+        let template = EventNotificationTemplate {
+            email_title: "Nueva ronda de fondeo",
+            heading: "Ronda de fondeo iniciada",
+            intro_text: &format!(
+                "Se inició una nueva ronda de fondeo en el grupo {}. ¡Participa!",
+                group_name
+            ),
+            detail_label: "Grupo",
+            detail_value: group_name,
+            closing_text: "Aporta antes de que termine la ronda.",
+        };
+        let html = template.render().map_err(|_| EmailServiceError::Internal)?;
+        let body = AzureWelcomeRequest {
+            to: to.to_string(),
+            subject: format!("LemiPay: Nueva ronda de fondeo en {}", group_name),
+            text: html,
+        };
+        self.send(to, &body);
+        Ok(())
+    }
+
+    async fn send_investment_created_email(
+        &self,
+        to: &Email,
+        group_name: &str,
+    ) -> Result<(), EmailServiceError> {
+        let template = EventNotificationTemplate {
+            email_title: "Nueva propuesta de inversión",
+            heading: "Propuesta de inversión",
+            intro_text: &format!(
+                "Se creó una nueva propuesta de inversión en el grupo {}. Revisa y vota.",
+                group_name
+            ),
+            detail_label: "Grupo",
+            detail_value: group_name,
+            closing_text: "Las inversiones ayudan a hacer crecer el capital del grupo.",
+        };
+        let html = template.render().map_err(|_| EmailServiceError::Internal)?;
+        let body = AzureWelcomeRequest {
+            to: to.to_string(),
+            subject: format!("LemiPay: Nueva inversión en {}", group_name),
+            text: html,
+        };
+        self.send(to, &body);
+        Ok(())
+    }
+
+    async fn send_investment_matured_email(
+        &self,
+        to: &Email,
+        group_name: &str,
+    ) -> Result<(), EmailServiceError> {
+        let template = EventNotificationTemplate {
+            email_title: "Inversión madurada",
+            heading: "Una inversión maduró",
+            intro_text: &format!(
+                "Una inversión del grupo {} alcanzó su fecha de maduración. Ya podés retirar los fondos.",
+                group_name
+            ),
+            detail_label: "Grupo",
+            detail_value: group_name,
+            closing_text: "Ingresá a LemiPay para revisar el rendimiento y retirar si corresponde.",
+        };
+        let html = template.render().map_err(|_| EmailServiceError::Internal)?;
+        let body = AzureWelcomeRequest {
+            to: to.to_string(),
+            subject: format!("LemiPay: Inversión madurada en {}", group_name),
+            text: html,
+        };
+        self.send(to, &body);
+        Ok(())
+    }
+
+    async fn send_expense_created_email(
+        &self,
+        to: &Email,
+        group_name: &str,
+    ) -> Result<(), EmailServiceError> {
+        let template = EventNotificationTemplate {
+            email_title: "Nuevo gasto registrado",
+            heading: "Nuevo gasto",
+            intro_text: &format!("Se agregó un nuevo gasto en el grupo {}.", group_name),
+            detail_label: "Grupo",
+            detail_value: group_name,
+            closing_text: "Revisa el historial de gastos del grupo para ver los detalles.",
+        };
+        let html = template.render().map_err(|_| EmailServiceError::Internal)?;
+        let body = AzureWelcomeRequest {
+            to: to.to_string(),
+            subject: format!("LemiPay: Nuevo gasto en {}", group_name),
+            text: html,
+        };
+        self.send(to, &body);
         Ok(())
     }
 }

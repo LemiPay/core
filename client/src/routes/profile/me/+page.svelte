@@ -8,7 +8,6 @@
 		Wallet,
 		ArrowUpRight,
 		Shield,
-		Clock,
 		CheckCircle,
 		Mail,
 		ReceiptText
@@ -39,7 +38,6 @@
 	import UserTransactionHistory from '$lib/components/UserTransactionHistory.svelte';
 	import type { BlockchainEvent, Transaction } from '$lib/types/endpoints/transactions.types';
 	import { listBlockchainEvents, listUserTransactions } from '$lib/api/endpoints/transactions';
-
 	// --- ESTADOS DE DATOS ---
 	let loadingUserInfo = $state(true);
 	let user = $state({} as User);
@@ -756,7 +754,7 @@
 				</div>
 				<div class="min-w-0 flex-1">
 					<p class="font-semibold">Seguridad y cuenta</p>
-					<p class="text-sm text-muted-foreground">2FA · contraseña · sesiones activas</p>
+					<p class="text-sm text-muted-foreground">Notificaciones · 2FA · sesiones activas</p>
 				</div>
 				<a
 					href={resolve('/dashboard/settings')}
