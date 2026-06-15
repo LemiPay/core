@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { GroupState } from '../group.svelte';
-	import { formatDateTimeShort, formatTxType, parseBalanceValue } from '$lib/utils/format_utils';
+	import { formatAmount, formatDateTimeShort, formatTxType } from '$lib/utils/format_utils';
 
 	let { groupState } = $props<{
 		groupState: GroupState;
@@ -64,7 +64,7 @@
 									</p>
 								</div>
 								<p class="shrink-0 text-sm font-semibold text-black tabular-nums">
-									${parseBalanceValue(tx.amount).toFixed(2)}
+									${formatAmount(tx.amount)}
 								</p>
 							</div>
 						{/each}
@@ -118,7 +118,7 @@
 									</p>
 								</div>
 								<p class="shrink-0 text-sm font-semibold text-black tabular-nums">
-									${parseBalanceValue(ex.amount).toFixed(2)}
+									${formatAmount(ex.amount)}
 								</p>
 							</div>
 						{/each}

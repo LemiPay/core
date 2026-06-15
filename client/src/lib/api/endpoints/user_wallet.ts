@@ -35,14 +35,28 @@ export async function createNewAddress(
 	});
 }
 
+export async function requestWithdrawChallenge(
+	amount: string,
+	wallet_id: string,
+	address: string,
+	uri: string
+): ApiResponse<{ message: string }> {
+	return authedApiFetch(`/wallet/withdraw/${wallet_id}/challenge`, {
+		method: 'POST',
+		body: JSON.stringify({ amount, address, uri })
+	});
+}
+
 export async function withdrawFromWallet(
 	amount: string,
 	wallet_id: string,
 	signature: string,
-	address: string
+	address: string,
+	uri: string,
+	message: string
 ): ApiResponse<Wallet> {
 	return authedApiFetch(`/wallet/withdraw/${wallet_id}`, {
 		method: 'POST',
-		body: JSON.stringify({ amount, signature, address })
+		body: JSON.stringify({ amount, signature, address, uri, message })
 	});
 }

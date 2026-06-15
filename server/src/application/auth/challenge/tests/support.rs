@@ -180,6 +180,37 @@ impl UserWalletRepository for FakeWalletRepo {
         Ok(())
     }
 
+    fn withdraw_atomic(
+        &self,
+        wallet_id: UserWalletId,
+        amount: &Money,
+    ) -> Result<UserWalletDetails, RepoError> {
+        let mut wallets = self
+            .wallets_by_id
+            .lock()
+            .expect("wallets_by_id mutex poisoned");
+        let wallet = wallets.get(&wallet_id).cloned().ok_or(RepoError::Query)?;
+        let updated = wallet.withdraw(amount).map_err(|_| RepoError::Insert)?;
+        wallets.insert(wallet_id, updated.clone());
+        self.wallets_by_address_currency
+            .lock()
+            .expect("wallets_by_address_currency mutex poisoned")
+            .insert(
+                (updated.address.clone(), updated.balance.currency),
+                updated.clone(),
+            );
+        let now = chrono::Utc::now().naive_utc();
+        Ok(UserWalletDetails {
+            id: updated.id.0,
+            address: updated.address,
+            user_id: updated.user_id.0,
+            currency_id: updated.balance.currency.0,
+            balance: updated.balance.amount,
+            created_at: now,
+            updated_at: now,
+        })
+    }
+
     fn get_details(&self, _id: UserWalletId) -> Result<Option<UserWalletDetails>, RepoError> {
         Ok(None)
     }

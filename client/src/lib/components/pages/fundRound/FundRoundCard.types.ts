@@ -28,7 +28,7 @@ export interface FundRoundCardProps {
 
 	statusDisplay: StatusDisplay;
 
-	formatAmount: (value: number) => string;
+	formatAmount: (value: string | number) => string;
 	shortenAddress: (address: string) => string;
 
 	onToggleAccordion: (proposalId: string) => void;

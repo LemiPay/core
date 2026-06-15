@@ -82,6 +82,16 @@ impl FundEventRepository for DieselFundEventRepository {
     ) -> Result<(), RepoError> {
         let mut conn = self.get_conn()?;
 
+        let already_recorded: i64 = schema::blockchain_event::table
+            .filter(schema::blockchain_event::tx_hash.eq(tx_hash))
+            .count()
+            .get_result(&mut conn)
+            .map_err(|_| RepoError::Query)?;
+
+        if already_recorded > 0 {
+            return Ok(());
+        }
+
         let new_event = NewBlockchainEventModel {
             id: Uuid::new_v4(),
             event_type: event_type.to_string(),
@@ -113,6 +123,16 @@ impl FundEventRepository for DieselFundEventRepository {
 
         conn.transaction::<(), diesel::result::Error, _>(|tx_conn| {
             for event in events {
+                let tx_hash = b256_to_str(&event.tx_hash);
+                let already_processed: i64 = schema::blockchain_event::table
+                    .filter(schema::blockchain_event::tx_hash.eq(&tx_hash))
+                    .count()
+                    .get_result(tx_conn)?;
+
+                if already_processed > 0 {
+                    continue;
+                }
+
                 let wallet_addr = extract_address_from_b256(&event.wallet_address);
                 let receiver = address_to_str(&event.receiver);
                 let token_addr = address_to_str(&event.token);
@@ -123,30 +143,14 @@ impl FundEventRepository for DieselFundEventRepository {
                     .select(schema::currency::decimals)
                     .first::<i16>(tx_conn)?;
 
-                let wallet_uuid: Uuid = schema::user_wallet::table
-                    .filter(schema::user_wallet::address.eq(wallet_addr.to_lowercase()))
-                    .filter(schema::user_wallet::currency_id.eq(currency_uuid))
-                    .select(schema::user_wallet::id)
-                    .first::<Uuid>(tx_conn)?;
-
                 let divisor = BigDecimal::new(
                     bigdecimal::num_bigint::BigInt::from(10u8).pow(decimals as u32),
                     0,
                 );
 
-                let net = b256_to_bigdecimal(&event.net_amount) / &divisor;
-
-                diesel::update(schema::user_wallet::table)
-                    .filter(schema::user_wallet::id.eq(wallet_uuid))
-                    .filter(schema::user_wallet::currency_id.eq(currency_uuid))
-                    .set((
-                        schema::user_wallet::balance.eq(schema::user_wallet::balance - &net),
-                        schema::user_wallet::updated_at.eq(chrono::Utc::now().naive_utc()),
-                    ))
-                    .execute(tx_conn)?;
-
                 let gross = b256_to_bigdecimal(&event.gross_amount) / &divisor;
                 let fee = b256_to_bigdecimal(&event.fee_amount) / &divisor;
+                let net = b256_to_bigdecimal(&event.net_amount) / &divisor;
 
                 let new_event = NewBlockchainEventModel {
                     id: Uuid::new_v4(),
@@ -158,7 +162,7 @@ impl FundEventRepository for DieselFundEventRepository {
                     gross_amount: gross,
                     fee_amount: fee,
                     net_amount: net,
-                    tx_hash: b256_to_str(&event.tx_hash),
+                    tx_hash,
                     block_number: event.block_number as i64,
                 };
 

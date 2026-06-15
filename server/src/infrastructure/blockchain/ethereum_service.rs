@@ -3,7 +3,7 @@ use crate::infrastructure::blockchain::{
     BlockchainService, ContractEvent, contracts::lemipay_vault::LemiPayVault,
     error::BlockchainError, event_decoder::try_decode_event,
 };
-use alloy::primitives::{Address, B256, Bytes, U256};
+use alloy::primitives::{Address, B256, Bytes, Signature, U256};
 use alloy::providers::{Provider, ProviderBuilder};
 use alloy::rpc::types::Filter;
 use alloy::signers::local::PrivateKeySigner;
@@ -37,6 +37,14 @@ impl EthereumService {
 #[async_trait]
 impl BlockchainService for EthereumService {
     async fn verify_signature(&self, sig: Bytes, address: Address, msg: B256) -> bool {
+        if let Ok(signature) = Signature::try_from(sig.as_ref()) {
+            if let Ok(recovered) = signature.recover_address_from_prehash(&msg) {
+                if recovered == address {
+                    return true;
+                }
+            }
+        }
+
         let provider = ProviderBuilder::new().connect_http(self.rpc_url.parse().unwrap());
 
         match erc6492::verify_signature(sig, address, msg, &provider).await {

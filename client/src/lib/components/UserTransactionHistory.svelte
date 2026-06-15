@@ -1,6 +1,6 @@
 <script lang="ts">
 	import SideBar from './ui/SideBar.svelte';
-	import { roundBalance } from '$lib/utils/money_utils';
+	import { formatAmount } from '$lib/utils/format_utils';
 
 	interface Props {
 		open: boolean;
@@ -69,7 +69,7 @@
 					{:else}
 						{#each mergeAndSort() as item}
 							<div
-								class="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 transition hover:border-gray-300"
+								class="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition hover:border-border/80"
 							>
 								<div class="flex flex-col gap-0.5">
 									<span class="font-bold text-black capitalize"
@@ -82,7 +82,7 @@
 								</div>
 								<div class="flex flex-col items-end gap-0.5">
 									<span class="font-bold text-black">
-										{item.sign} ${roundBalance(item.amount)}
+										{item.sign} ${formatAmount(item.amount)}
 									</span>
 									<span class="text-sm text-gray-500">{formatDate(item.date)}</span>
 								</div>

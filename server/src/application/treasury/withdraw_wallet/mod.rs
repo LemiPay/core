@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use bigdecimal::BigDecimal;
 
+use crate::application::common::repo_error::RepoError;
 use crate::application::treasury::dto::UserWalletDetails;
 use crate::application::treasury::traits::user_wallet_repo::UserWalletRepository;
 use crate::domain::treasury::{Money, TreasuryError, UserWalletId};
@@ -44,19 +45,11 @@ impl WithdrawWalletUseCase {
                 _ => WithdrawWalletError::Internal,
             })?;
 
-        let updated = wallet.withdraw(&money).map_err(|err| match err {
-            TreasuryError::InsufficientFunds => WithdrawWalletError::InsufficientFunds,
-            TreasuryError::InvalidAmount => WithdrawWalletError::InvalidAmount,
-            _ => WithdrawWalletError::Internal,
-        })?;
-
         self.user_wallet_repo
-            .save(&updated)
-            .map_err(|_| WithdrawWalletError::Internal)?;
-
-        self.user_wallet_repo
-            .get_details(updated.id)
-            .map_err(|_| WithdrawWalletError::Internal)?
-            .ok_or(WithdrawWalletError::Internal)
+            .withdraw_atomic(wallet_id, &money)
+            .map_err(|err| match err {
+                RepoError::Insert | RepoError::Query => WithdrawWalletError::InsufficientFunds,
+                _ => WithdrawWalletError::Internal,
+            })
     }
 }

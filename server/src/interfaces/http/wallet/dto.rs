@@ -15,10 +15,26 @@ pub struct FundAmountRequest {
 }
 
 #[derive(Deserialize)]
+pub struct WithdrawChallengeRequest {
+    pub amount: String,
+    pub address: String,
+    pub uri: String,
+}
+
+#[derive(Serialize)]
+pub struct WithdrawChallengeResponse {
+    pub message: String,
+}
+
+#[derive(Deserialize)]
 pub struct WithdrawRequest {
     pub amount: String,
     pub signature: String,
     pub address: String,
+    /// Must match the origin the user signed (e.g. http://localhost:5173).
+    pub uri: String,
+    /// Exact message returned by the withdraw challenge endpoint.
+    pub message: String,
 }
 
 #[derive(Deserialize)]

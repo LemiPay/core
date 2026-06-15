@@ -31,6 +31,8 @@
 	import FundWalletModal from '$lib/components/modals/user/FundWalletModal.svelte';
 	import WithdrawModal from '$lib/components/modals/user/WithdrawModal.svelte';
 	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
+	import { formatAmount } from '$lib/utils/format_utils';
+	import { fetchSepoliaWalletBalances } from '$lib/utils/blockchain_utils';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { fly, fade, scale } from 'svelte/transition';
@@ -53,14 +55,22 @@
 
 	// --- ESTADOS DE MODALES ---
 	let fundTarget = $state<{ wallet_id: string; wallet_address: string } | null>(null);
-	let withdrawTarget = $state<{ wallet_id: string; wallet_address: string; ticker: string } | null>(
-		null
-	);
+	let withdrawTarget = $state<{
+		wallet_id: string;
+		wallet_address: string;
+		ticker: string;
+		balance: string;
+	} | null>(null);
 	let openCreateWalletModal = $state(false);
 	let linkingRequested = $state(false);
 	let linkingInFlight = $state(false);
 	let linkingError = $state('');
 	let linkingAddress = $state('' as string | undefined);
+
+	let loadingConnectedBalances = $state(false);
+	let connectedUsdcBalance = $state<string | null>(null);
+	let connectedEthBalance = $state<string | null>(null);
+	let connectedBalancesError = $state('');
 
 	// --- ESTADO DERIVADO ---
 	let totalBalance = $derived(
@@ -87,6 +97,51 @@
 		}
 		walletsArray = result.body;
 		loadingWalletsInfo = false;
+	}
+
+	let connectedBalancesRequest = 0;
+
+	async function loadConnectedWalletBalances() {
+		if (!authActions.hasReownProjectId) {
+			connectedBalancesError = 'Reown no configurado (falta VITE_PUBLIC_REOWN_KEY).';
+			connectedUsdcBalance = null;
+			connectedEthBalance = null;
+			loadingConnectedBalances = false;
+			return;
+		}
+
+		const address = walletAuthState.address;
+		if (!walletAuthState.isConnected || !address) {
+			connectedBalancesError = '';
+			connectedUsdcBalance = null;
+			connectedEthBalance = null;
+			loadingConnectedBalances = false;
+			return;
+		}
+
+		const requestId = ++connectedBalancesRequest;
+		const isInitialLoad = connectedUsdcBalance === null && connectedEthBalance === null;
+		if (isInitialLoad) loadingConnectedBalances = true;
+		connectedBalancesError = '';
+
+		try {
+			const balances = await fetchSepoliaWalletBalances(wagmiAdapter.wagmiConfig, address);
+			if (requestId !== connectedBalancesRequest) return;
+			connectedUsdcBalance = balances.usdc;
+			connectedEthBalance = balances.eth;
+		} catch (err) {
+			if (requestId !== connectedBalancesRequest) return;
+			connectedUsdcBalance = null;
+			connectedEthBalance = null;
+			connectedBalancesError =
+				err instanceof Error
+					? err.message
+					: 'No se pudo consultar Sepolia. Reintentá o reconectá Reown.';
+		} finally {
+			if (requestId === connectedBalancesRequest && isInitialLoad) {
+				loadingConnectedBalances = false;
+			}
+		}
 	}
 
 	async function loadTransactions() {
@@ -179,6 +234,8 @@
 	}
 
 	function handleWalletAuthChange() {
+		void loadConnectedWalletBalances();
+
 		if (!linkingRequested || linkingInFlight) return;
 		if (!walletAuthState.isConnected || !walletAuthState.address) return;
 		void linkConnectedWallet(walletAuthState.address);
@@ -207,9 +264,11 @@
 
 	onMount(() => {
 		const unsubscribe = onWalletAuthChange(handleWalletAuthChange);
+		void authActions.restoreWalletSession().then(() => loadConnectedWalletBalances());
 		const interval = setInterval(() => {
 			loadWallets();
 			loadTransactions();
+			loadConnectedWalletBalances();
 		}, 5000);
 		return () => {
 			unsubscribe();
@@ -246,6 +305,7 @@
 	wallet_id={withdrawTarget?.wallet_id ?? ''}
 	wallet_address={withdrawTarget?.wallet_address ?? ''}
 	ticker={withdrawTarget?.ticker ?? ''}
+	balance={withdrawTarget?.balance ?? '0'}
 	onclose={() => (withdrawTarget = null)}
 	onsuccess={() => loadWallets()}
 />
@@ -311,7 +371,7 @@
 						<!-- Avatar ring -->
 						<div class="relative shrink-0">
 							<div
-								class="flex size-20 items-center justify-center rounded-3xl bg-linear-to-br from-lime-300 via-emerald-200 to-violet-300 text-2xl font-semibold text-lime-900 shadow-lg shadow-lime-500/20 dark:from-lime-400/40 dark:via-emerald-400/20 dark:to-violet-500/30 dark:text-lime-200"
+								class="flex size-20 items-center justify-center rounded-2xl bg-linear-to-br from-lime-300 via-emerald-200 to-violet-300 text-2xl font-semibold text-lime-900 shadow-lg shadow-lime-500/20 dark:from-lime-400/40 dark:via-emerald-400/20 dark:to-violet-500/30 dark:text-lime-200"
 							>
 								{#if loadingUserInfo}
 									<span class="animate-pulse">…</span>
@@ -374,17 +434,85 @@
 				</div>
 
 				<!-- Summary metric cards -->
-				<div class="mt-6 flex flex-row gap-3">
-					<div class="rounded-4xl border border-border/80 bg-background/70 p-4 backdrop-blur">
-						<p class="text-xs font-medium text-muted-foreground">Balance total</p>
+				<div class="mt-6 flex gap-3 overflow-x-auto pb-0.5">
+					<div
+						class="min-w-[7.5rem] flex-1 rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur"
+					>
+						<p class="text-xs font-medium text-muted-foreground">Crédito en LemiPay</p>
 						<p class="mt-1.5 text-xl font-semibold">
-							${totalBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+							${formatAmount(totalBalance)}
 						</p>
 					</div>
 
-					<div class="rounded-4xl border border-border/80 bg-background/70 p-4 backdrop-blur">
-						<p class="text-xs font-medium text-muted-foreground">Wallets activas</p>
-						<p class="mt-1.5 text-xl font-semibold">{totalWallets}</p>
+					<div
+						class="min-w-[7.5rem] flex-1 rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur {walletAuthState.isConnected
+							? 'border-lime-200/70 dark:border-lime-400/20'
+							: ''}"
+					>
+						<p class="text-xs font-medium text-muted-foreground">Blockchain Wallet</p>
+
+						{#if walletAuthState.isConnected && walletAuthState.address}
+							<p class="mt-1.5 text-xl font-semibold text-emerald-700 dark:text-emerald-300">
+								Conectada
+							</p>
+							<p class="mt-1 font-mono text-xs text-muted-foreground">
+								{shortenAddress(walletAuthState.address)}
+							</p>
+							<p class="mt-1 text-xs text-muted-foreground">
+								{#if walletAuthState.isSocial}
+									<span class="text-violet-700 dark:text-violet-300">Cuenta social</span>
+									<span> · </span>
+								{/if}
+								{#if walletAuthState.accountType === 'smartAccount'}
+									<span class="text-amber-700 dark:text-amber-400">Smart Account</span>
+									<span> · </span>
+								{:else if walletAuthState.accountType === 'eoa'}
+									<span>EOA</span>
+									<span> · </span>
+								{/if}
+								Sepolia
+							</p>
+							{#if walletAuthState.accountType === 'smartAccount'}
+								<p class="mt-1 text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+									Fondeá esta dirección exacta en Sepolia. No uses otra wallet.
+								</p>
+							{/if}
+						{:else}
+							<p class="mt-1.5 text-xl font-semibold text-muted-foreground">Desconectada</p>
+							<p class="mt-1 text-xs text-muted-foreground">Sin wallet vinculada</p>
+						{/if}
+					</div>
+
+					<div
+						class="min-w-[7.5rem] flex-1 rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur"
+					>
+						<p class="text-xs font-medium text-muted-foreground">Saldo on-chain</p>
+
+						{#if walletAuthState.isConnected && walletAuthState.address}
+							{#if loadingConnectedBalances}
+								<p class="mt-1.5 text-xl font-semibold text-muted-foreground">…</p>
+								<p class="mt-1 text-xs text-muted-foreground">Consultando Sepolia</p>
+							{:else if connectedUsdcBalance !== null && connectedEthBalance !== null}
+								<p class="mt-1.5 text-xl font-semibold tabular-nums">
+									{connectedUsdcBalance}
+									<span class="text-base font-medium text-muted-foreground">USDC</span>
+								</p>
+								<p class="mt-1 text-sm font-medium text-muted-foreground tabular-nums">
+									{connectedEthBalance} ETH
+								</p>
+								<p class="mt-1 text-[11px] text-muted-foreground">Red Sepolia (testnet)</p>
+							{:else}
+								<p class="mt-1.5 text-xl font-semibold text-muted-foreground">—</p>
+								<p class="mt-1 text-xs text-amber-700 dark:text-amber-400">
+									{connectedBalancesError || 'No disponible'}
+								</p>
+							{/if}
+						{:else}
+							<p class="mt-1.5 text-xl font-semibold text-muted-foreground">—</p>
+							<p class="mt-1 text-xs text-muted-foreground">
+								Conectá una wallet para ver saldos on-chain
+							</p>
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -466,7 +594,7 @@
 							class="rounded-[2rem] border border-border bg-card p-5"
 							in:fade={{ delay: i * 60 }}
 						>
-							<div class="h-5 w-48 animate-pulse rounded-lg bg-muted"></div>
+							<div class="h-5 w-48 animate-pulse rounded-2xl bg-muted"></div>
 							<div class="mt-4 grid grid-cols-2 gap-3">
 								<div class="h-16 animate-pulse rounded-2xl bg-muted"></div>
 								<div class="h-16 animate-pulse rounded-2xl bg-muted"></div>
@@ -506,7 +634,7 @@
 						>
 							<div class="flex items-center gap-2.5">
 								<div
-									class="flex size-8 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+									class="flex size-8 items-center justify-center rounded-2xl bg-muted text-muted-foreground"
 								>
 									<Wallet class="size-4" />
 								</div>
@@ -523,7 +651,7 @@
 							<button
 								onclick={() => handleCopy(group.address)}
 								class={[
-									'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition',
+									'inline-flex items-center gap-1.5 rounded-2xl border px-3 py-1.5 text-xs font-medium transition',
 									copiedAddress === group.address
 										? 'border-emerald-300/60 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300'
 										: 'border-border bg-background/70 text-muted-foreground hover:border-border/80 hover:text-foreground'
@@ -563,18 +691,14 @@
 										<div>
 											<p class="font-semibold">{currency.ticker}</p>
 											<p class="text-xs text-muted-foreground">
-												{Number(currency.balance).toLocaleString('en-US', {
-													maximumFractionDigits: 6
-												})} disponibles
+												{formatAmount(currency.balance)} disponibles
 											</p>
 										</div>
 									</div>
 
 									<div class="flex items-center gap-2">
 										<span class="mr-2 text-right text-lg font-semibold tabular-nums">
-											{Number(currency.balance).toLocaleString('en-US', {
-												maximumFractionDigits: 4
-											})}
+											{formatAmount(currency.balance)}
 										</span>
 										<button
 											onclick={() =>
@@ -582,7 +706,7 @@
 													wallet_id: currency.wallet_id,
 													wallet_address: group.address
 												})}
-											class="inline-flex items-center gap-1.5 rounded-xl border border-lime-200 bg-lime-50 px-3 py-1.5 text-xs font-semibold text-lime-700 transition hover:border-lime-300 hover:bg-lime-100 dark:border-lime-400/20 dark:bg-lime-400/10 dark:text-lime-300 dark:hover:border-lime-400/30 dark:hover:bg-lime-400/15"
+											class="inline-flex items-center gap-1.5 rounded-2xl border border-lime-200 bg-lime-50 px-3 py-1.5 text-xs font-semibold text-lime-700 transition hover:border-lime-300 hover:bg-lime-100 dark:border-lime-400/20 dark:bg-lime-400/10 dark:text-lime-300 dark:hover:border-lime-400/30 dark:hover:bg-lime-400/15"
 										>
 											<Wallet class="size-3.5" />
 											Fondear
@@ -592,9 +716,10 @@
 												(withdrawTarget = {
 													wallet_id: currency.wallet_id,
 													wallet_address: group.address,
-													ticker: currency.ticker
+													ticker: currency.ticker,
+													balance: currency.balance
 												})}
-											class="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300 dark:hover:border-red-400/30 dark:hover:bg-red-400/15"
+											class="inline-flex items-center gap-1.5 rounded-2xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300 dark:hover:border-red-400/30 dark:hover:bg-red-400/15"
 										>
 											<LogOut class="size-3.5" />
 											Retirar

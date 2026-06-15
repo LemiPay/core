@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { formatDate } from '$lib/utils/format_utils';
-	import { roundBalance } from '$lib/utils/money_utils';
+	import { formatAmount, formatDate } from '$lib/utils/format_utils';
 	import type { BlockchainEvent, Transaction } from '$lib/types/endpoints/transactions.types';
 
 	interface Props {
@@ -58,7 +57,7 @@
 					</div>
 					<div class="flex flex-col items-end gap-0.5">
 						<span class="font-bold text-black">
-							{item.sign} ${roundBalance(item.amount)}
+							{item.sign} ${formatAmount(item.amount)}
 						</span>
 						<span class="text-sm text-gray-500">{formatDate(item.date)}</span>
 					</div>

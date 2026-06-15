@@ -13,7 +13,10 @@ use crate::infrastructure::blockchain::error::BlockchainError;
 use crate::interfaces::http::{
     auth::extractor::AuthUser,
     error::AppError,
-    wallet::dto::{UserWalletResponse, WithdrawRequest},
+    wallet::{
+        dto::{UserWalletResponse, WithdrawRequest},
+        withdraw_message::build_withdraw_authorization_message,
+    },
 };
 use crate::setup::state::SharedState;
 
@@ -50,16 +53,22 @@ pub async fn withdraw_wallet(
     let amount = BigDecimal::from_str(&req.amount)
         .map_err(|_| AppError::BadRequest("Monto inválido".into()))?;
 
-    let message = format!(
-        "lemipay.app quiere autorizar un retiro:\n\nWallet: {}\nMonto: {}\nAddress: {}\n\nURI: https://localhost:5173",
-        wallet_id, req.amount, req.address,
-    );
-    let signed_message = eip191_hash_message(message.as_bytes());
-
     let addr: Address = req
         .address
+        .trim()
         .parse()
         .map_err(|_| AppError::BadRequest("Dirección inválida".into()))?;
+
+    let expected_message =
+        build_withdraw_authorization_message(wallet_id, req.amount.trim(), &addr, req.uri.trim());
+
+    if req.message != expected_message {
+        return Err(AppError::BadRequest(
+            "El mensaje firmado no coincide con el retiro solicitado.".into(),
+        ));
+    }
+
+    let signed_message = eip191_hash_message(req.message.as_bytes());
 
     let sig: alloy::primitives::Bytes = req
         .signature
