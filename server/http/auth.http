@@ -4,18 +4,17 @@ Content-Type: application/json
 
 {
   "name": "{{name}}",
-  "email": "{{email}}",
+  "email": "luli@mail",
   "password": "{{password}}"
 }
 
-###w
 
 ### Login
 POST {{host}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "{{email2}}",
+  "email": "luli@mail",
   "password": "{{password}}"
 }
 

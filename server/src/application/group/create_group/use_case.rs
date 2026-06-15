@@ -3,12 +3,14 @@ use std::sync::Arc;
 use crate::application::group::create_group::dto::{CreateGroupInput, CreateGroupOutput};
 use crate::application::group::create_group::error::CreateGroupError;
 use crate::application::group::traits::repository::GroupRepository;
+use crate::application::permission::traits::repository::PermissionRepository;
 use crate::domain::group::{Group, GroupConfig};
 use validator::ValidateLength;
 
 #[derive(Clone)]
 pub struct CreateGroupUseCase {
     pub group_repo: Arc<dyn GroupRepository>,
+    pub permission_repo: Arc<dyn PermissionRepository>,
 }
 
 impl CreateGroupUseCase {
@@ -28,6 +30,10 @@ impl CreateGroupUseCase {
 
         self.group_repo
             .save(&group)
+            .map_err(|_| CreateGroupError::InternalError)?;
+
+        self.permission_repo
+            .seed_defaults(group.id)
             .map_err(|_| CreateGroupError::InternalError)?;
 
         Ok(CreateGroupOutput { group_id: group.id })

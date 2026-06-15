@@ -1,7 +1,7 @@
 ### Group - Create (legacy route)
 POST {{host}}/group/create
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjNmMzNzI5Ni1iMTJkLTRhMDAtYmI1Zi1hZjM2OWNmODljNjQiLCJleHAiOjE3ODIxNTg0ODV9.ekgX9n8SZsULHepHisBd8GA10c2HY7dWGNLNmw187JA
 
 {
   "name": "Casa 2026",

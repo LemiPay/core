@@ -111,6 +111,7 @@ pub fn build_app() -> Router {
         investment_repo.clone(),
         governance_repo,
         balances_service.clone(),
+        permission_repo.clone(),
     );
     let investment_service = build_investment_service(
         investment_repo,

@@ -12,6 +12,7 @@ use crate::{
     infrastructure::db::repositories::governance_repo_impl::DieselGovernanceRepository,
     infrastructure::db::repositories::group_repo_impl::DieselGroupRepository,
     infrastructure::db::repositories::investment_repo_impl::DieselInvestmentRepository,
+    infrastructure::db::repositories::permission_repo_impl::DieselPermissionRepository,
 };
 
 pub fn build_group_service(
@@ -19,10 +20,12 @@ pub fn build_group_service(
     investment_repo: Arc<DieselInvestmentRepository>,
     governance_repo: Arc<DieselGovernanceRepository>,
     balances_service: BalancesService,
+    permission_repo: Arc<DieselPermissionRepository>,
 ) -> GroupService {
     GroupService {
         create_group: CreateGroupUseCase {
             group_repo: group_repo.clone(),
+            permission_repo: permission_repo.clone(),
         },
         get_group: GetGroupUseCase {
             group_repo: group_repo.clone(),
