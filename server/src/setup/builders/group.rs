@@ -9,6 +9,7 @@ use crate::{
         leave_group::LeaveGroupUseCase, list_user_groups::ListUserGroupsUseCase,
         make_group_admin::MakeGroupAdminUseCase, update_group::UpdateGroupUseCase,
     },
+    infrastructure::db::repositories::governance_repo_impl::DieselGovernanceRepository,
     infrastructure::db::repositories::group_repo_impl::DieselGroupRepository,
     infrastructure::db::repositories::investment_repo_impl::DieselInvestmentRepository,
 };
@@ -16,6 +17,7 @@ use crate::{
 pub fn build_group_service(
     group_repo: Arc<DieselGroupRepository>,
     investment_repo: Arc<DieselInvestmentRepository>,
+    governance_repo: Arc<DieselGovernanceRepository>,
     balances_service: BalancesService,
 ) -> GroupService {
     GroupService {
@@ -48,6 +50,7 @@ pub fn build_group_service(
         enter_debt_resolution: EnterDebtResolutionUseCase {
             group_repo: group_repo.clone(),
             investment_repo: investment_repo.clone(),
+            governance_repo: governance_repo.clone(),
         },
     }
 }

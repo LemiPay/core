@@ -211,6 +211,7 @@ impl From<EnterDebtResolutionError> for AppError {
             EnterDebtResolutionError::ActiveInvestments => {
                 AppError::Forbidden("Retirá todas las inversiones antes de cerrar el grupo".into())
             }
+            EnterDebtResolutionError::ActiveProposals(msg) => AppError::Forbidden(msg),
             EnterDebtResolutionError::Internal => AppError::Internal,
         }
     }

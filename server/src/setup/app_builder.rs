@@ -93,7 +93,7 @@ pub fn build_app() -> Router {
     );
 
     let governance_service = build_governance_service(
-        governance_repo,
+        governance_repo.clone(),
         group_repo.clone(),
         user_repo,
         user_wallet_repo.clone(),
@@ -104,6 +104,7 @@ pub fn build_app() -> Router {
     let group_service = build_group_service(
         group_repo.clone(),
         investment_repo.clone(),
+        governance_repo,
         balances_service.clone(),
     );
     let investment_service = build_investment_service(

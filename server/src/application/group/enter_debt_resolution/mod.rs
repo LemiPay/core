@@ -1,11 +1,13 @@
 pub mod dto;
 use std::sync::Arc;
 
+use crate::application::governance::traits::repository::GovernanceRepository;
 use crate::application::group::{
     enter_debt_resolution::dto::{EnterDebtResolutionInput, EnterDebtResolutionOutput},
     traits::repository::GroupRepository,
 };
 use crate::application::investment::traits::repository::InvestmentRepository;
+use crate::domain::governance::ProposalStatus;
 use crate::domain::group::GroupError;
 use crate::domain::investment::InvestmentStatus;
 
@@ -15,6 +17,7 @@ pub enum EnterDebtResolutionError {
     Forbidden,
     NotActive,
     ActiveInvestments,
+    ActiveProposals(String),
     Internal,
 }
 
@@ -32,6 +35,7 @@ impl From<GroupError> for EnterDebtResolutionError {
 pub struct EnterDebtResolutionUseCase {
     pub group_repo: Arc<dyn GroupRepository>,
     pub investment_repo: Arc<dyn InvestmentRepository>,
+    pub governance_repo: Arc<dyn GovernanceRepository>,
 }
 
 impl EnterDebtResolutionUseCase {
@@ -45,6 +49,8 @@ impl EnterDebtResolutionUseCase {
             .map_err(|_| EnterDebtResolutionError::Internal)?
             .ok_or(EnterDebtResolutionError::NotFound)?;
 
+        // ── P1: Check for non-withdrawn investments ──
+
         let investments = self
             .investment_repo
             .list_group_investments(input.group_id.0)
@@ -57,6 +63,54 @@ impl EnterDebtResolutionUseCase {
         if has_non_withdrawn {
             return Err(EnterDebtResolutionError::ActiveInvestments);
         }
+
+        let mut issues: Vec<&str> = Vec::new();
+
+        let withdraw_proposals = self
+            .governance_repo
+            .list_withdraw_proposals(input.group_id.0)
+            .map_err(|_| EnterDebtResolutionError::Internal)?;
+
+        if withdraw_proposals
+            .iter()
+            .any(|p| p.proposal.status.is_open())
+        {
+            issues.push("propuestas de retiro pendientes");
+        }
+
+        let investment_proposals = self
+            .investment_repo
+            .list_approved_proposals(input.group_id.0)
+            .map_err(|_| EnterDebtResolutionError::Internal)?;
+
+        if !investment_proposals.is_empty() {
+            issues.push("propuestas de inversión sin ejecutar");
+        }
+
+        if !issues.is_empty() {
+            let msg = format!(
+                "Hay {}. Ejecutalas o cancelalas antes de cerrar el grupo.",
+                issues.join(" y ")
+            );
+            return Err(EnterDebtResolutionError::ActiveProposals(msg));
+        }
+
+        // ── Auto-cancel open new member proposals ──
+
+        let new_member_proposals = self
+            .governance_repo
+            .find_group_new_member_proposals(input.group_id.0)
+            .map_err(|_| EnterDebtResolutionError::Internal)?;
+
+        for p in &new_member_proposals {
+            if p.proposal.status.is_open() {
+                self.governance_repo
+                    .update_proposal_status(p.proposal.id, ProposalStatus::Canceled)
+                    .map_err(|_| EnterDebtResolutionError::Internal)?;
+            }
+        }
+
+        // ── Transition ──
 
         let updated = group
             .enter_debt_resolution(input.actor_id)
