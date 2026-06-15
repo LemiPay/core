@@ -5,6 +5,7 @@ use crate::application::group::traits::repository::GroupRepository;
 use crate::application::permission::error::PermissionError;
 use crate::application::permission::traits::repository::PermissionRepository;
 use crate::domain::group::GroupId;
+use crate::domain::group::member::GroupRole;
 use crate::domain::permission::action::Action;
 use crate::domain::user::UserId;
 
@@ -37,6 +38,37 @@ impl PermissionService {
         } else {
             Err(PermissionError::ActionNotAllowed)
         }
+    }
+
+    pub fn list_permissions(
+        &self,
+        group_id: GroupId,
+    ) -> Result<Vec<(GroupRole, Action)>, PermissionError> {
+        self.permission_repo
+            .find_by_group(group_id)
+            .map_err(|_| PermissionError::Internal)
+    }
+
+    pub fn add_permission(
+        &self,
+        group_id: GroupId,
+        role: GroupRole,
+        action: &Action,
+    ) -> Result<(), PermissionError> {
+        self.permission_repo
+            .add_permission(group_id, role, action)
+            .map_err(|_| PermissionError::Internal)
+    }
+
+    pub fn remove_permission(
+        &self,
+        group_id: GroupId,
+        role: GroupRole,
+        action: &Action,
+    ) -> Result<(), PermissionError> {
+        self.permission_repo
+            .remove_permission(group_id, role, action)
+            .map_err(|_| PermissionError::Internal)
     }
 }
 
