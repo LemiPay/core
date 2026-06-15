@@ -33,6 +33,7 @@
 	import ExpensesTab from './tabs/ExpensesTab.svelte';
 	import HistoryTab from './tabs/HistoryTab.svelte';
 	import NotificationPreferences from '$lib/components/NotificationPreferences.svelte';
+	import GroupPermissions from '$lib/components/GroupPermissions.svelte';
 
 	const groupId = page.params.group_id as string;
 	const groupState = new GroupState(groupId);
@@ -322,6 +323,11 @@
 					<HistoryTab {groupState} />
 				{:else if activeTab === 'settings'}
 					<NotificationPreferences {groupId} />
+					<div class="mt-10">
+						{#if isCurrentUserAdmin}
+							<GroupPermissions {groupId} />
+						{/if}
+					</div>
 				{/if}
 			</div>
 		</div>
