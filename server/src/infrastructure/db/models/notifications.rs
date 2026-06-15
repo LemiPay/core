@@ -180,3 +180,29 @@ impl From<GroupNotificationPreferenceModel> for GroupNotificationPreference {
         }
     }
 }
+
+// =========================
+// Notification Records (persistent web notifications)
+// =========================
+
+#[derive(Debug, Clone, Queryable, Selectable, Identifiable)]
+#[diesel(table_name = schema::notification)]
+pub struct NotificationRecordModel {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub group_id: Option<Uuid>,
+    pub event_name: String,
+    pub group_name: Option<String>,
+    pub read: bool,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = schema::notification)]
+pub struct NewNotificationRecord {
+    pub user_id: Uuid,
+    pub group_id: Option<Uuid>,
+    pub event_name: String,
+    pub group_name: Option<String>,
+    pub read: bool,
+}
