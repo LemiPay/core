@@ -43,7 +43,7 @@ pub fn routes(state: SharedState) -> Router<SharedState> {
             "/new-member/{group_id}",
             post(create_new_member_proposal).route_layer(middleware::from_fn_with_state(
                 state.clone(),
-                is_group_admin_middleware,
+                is_in_group_middleware,
             )),
         )
         .route(

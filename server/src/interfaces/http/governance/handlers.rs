@@ -1,3 +1,5 @@
+use crate::domain::group::GroupId;
+use crate::domain::permission::action::Action;
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -61,6 +63,11 @@ pub async fn create_new_member_proposal(
     user: AuthUser,
     Json(payload): Json<NewMemberRequest>,
 ) -> Result<Json<NewMemberProposalResponse>, AppError> {
+    state
+        .permission_service
+        .check_allowed(user.user_id, GroupId(group_id), &Action::InviteMember)
+        .map_err(AppError::from)?;
+
     let item = state
         .governance_service
         .create_new_member_proposal(
