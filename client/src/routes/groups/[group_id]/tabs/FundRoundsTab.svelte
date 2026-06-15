@@ -19,8 +19,14 @@
 	import type { FundRoundStatusResponse } from '$lib/types/endpoints/fund_rounds.types';
 	import FundRoundCard from '$lib/components/pages/fundRound/FundRoundCard.svelte';
 
-	let { groupState, onCreateFundRound, onCancelFundRound } = $props<{
+	let {
+		groupState,
+		readonly = false,
+		onCreateFundRound,
+		onCancelFundRound
+	} = $props<{
 		groupState: GroupState;
+		readonly?: boolean;
 		onCreateFundRound: () => void;
 		onCancelFundRound: (id: string) => void;
 	}>();
@@ -54,9 +60,11 @@
 				Aportes colectivos para fondear una billetera del grupo.
 			</p>
 		</div>
-		<Button label="Nueva Ronda" variant="primary" onclick={onCreateFundRound}>
-			{#snippet icon()}<Plus class="h-4 w-4" />{/snippet}
-		</Button>
+		{#if !readonly}
+			<Button label="Nueva Ronda" variant="primary" onclick={onCreateFundRound}>
+				{#snippet icon()}<Plus class="h-4 w-4" />{/snippet}
+			</Button>
+		{/if}
 	</div>
 
 	{#if groupState.fundRoundsError}
@@ -80,9 +88,11 @@
 			<HandCoins class="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
 			<p class="text-sm font-medium text-foreground">Sin rondas de fondeo</p>
 			<p class="mb-4 text-sm text-muted-foreground">Este grupo no tiene rondas de fondeo aún.</p>
-			<Button label="Crear primera ronda" variant="secondary" onclick={onCreateFundRound}>
-				{#snippet icon()}<Plus class="h-4 w-4" />{/snippet}
-			</Button>
+			{#if !readonly}
+				<Button label="Crear primera ronda" variant="secondary" onclick={onCreateFundRound}>
+					{#snippet icon()}<Plus class="h-4 w-4" />{/snippet}
+				</Button>
+			{/if}
 		</div>
 	{:else}
 		<div class="space-y-3 pt-2">
@@ -90,6 +100,7 @@
 				{#each groupState.activeFundRounds as status (status.fund_round.proposal.id)}
 					<FundRoundCard
 						{status}
+						{readonly}
 						{expandedFundRoundId}
 						bind:selectedContribWalletId
 						recommended={groupState.recommendedAmount(status.target_amount)}
@@ -149,6 +160,7 @@
 						{#each groupState.pastFundRounds as status (status.fund_round.proposal.id)}
 							<FundRoundCard
 								{status}
+								{readonly}
 								{expandedFundRoundId}
 								bind:selectedContribWalletId
 								recommended={groupState.recommendedAmount(status.target_amount)}

@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use bigdecimal::Zero;
-use uuid::Uuid;
 
 use crate::{
     application::{
@@ -30,20 +29,20 @@ pub struct BalancesService {
 }
 
 impl BalancesService {
-    pub fn get_balances(&self, group_id: Uuid) -> Result<GroupBalancesDetails, BalancesError> {
+    pub fn get_balances(&self, group_id: GroupId) -> Result<GroupBalancesDetails, BalancesError> {
         let historic_members = self
             .group_repo
-            .get_historic_group_members(GroupId(group_id))
+            .get_historic_group_members(group_id)
             .map_err(BalancesError::from)?;
         let user_ids: Vec<UserId> = historic_members.iter().map(|m| UserId(m.user_id)).collect();
 
         let transactions = self
             .transaction_repo
-            .list_by_group(GroupId(group_id))
+            .list_by_group(group_id)
             .map_err(BalancesError::from)?;
         let expenses = self
             .expense_repo
-            .find_by_group(group_id)
+            .find_by_group(group_id.0)
             .map_err(BalancesError::from)?;
 
         let balances_map = core(

@@ -4,14 +4,17 @@ use bigdecimal::BigDecimal;
 use uuid::Uuid;
 
 use crate::{
-    application::expense::{
-        dto::{ExpenseDetails, ExpenseUpdate, NewExpense, UpdateExpenseInput},
-        error::ExpenseError,
-        traits::repository::ExpenseRepository,
+    application::{
+        expense::{
+            dto::{ExpenseDetails, ExpenseUpdate, NewExpense, UpdateExpenseInput},
+            error::ExpenseError,
+            traits::repository::ExpenseRepository,
+        },
+        group::traits::repository::GroupRepository,
     },
     domain::{
         expense::{Expense, ExpenseId, ExpensePolicy},
-        group::GroupId,
+        group::{GroupId, GroupPolicy},
         treasury::CurrencyId,
         user::UserId,
     },
@@ -20,6 +23,7 @@ use crate::{
 #[derive(Clone)]
 pub struct ExpenseService {
     pub expense_repo: Arc<dyn ExpenseRepository>,
+    pub group_repo: Arc<dyn GroupRepository>,
 }
 
 impl ExpenseService {
@@ -32,6 +36,12 @@ impl ExpenseService {
         description: Option<String>,
         participants: Vec<Uuid>,
     ) -> Result<ExpenseDetails, ExpenseError> {
+        let group = self
+            .group_repo
+            .find_by_id(GroupId(group_id))
+            .map_err(|_| ExpenseError::Internal)?
+            .ok_or(ExpenseError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| ExpenseError::GroupNotActive)?;
         let amount = parse_amount(&amount)?;
         ExpensePolicy::ensure_positive_amount(&amount)?;
         let participants = validate_and_split_participants(participants, &amount)?;
@@ -63,6 +73,12 @@ impl ExpenseService {
         payload: UpdateExpenseInput,
     ) -> Result<ExpenseDetails, ExpenseError> {
         let expense = self.get_active(expense_id)?;
+        let group = self
+            .group_repo
+            .find_by_id(expense.group_id)
+            .map_err(|_| ExpenseError::Internal)?
+            .ok_or(ExpenseError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| ExpenseError::GroupNotActive)?;
         ExpensePolicy::ensure_owner(&expense, UserId(user_id))?;
         self.apply_update(&expense, payload)
     }
@@ -74,6 +90,12 @@ impl ExpenseService {
         payload: UpdateExpenseInput,
     ) -> Result<ExpenseDetails, ExpenseError> {
         let expense = self.get_active(expense_id)?;
+        let group = self
+            .group_repo
+            .find_by_id(GroupId(group_id))
+            .map_err(|_| ExpenseError::Internal)?
+            .ok_or(ExpenseError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| ExpenseError::GroupNotActive)?;
         ExpensePolicy::ensure_in_group(&expense, GroupId(group_id))?;
         self.apply_update(&expense, payload)
     }
@@ -84,6 +106,12 @@ impl ExpenseService {
         expense_id: Uuid,
     ) -> Result<ExpenseDetails, ExpenseError> {
         let expense = self.get_active(expense_id)?;
+        let group = self
+            .group_repo
+            .find_by_id(expense.group_id)
+            .map_err(|_| ExpenseError::Internal)?
+            .ok_or(ExpenseError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| ExpenseError::GroupNotActive)?;
         ExpensePolicy::ensure_owner(&expense, UserId(user_id))?;
         self.expense_repo
             .soft_delete(expense_id)
@@ -96,6 +124,12 @@ impl ExpenseService {
         expense_id: Uuid,
     ) -> Result<ExpenseDetails, ExpenseError> {
         let expense = self.get_active(expense_id)?;
+        let group = self
+            .group_repo
+            .find_by_id(GroupId(group_id))
+            .map_err(|_| ExpenseError::Internal)?
+            .ok_or(ExpenseError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| ExpenseError::GroupNotActive)?;
         ExpensePolicy::ensure_in_group(&expense, GroupId(group_id))?;
         self.expense_repo
             .soft_delete(expense_id)

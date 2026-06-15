@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::domain::group::GroupPolicy;
 use crate::{
     application::group::{dto::UserInGroupDetails, traits::repository::GroupRepository},
     domain::{group::GroupId, user::UserId},
@@ -38,6 +39,7 @@ impl MakeGroupAdminUseCase {
             .find_by_id(group_id)
             .map_err(|_| MakeGroupAdminError::Internal)?;
         let group = group.ok_or(MakeGroupAdminError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| MakeGroupAdminError::Forbidden)?;
 
         if !group.has_member(new_admin_id) {
             return Err(MakeGroupAdminError::BadRequest(

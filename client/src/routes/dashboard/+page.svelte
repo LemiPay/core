@@ -18,14 +18,21 @@
 	import { resolve } from '$app/paths';
 
 	import { getMyGroups } from '$lib/api/endpoints/groups';
+	import { getGroupBalances } from '$lib/api/endpoints/core';
 	import { isSuccess } from '$lib/types/client.types';
 	import { authStore } from '$lib/stores/auth';
+	import { parseBalanceValue } from '$lib/utils/format_utils';
 	import NewGroup from '$lib/components/modals/group/NewGroup.svelte';
 	import DashboardLayout from './DashboardLayout.svelte';
 	import { formatMoney } from '$lib/utils/format_utils';
 
 	type FilterRole = 'all' | 'Admin' | 'Member';
-	type FilterStatus = 'all' | 'Active' | 'Ended';
+	type FilterStatus = 'all' | 'Active' | 'DebtResolution' | 'Ended';
+	type DebtInfo = {
+		balance: number;
+		hasDebtors: boolean;
+	};
+
 	type GroupMeta = {
 		members: number;
 		treasury: number;
@@ -62,10 +69,13 @@
 	};
 
 	let isLoading = $state(true);
+	let loadingBalances = $state(false);
 	let error = $state('');
 	let misGrupos = $state<GroupSummary[]>([]);
 	let showNewGroup = $state(false);
 	let didInitializeStatusFilter = $state(false);
+
+	let groupDebtInfo = $state<Record<string, DebtInfo | null>>({});
 
 	let filterRole = $state<FilterRole>('all');
 	let filterStatus = $state<FilterStatus>('Active');
@@ -79,6 +89,7 @@
 	const statusOptions: { val: FilterStatus; label: string; dot: string }[] = [
 		{ val: 'all', label: 'Todos', dot: 'bg-foreground' },
 		{ val: 'Active', label: 'Activos', dot: 'bg-emerald-500' },
+		{ val: 'DebtResolution', label: 'En resolución', dot: 'bg-amber-400' },
 		{ val: 'Ended', label: 'Finalizados', dot: 'bg-rose-400' }
 	];
 
@@ -187,7 +198,7 @@
 
 	function buildMockMeta(group: GroupSummary, index: number): GroupMeta {
 		const seed = seedFromString(group.group_id + group.group_name);
-		const currency = ['USDC', 'USD', 'ARS'][seed % 3];
+		const currency = 'USDC';
 		const treasury = 850 + ((seed * 137 + index * 503) % 9200);
 		const balance = ((seed % 2 === 0 ? 1 : -1) * (120 + ((seed * 17) % 880))) / (index + 1);
 		const proposals = group.status.toLowerCase() === 'active' ? 1 + (seed % 4) : seed % 2;
@@ -243,10 +254,40 @@
 		});
 	}
 
+	function formatBalance(value: number, currency: string) {
+		const abs = Math.abs(value);
+		const formatted = abs.toLocaleString('en-US', {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		});
+		return `${value < 0 ? '-' : ''}$${formatted} ${currency}`;
+	}
+
+	/*function formatMoney(value: number, currency = 'USD') {
+		return `${value < 0 ? '-' : ''}$${Math.abs(value).toLocaleString('en-US', {
+			maximumFractionDigits: 0
+		})} ${currency}`;
+	}*/
+
 	function getStatusClasses(status: string) {
-		return status.toLowerCase() === 'active'
-			? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300'
-			: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300';
+		if (status.toLowerCase() === 'active')
+			return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300';
+		if (status.toLowerCase() === 'debtresolution')
+			return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300';
+		return 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300';
+	}
+
+	function getStatusDot(status: string) {
+		if (status.toLowerCase() === 'active') return 'bg-emerald-500 shadow-emerald-500/30';
+		if (status.toLowerCase() === 'debtresolution') return 'bg-amber-400 shadow-amber-400/30';
+		return 'bg-rose-400 shadow-rose-400/30';
+	}
+
+	function translateStatus(status: string) {
+		if (status === 'Active') return 'Activo';
+		if (status === 'DebtResolution') return 'En resolución';
+		if (status === 'Ended') return 'Finalizado';
+		return status;
 	}
 
 	function getHealthClasses(health: GroupMeta['health']) {
@@ -285,6 +326,36 @@
 			filterStatus = hasActiveGroups ? 'Active' : 'all';
 			didInitializeStatusFilter = true;
 		}
+
+		const debtGroups = res.body.filter(
+			(g) => g.status === 'DebtResolution' || g.status === 'Ended'
+		);
+		if (debtGroups.length > 0) {
+			loadingBalances = true;
+			const currentUserId = $authStore.user?.id;
+			const newInfo: Record<string, DebtInfo | null> = {};
+			for (const g of debtGroups) {
+				newInfo[g.group_id] = null;
+			}
+
+			const results = await Promise.allSettled(debtGroups.map((g) => getGroupBalances(g.group_id)));
+
+			for (let i = 0; i < results.length; i++) {
+				const result = results[i];
+				const groupId = debtGroups[i].group_id;
+				if (result.status === 'fulfilled' && isSuccess(result.value) && currentUserId) {
+					const balances = result.value.body.balances;
+					const myEntry = balances.find((b) => b.user_id === currentUserId);
+					const myBalance = myEntry ? parseBalanceValue(myEntry.balance) : 0;
+					const hasDebtors = balances.some((b) => parseBalanceValue(b.balance) < -0.01);
+					newInfo[groupId] = { balance: myBalance, hasDebtors };
+				}
+			}
+
+			groupDebtInfo = newInfo;
+			loadingBalances = false;
+		}
+
 		isLoading = false;
 	}
 
@@ -556,40 +627,69 @@
 													getStatusClasses(grupo.status)
 												]}
 											>
-												<span
-													class={[
-														'size-1.5 rounded-full shadow-lg',
-														getHealthClasses(grupo.meta.health)
-													]}
+												<span class="size-1.5 rounded-full shadow-lg {getStatusDot(grupo.status)}"
 												></span>
-												{grupo.status}
+												{translateStatus(grupo.status)}
 											</span>
 										</div>
 									</div>
 
-									<div class="mt-6 grid grid-cols-2 gap-3">
-										<div class="rounded-2xl bg-muted/60 p-3">
-											<div
-												class="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"
-											>
-												<Users class="size-3.5" />
-												Miembros
-											</div>
-											<p class="font-semibold">{grupo.meta.members}</p>
-										</div>
-
-										<div class="rounded-2xl bg-muted/60 p-3">
+									{#if grupo.status === 'DebtResolution' || grupo.status === 'Ended'}
+										<div class="mt-6 rounded-2xl bg-muted/60 p-3">
 											<div
 												class="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"
 											>
 												<Wallet class="size-3.5" />
-												Treasury
+												Deuda
 											</div>
-											<p class="font-semibold">
-												{formatMoney(grupo.meta.treasury, grupo.meta.currency)}
-											</p>
+											{#if loadingBalances}
+												<p class="h-5 w-24 animate-pulse rounded bg-muted"></p>
+											{:else}
+												{@const info = groupDebtInfo[grupo.group_id]}
+												{#if info === null || info === undefined}
+													<p class="font-semibold text-muted-foreground">No disponible</p>
+												{:else if info.balance < -0.01}
+													<p class="font-semibold text-amber-600">
+														Debes {formatBalance(Math.abs(info.balance), grupo.meta.currency)}
+													</p>
+												{:else if info.balance > 0.01 && info.hasDebtors}
+													<p class="font-semibold text-emerald-600">
+														Te deben {formatBalance(info.balance, grupo.meta.currency)}
+													</p>
+												{:else if info.balance > 0.01}
+													<p class="font-semibold text-emerald-600">
+														Podés retirar {formatBalance(info.balance, grupo.meta.currency)}
+													</p>
+												{:else}
+													<p class="font-semibold text-muted-foreground">Saldado</p>
+												{/if}
+											{/if}
 										</div>
-									</div>
+									{:else}
+										<div class="mt-6 grid grid-cols-2 gap-3">
+											<div class="rounded-2xl bg-muted/60 p-3">
+												<div
+													class="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"
+												>
+													<Users class="size-3.5" />
+													Miembros
+												</div>
+												<p class="font-semibold">{grupo.meta.members}</p>
+											</div>
+
+											<div class="rounded-2xl bg-muted/60 p-3">
+												<div
+													class="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"
+												>
+													<Wallet class="size-3.5" />
+													Treasury
+												</div>
+												<p class="font-semibold">
+													{formatMoney(grupo.meta.treasury, grupo.meta.currency)}
+												</p>
+											</div>
+										</div>
+									{/if}
 									<!--
 										<div class="mt-5 grid grid-cols-4 gap-2 text-center text-xs">
 											<div class="rounded-2xl border border-border/80 p-2">

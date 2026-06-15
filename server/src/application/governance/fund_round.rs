@@ -5,7 +5,7 @@ use crate::application::governance::error::GovernanceError;
 use crate::domain::governance::{
     FundRoundProposal, GovernancePolicy, Proposal, ProposalId, ProposalKind, ProposalStatus,
 };
-use crate::domain::group::GroupId;
+use crate::domain::group::{GroupId, GroupPolicy};
 use crate::domain::treasury::CurrencyId;
 use crate::domain::user::UserId;
 
@@ -22,6 +22,9 @@ impl GovernanceService {
         target_amount: String,
         currency_id: Uuid,
     ) -> Result<FundRoundProposalDetails, GovernanceError> {
+        let group = Self::map_repo(self.group_repo.find_by_id(GroupId(group_id)))?
+            .ok_or(GovernanceError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| GovernanceError::GroupNotActive)?;
         let target_amount = Self::parse_amount(&target_amount)?;
         GovernancePolicy::ensure_positive_amount(&target_amount)?;
 
@@ -46,6 +49,12 @@ impl GovernanceService {
         let stored = Self::map_repo(self.governance_repo.find_fund_round(fund_round_id))?
             .ok_or(GovernanceError::NotFound)?;
         let round = to_domain_fund_round(&stored);
+        let group = Self::map_repo(
+            self.group_repo
+                .find_by_id(GroupId(stored.proposal.group_id)),
+        )?
+        .ok_or(GovernanceError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| GovernanceError::GroupNotActive)?;
         GovernancePolicy::ensure_fund_round_active(&round)?;
 
         let already_contributed =

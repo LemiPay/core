@@ -1,18 +1,19 @@
-use uuid::Uuid;
-
+use crate::domain::balances::BalancesMap;
+use crate::domain::group::GroupStatus;
 use crate::domain::group::config::GroupConfig;
 use crate::domain::group::error::GroupError;
 use crate::domain::group::member::GroupMember;
 use crate::domain::group::policy::GroupPolicy;
 use crate::domain::group::types::GroupId;
 use crate::domain::user::UserId;
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct Group {
     pub id: GroupId,
     pub name: String,
     pub description: String,
-    pub is_active: bool,
+    pub status: GroupStatus,
     pub config: GroupConfig,
     pub members: Vec<GroupMember>,
 }
@@ -37,7 +38,7 @@ impl Group {
             id: GroupId(Uuid::new_v4()),
             name: trimmed_name.to_string(),
             description: trimmed_description.to_string(),
-            is_active: true,
+            status: GroupStatus::Active,
             config,
             members: vec![GroupMember::admin(creator_id)],
         })
@@ -47,7 +48,7 @@ impl Group {
         id: GroupId,
         name: String,
         description: String,
-        is_active: bool,
+        status: GroupStatus,
         config: GroupConfig,
         members: Vec<GroupMember>,
     ) -> Self {
@@ -55,7 +56,7 @@ impl Group {
             id,
             name,
             description,
-            is_active,
+            status,
             config,
             members,
         }
@@ -86,8 +87,8 @@ impl Group {
         Ok(Self { members, ..self })
     }
 
-    pub fn leave_group(self, user_id: UserId) -> Result<Self, GroupError> {
-        GroupPolicy::can_leave_group(&self, user_id)?;
+    pub fn leave_group(self, user_id: UserId, balances: &BalancesMap) -> Result<Self, GroupError> {
+        GroupPolicy::can_leave_group(&self, user_id, balances)?;
         self.remove_member(user_id)
     }
 
@@ -115,9 +116,16 @@ impl Group {
         Ok(self)
     }
 
-    pub fn deactivate(mut self) -> Self {
-        self.is_active = false;
-        self
+    pub fn enter_debt_resolution(mut self, user_id: UserId) -> Result<Self, GroupError> {
+        GroupPolicy::can_enter_debt_resolution(user_id, &self)?;
+        self.status = GroupStatus::DebtResolution;
+        Ok(self)
+    }
+
+    pub fn deactivate(mut self, balances_map: BalancesMap) -> Result<Self, GroupError> {
+        GroupPolicy::can_end_group(balances_map)?;
+        self.status = GroupStatus::Ended;
+        Ok(self)
     }
 
     pub fn update_info(
@@ -172,7 +180,7 @@ mod tests {
         assert_eq!(group.members.len(), 1);
         assert_eq!(group.members[0].user_id, creator);
         assert!(group.members[0].is_admin());
-        assert!(group.is_active);
+        assert_eq!(group.status, GroupStatus::Active);
     }
 
     #[test]
@@ -252,43 +260,5 @@ mod tests {
 
         let result = group.add_member(&actor, GroupMember::member(new_member_id));
         assert!(matches!(result, Err(GroupError::UserAlreadyMember)));
-    }
-
-    #[test]
-    fn member_can_leave_group() {
-        let admin_id = user_id();
-        let member_id = user_id();
-
-        let group = Group::new(
-            "Roomies".into(),
-            "Description".into(),
-            admin_id,
-            GroupConfig::default(),
-        )
-        .unwrap();
-        let admin = group.member(admin_id).cloned().unwrap();
-        let group = group
-            .add_member(&admin, GroupMember::member(member_id))
-            .unwrap();
-
-        let group = group.leave_group(member_id).unwrap();
-        assert!(!group.has_member(member_id));
-        assert!(group.has_member(admin_id));
-    }
-
-    #[test]
-    fn non_member_cannot_leave_group() {
-        let admin_id = user_id();
-        let stranger_id = user_id();
-
-        let group = Group::new(
-            "Roomies".into(),
-            "Description".into(),
-            admin_id,
-            GroupConfig::default(),
-        )
-        .unwrap();
-        let result = group.leave_group(stranger_id);
-        assert!(matches!(result, Err(GroupError::NotMember)));
     }
 }

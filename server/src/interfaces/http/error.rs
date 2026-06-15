@@ -8,6 +8,9 @@ use serde::Serialize;
 use thiserror::Error;
 
 use crate::application::investment::InvestmentError;
+use crate::application::settlements::claim::error::ClaimError;
+use crate::application::settlements::get_settlements::error::GetSettlementError;
+use crate::application::settlements::pay_settlement::error::PaySettlementError;
 use crate::application::treasury::list_user_transactions::ListUserTransactionsError;
 use crate::infrastructure::blockchain::error::BlockchainError;
 use crate::{
@@ -18,9 +21,10 @@ use crate::{
         governance::GovernanceError,
         group::{
             create_group::CreateGroupError, delete_group::DeleteGroupError,
-            get_group::GetGroupError, get_group_members::GetGroupMembersError,
-            leave_group::LeaveGroupError, list_user_groups::ListUserGroupsError,
-            make_group_admin::MakeGroupAdminError, update_group::UpdateGroupError,
+            enter_debt_resolution::EnterDebtResolutionError, get_group::GetGroupError,
+            get_group_members::GetGroupMembersError, leave_group::LeaveGroupError,
+            list_user_groups::ListUserGroupsError, make_group_admin::MakeGroupAdminError,
+            update_group::UpdateGroupError,
         },
         treasury::{
             create_group_wallet::CreateGroupWalletError, create_user_wallet::CreateUserWalletError,
@@ -138,6 +142,12 @@ impl From<LeaveGroupError> for AppError {
                 AppError::BadRequest("El grupo tiene que tener al menos un administrador".into())
             }
             LeaveGroupError::InternalError => AppError::Internal,
+            LeaveGroupError::BalanceNotZero => {
+                AppError::Forbidden("Debes tener un balance igual a 0 para irte del grupo".into())
+            }
+            LeaveGroupError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
         }
     }
 }
@@ -169,6 +179,9 @@ impl From<UpdateGroupError> for AppError {
             }
             UpdateGroupError::NotFound => AppError::NotFound,
             UpdateGroupError::BadRequest(message) => AppError::BadRequest(message),
+            UpdateGroupError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
             UpdateGroupError::Internal => AppError::Internal,
         }
     }
@@ -182,6 +195,28 @@ impl From<DeleteGroupError> for AppError {
             }
             DeleteGroupError::NotFound => AppError::NotFound,
             DeleteGroupError::Internal => AppError::Internal,
+            DeleteGroupError::NotAllBalancesZero => AppError::Forbidden(
+                "Todos los balances tienen que ser 0 para terminar el grupo".into(),
+            ),
+        }
+    }
+}
+
+impl From<EnterDebtResolutionError> for AppError {
+    fn from(err: EnterDebtResolutionError) -> Self {
+        match err {
+            EnterDebtResolutionError::Forbidden => AppError::Forbidden(
+                "Solo el administrador puede iniciar la resolucion de deudas".into(),
+            ),
+            EnterDebtResolutionError::NotFound => AppError::NotFound,
+            EnterDebtResolutionError::NotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
+            EnterDebtResolutionError::ActiveInvestments => {
+                AppError::Forbidden("Retirá todas las inversiones antes de cerrar el grupo".into())
+            }
+            EnterDebtResolutionError::ActiveProposals(msg) => AppError::Forbidden(msg),
+            EnterDebtResolutionError::Internal => AppError::Internal,
         }
     }
 }
@@ -313,6 +348,10 @@ impl From<CreateGroupWalletError> for AppError {
                 AppError::BadRequest("Esa dirección ya está registrada para esa moneda".into())
             }
             CreateGroupWalletError::Internal => AppError::Internal,
+            CreateGroupWalletError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
+            CreateGroupWalletError::GroupNotFound => AppError::NotFound,
         }
     }
 }
@@ -339,6 +378,8 @@ impl From<FundGroupError> for AppError {
             }
             FundGroupError::InsufficientFunds => AppError::BadRequest("Saldo insuficiente".into()),
             FundGroupError::Internal => AppError::Internal,
+            FundGroupError::GroupNotActive => AppError::Forbidden("El grupo no esta activo".into()),
+            FundGroupError::GroupNotFound => AppError::NotFound,
         }
     }
 }
@@ -406,6 +447,9 @@ impl From<InvestmentError> for AppError {
             InvestmentError::NotGroupMember => {
                 AppError::Forbidden("Solo miembros del grupo puede ver estos detalles".into())
             }
+            InvestmentError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
         }
     }
 }
@@ -450,6 +494,9 @@ impl From<GovernanceError> for AppError {
             GovernanceError::SenderWalletNotFound => {
                 AppError::BadRequest("La wallet del usuario no existe para esa moneda".into())
             }
+            GovernanceError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
         }
     }
 }
@@ -481,6 +528,74 @@ impl From<ExpenseError> for AppError {
                 AppError::Forbidden("Solo el creador o el admin pueden editar".into())
             }
             ExpenseError::GroupMismatch => AppError::NotFound,
+            ExpenseError::GroupNotActive => AppError::Forbidden("El grupo no esta activo".into()),
+        }
+    }
+}
+
+impl From<GetSettlementError> for AppError {
+    fn from(err: GetSettlementError) -> Self {
+        match err {
+            GetSettlementError::Internal => AppError::Internal,
+        }
+    }
+}
+
+impl From<PaySettlementError> for AppError {
+    fn from(err: PaySettlementError) -> Self {
+        match err {
+            PaySettlementError::InvalidAmount => {
+                AppError::BadRequest("El monto debe ser mayor a 0".into())
+            }
+            PaySettlementError::UserWalletNotFound => {
+                AppError::BadRequest("El usuario no tiene una wallet para esta moneda".into())
+            }
+            PaySettlementError::GroupWalletNotFound => {
+                AppError::BadRequest("El grupo no tiene una wallet para esta moneda".into())
+            }
+            PaySettlementError::InsufficientFunds => {
+                AppError::BadRequest("Saldo insuficiente".into())
+            }
+            PaySettlementError::Internal => AppError::Internal,
+            PaySettlementError::GroupNotActive => {
+                AppError::Forbidden("El grupo no esta activo".into())
+            }
+            PaySettlementError::GroupNotInDebtResolution => {
+                AppError::Forbidden("El grupo no esta en resolucion de deudas".into())
+            }
+            PaySettlementError::NoDebt => AppError::Forbidden("No tienes deudas pendientes".into()),
+            PaySettlementError::AmountExceedsDebt => {
+                AppError::BadRequest("El monto excede tu deuda".into())
+            }
+            PaySettlementError::GroupNotFound => AppError::NotFound,
+        }
+    }
+}
+
+impl From<ClaimError> for AppError {
+    fn from(err: ClaimError) -> Self {
+        match err {
+            ClaimError::InvalidAmount => AppError::BadRequest("El monto debe ser mayor a 0".into()),
+            ClaimError::UserWalletNotFound => {
+                AppError::BadRequest("El usuario no tiene una wallet para esta moneda".into())
+            }
+            ClaimError::GroupWalletNotFound => {
+                AppError::BadRequest("El grupo no tiene una wallet para esta moneda".into())
+            }
+            ClaimError::InsufficientFunds => {
+                AppError::BadRequest("Saldo insuficiente en la billetera del grupo".into())
+            }
+            ClaimError::Internal => AppError::Internal,
+            ClaimError::GroupNotInDebtResolution => {
+                AppError::Forbidden("El grupo no esta en resolucion de deudas".into())
+            }
+            ClaimError::NoCredit => {
+                AppError::BadRequest("No tienes saldo a favor en este grupo".into())
+            }
+            ClaimError::AmountExceedsCredit => {
+                AppError::BadRequest("El monto excede tu saldo disponible".into())
+            }
+            ClaimError::GroupNotFound => AppError::NotFound,
         }
     }
 }

@@ -102,6 +102,8 @@ pub enum TransactionTypeModel {
     Withdraw,
     Expense,
     Investment,
+    SettlementPayment,
+    Claim,
 }
 
 #[derive(Queryable, Selectable, Debug)]
@@ -145,6 +147,8 @@ impl From<TransactionTypeModel> for TransactionType {
             TransactionTypeModel::Withdraw => TransactionType::Withdraw,
             TransactionTypeModel::Expense => TransactionType::Expense,
             TransactionTypeModel::Investment => TransactionType::Investment,
+            TransactionTypeModel::SettlementPayment => TransactionType::SettlementPayment,
+            TransactionTypeModel::Claim => TransactionType::Claim,
         }
     }
 }
@@ -156,6 +160,8 @@ impl From<TransactionType> for TransactionTypeModel {
             TransactionType::Withdraw => TransactionTypeModel::Withdraw,
             TransactionType::Expense => TransactionTypeModel::Expense,
             TransactionType::Investment => TransactionTypeModel::Investment,
+            TransactionType::SettlementPayment => TransactionTypeModel::SettlementPayment,
+            TransactionType::Claim => TransactionTypeModel::Claim,
         }
     }
 }

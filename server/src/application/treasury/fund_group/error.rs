@@ -6,6 +6,8 @@ pub enum FundGroupError {
     UserWalletNotFound,
     GroupWalletNotFound,
     InsufficientFunds,
+    GroupNotActive,
+    GroupNotFound,
     Internal,
 }
 

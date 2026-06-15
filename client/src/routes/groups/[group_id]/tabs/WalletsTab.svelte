@@ -5,8 +5,15 @@
 	import type { GroupState } from '../group.svelte';
 	import { formatAmount } from '$lib/utils/format_utils';
 
-	let { groupState, onCreateWallet, onFundWallet, onWithdraw } = $props<{
+	let {
+		groupState,
+		readonly = false,
+		onCreateWallet,
+		onFundWallet,
+		onWithdraw
+	} = $props<{
 		groupState: GroupState;
+		readonly?: boolean;
 		onCreateWallet: () => void;
 		onFundWallet: (walletId: string, currencyId: string) => void;
 		onWithdraw: (currencyId: string) => void;
@@ -17,9 +24,11 @@
 	{#if groupState.wallets.length === 0}
 		<div class="flex items-center justify-between">
 			<h2 class="text-sm font-medium text-foreground">Billetera del Grupo</h2>
-			<Button label="Nueva Billetera" variant="primary" onclick={onCreateWallet}>
-				{#snippet icon()}<Wallet class="h-4 w-4" />{/snippet}
-			</Button>
+			{#if !readonly}
+				<Button label="Nueva Billetera" variant="primary" onclick={onCreateWallet}>
+					{#snippet icon()}<Wallet class="h-4 w-4" />{/snippet}
+				</Button>
+			{/if}
 		</div>
 	{/if}
 
@@ -54,20 +63,22 @@
 					</div>
 
 					<div class="flex items-center gap-2">
-						<Button
-							label="Retirar"
-							variant="secondary"
-							onclick={() => onWithdraw(wallet.currency_id)}
-						>
-							{#snippet icon()}<HandCoins class="h-4 w-4" />{/snippet}
-						</Button>
-						<Button
-							label="Fondear"
-							variant="secondary"
-							onclick={() => onFundWallet(wallet.id, wallet.currency_id)}
-						>
-							{#snippet icon()}<Coins class="h-4 w-4" />{/snippet}
-						</Button>
+						{#if !readonly}
+							<Button
+								label="Retirar"
+								variant="secondary"
+								onclick={() => onWithdraw(wallet.currency_id)}
+							>
+								{#snippet icon()}<HandCoins class="h-4 w-4" />{/snippet}
+							</Button>
+							<Button
+								label="Fondear"
+								variant="secondary"
+								onclick={() => onFundWallet(wallet.id, wallet.currency_id)}
+							>
+								{#snippet icon()}<Coins class="h-4 w-4" />{/snippet}
+							</Button>
+						{/if}
 					</div>
 				</div>
 			{/each}
@@ -81,7 +92,9 @@
 			<p class="mb-4 text-sm text-muted-foreground">
 				Este grupo no tiene ninguna billetera asociada aún.
 			</p>
-			<Button label="Crear primera wallet" variant="secondary" onclick={onCreateWallet} />
+			{#if !readonly}
+				<Button label="Crear primera wallet" variant="secondary" onclick={onCreateWallet} />
+			{/if}
 		</div>
 	{/if}
 </div>

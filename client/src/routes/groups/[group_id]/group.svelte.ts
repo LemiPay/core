@@ -6,7 +6,12 @@ import {
 	getGroupFundRoundProposals,
 	getMyFundRoundContribution
 } from '$lib/api/endpoints/fund_rounds';
-import { getGroupBalances } from '$lib/api/endpoints/core';
+import {
+	claim,
+	getGroupBalances,
+	getGroupSettlements,
+	paySettlement
+} from '$lib/api/endpoints/core';
 import { getExpenses, getGroupExpenses } from '$lib/api/endpoints/expenses';
 import { listGroupTransactions } from '$lib/api/endpoints/transactions';
 import { getMyWallets } from '$lib/api/endpoints/wallets';
@@ -17,7 +22,10 @@ import { isSuccess } from '$lib/types/client.types';
 import type { Group, GroupWallet } from '$lib/types/endpoints/groups.types';
 import type { UserBadge } from '$lib/types/endpoints/auth.types';
 import type { FundRoundStatusResponse } from '$lib/types/endpoints/fund_rounds.types';
-import type { GroupBalancesResponse } from '$lib/types/endpoints/core.types';
+import type {
+	GetSettlementsResponse,
+	GroupBalancesResponse
+} from '$lib/types/endpoints/core.types';
 import type { Transaction } from '$lib/types/endpoints/transactions.types';
 import type { Expense } from '$lib/types/endpoints/expenses.types';
 import type { WalletCurrency } from '$lib/types/endpoints/wallets.types';
@@ -55,11 +63,22 @@ export class GroupState {
 	coreBalancesData = $state<GroupBalancesResponse | null>(null);
 	loadingCoreBalances = $state(true);
 	coreBalancesError = $state('');
+	settlementsResponse = $state<GetSettlementsResponse | null>(null);
+	settlementsLoading = $state(true);
+	settlementsError = $state('');
 	groupTransactions = $state<Transaction[]>([]);
 	groupExpenses = $state<Expense[]>([]);
 	loadingBalancesDetail = $state(false);
 	transactionsDetailError = $state('');
 	expensesDetailError = $state('');
+
+	// Settlement Payment State
+	settlementPaying = $state(false);
+	settlementPayError = $state('');
+
+	// Claim State
+	claimPaying = $state(false);
+	claimError = $state('');
 
 	constructor(groupId: string) {
 		this.groupId = groupId;
@@ -68,6 +87,25 @@ export class GroupState {
 	// --- DERIVED / GETTERS ---
 	get currentUserId() {
 		return authStore.getUserId();
+	}
+
+	get currentUserBalanceRaw(): string {
+		if (!this.coreBalancesData?.balances) return '0';
+		const entry = this.coreBalancesData.balances.find((b) => b.user_id === this.currentUserId);
+		return entry ? String(entry.balance) : '0';
+	}
+
+	get currentUserDebtRaw(): string {
+		if (!this.coreBalancesData?.balances) return '0';
+		const entry = this.coreBalancesData.balances.find((b) => b.user_id === this.currentUserId);
+		if (!entry) return '0';
+		const raw = String(entry.balance);
+		return raw.startsWith('-') ? raw.slice(1) : '0';
+	}
+
+	get hasDebtors(): boolean {
+		if (!this.coreBalancesData?.balances) return false;
+		return this.coreBalancesData.balances.some((b) => parseBalanceValue(b.balance) < -0.01);
 	}
 
 	get groupWalletsBalance() {
@@ -128,35 +166,56 @@ export class GroupState {
 		return [...this.memberBalances].sort((a, b) => b.balance - a.balance);
 	}
 
-	// Algoritmo Greedy
-	get settlements() {
-		const creditors = this.memberBalances
-			.filter((m) => m.balance > 0.01)
-			.map((m) => ({ user: m.user, remaining: m.balance }))
-			.sort((a, b) => b.remaining - a.remaining);
-		const debtors = this.memberBalances
-			.filter((m) => m.balance < -0.01)
-			.map((m) => ({ user: m.user, remaining: -m.balance }))
-			.sort((a, b) => b.remaining - a.remaining);
+	get readonly() {
+		return this.groupData.status === 'DebtResolution' || this.groupData.status === 'Ended';
+	}
 
-		const result = [];
-		let i = 0;
-		let j = 0;
-		while (i < debtors.length && j < creditors.length) {
-			const amount = Math.min(debtors[i].remaining, creditors[j].remaining);
-			if (amount > 0.01) {
-				result.push({
-					from: debtors[i].user,
-					to: creditors[j].user,
-					amount: Math.round(amount * 100) / 100
-				});
-			}
-			debtors[i].remaining -= amount;
-			creditors[j].remaining -= amount;
-			if (debtors[i].remaining < 0.01) i++;
-			if (creditors[j].remaining < 0.01) j++;
-		}
-		return result;
+	// Settlements desde backend
+	get settlements() {
+		if (!this.settlementsResponse?.settlements) return [];
+		return this.settlementsResponse.settlements
+			.map((s) => {
+				const fromMember = this.members.find((m) => m.user_id === s.from);
+				const toMember = this.members.find((m) => m.user_id === s.to);
+				return {
+					from: { user_id: s.from, name: s.from_name ?? fromMember?.name ?? 'Usuario' },
+					to: { user_id: s.to, name: s.to_name ?? toMember?.name ?? 'Usuario' },
+					amount: Number(s.amount)
+				};
+			})
+			.filter((s) => s.amount > 0.01);
+	}
+
+	get userDebts() {
+		if (!this.settlementsResponse?.settlements) return [];
+		const uid = this.currentUserId;
+		return this.settlementsResponse.settlements
+			.filter((s) => s.from === uid)
+			.map((s) => {
+				const toMember = this.members.find((m) => m.user_id === s.to);
+				return {
+					creditorId: s.to,
+					creditorName: s.to_name ?? toMember?.name ?? 'Usuario',
+					amount: s.amount
+				};
+			})
+			.filter((d) => Number(d.amount) > 0.01);
+	}
+
+	get userCredits() {
+		if (!this.settlementsResponse?.settlements) return [];
+		const uid = this.currentUserId;
+		return this.settlementsResponse.settlements
+			.filter((s) => s.to === uid)
+			.map((s) => {
+				const fromMember = this.members.find((m) => m.user_id === s.from);
+				return {
+					debtorId: s.from,
+					debtorName: s.from_name ?? fromMember?.name ?? 'Usuario',
+					amount: s.amount
+				};
+			})
+			.filter((c) => Number(c.amount) > 0.01);
 	}
 
 	// --- METHODS ---
@@ -222,6 +281,26 @@ export class GroupState {
 			}
 		} finally {
 			this.loadingCoreBalances = false;
+		}
+	}
+
+	async loadSettlements() {
+		this.settlementsLoading = true;
+		this.settlementsError = '';
+		try {
+			const res = await getGroupSettlements(this.groupId);
+			if (!isSuccess(res)) {
+				this.settlementsError = res.message || 'Error al cargar liquidaciones.';
+				this.settlementsResponse = null;
+			} else {
+				this.settlementsResponse = res.body;
+			}
+		} catch (e) {
+			this.settlementsError = 'Error inesperado al cargar liquidaciones.';
+			this.settlementsResponse = null;
+			console.error('loadSettlements error:', e);
+		} finally {
+			this.settlementsLoading = false;
 		}
 	}
 
@@ -297,6 +376,48 @@ export class GroupState {
 		} finally {
 			this.loadingExpenses = false;
 		}
+	}
+
+	async paySettlement(amount: string, address: string, currencyId: string): Promise<boolean> {
+		this.settlementPaying = true;
+		this.settlementPayError = '';
+
+		const res = await paySettlement(this.groupId, {
+			amount,
+			address,
+			currency_id: currencyId
+		});
+
+		this.settlementPaying = false;
+
+		if (!isSuccess(res)) {
+			this.settlementPayError = res.message || 'Error al realizar el pago.';
+			return false;
+		}
+
+		await Promise.all([this.loadSettlements(), this.loadCoreBalances()]);
+		return true;
+	}
+
+	async claim(address: string, currencyId: string, amount: string): Promise<boolean> {
+		this.claimPaying = true;
+		this.claimError = '';
+
+		const res = await claim(this.groupId, {
+			amount,
+			address,
+			currency_id: currencyId
+		});
+
+		this.claimPaying = false;
+
+		if (!isSuccess(res)) {
+			this.claimError = res.message || 'Error al retirar.';
+			return false;
+		}
+
+		await Promise.all([this.loadSettlements(), this.loadCoreBalances()]);
+		return true;
 	}
 
 	async handleContribute(status: FundRoundStatusResponse, selectedContribWalletId: string) {

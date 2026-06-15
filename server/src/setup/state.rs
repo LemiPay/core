@@ -1,5 +1,5 @@
-use std::sync::Arc;
-
+use super::config::AppConfig;
+use crate::application::settlements::service::SettlementsService;
 use crate::application::{
     auth::AuthService, balances::BalancesService, expense::ExpenseService,
     governance::GovernanceService, group::GroupService, investment::InvestmentService,
@@ -7,8 +7,7 @@ use crate::application::{
     treasury::traits::fund_event_repo::FundEventRepository, users::UserService,
 };
 use crate::infrastructure::blockchain::BlockchainService;
-
-use super::config::AppConfig;
+use std::sync::Arc;
 
 // ----------------------
 // APP STATE
@@ -24,6 +23,7 @@ pub struct AppState {
     pub governance_service: GovernanceService,
     pub expense_service: ExpenseService,
     pub balances_service: BalancesService,
+    pub settlements_service: SettlementsService,
     pub investment_service: InvestmentService,
 
     pub blockchain_service: Arc<dyn BlockchainService>,

@@ -24,7 +24,7 @@ fn read_all_tx(
 ) -> Result<BalancesMap, BalancesError> {
     for tx in transactions {
         balances = match tx.tx_type {
-            TransactionType::Deposit => {
+            TransactionType::Deposit | TransactionType::SettlementPayment => {
                 balances.add_balance_to_user(tx.user_id, tx.amount.amount.clone())?
             }
             TransactionType::Withdraw => balances.remove_to_all(tx.amount.amount)?,
@@ -32,6 +32,9 @@ fn read_all_tx(
                 balances.subtract_from_user(tx.user_id, tx.amount.amount.clone())?
             }
             TransactionType::Expense => balances,
+            TransactionType::Claim => {
+                balances.subtract_from_user(tx.user_id, tx.amount.amount.clone())?
+            }
         };
     }
     Ok(balances)

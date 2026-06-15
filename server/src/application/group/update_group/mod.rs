@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use validator::ValidateLength;
 
+use crate::domain::group::GroupPolicy;
 use crate::{
     application::group::{dto::GroupDetails, traits::repository::GroupRepository},
     domain::{group::GroupId, user::UserId},
@@ -12,6 +13,7 @@ pub enum UpdateGroupError {
     Forbidden,
     NotFound,
     BadRequest(String),
+    GroupNotActive,
     Internal,
 }
 
@@ -63,6 +65,7 @@ impl UpdateGroupUseCase {
             .find_by_id(group_id)
             .map_err(|_| UpdateGroupError::Internal)?
             .ok_or(UpdateGroupError::NotFound)?;
+        GroupPolicy::ensure_active(&group).map_err(|_| UpdateGroupError::GroupNotActive)?;
         let updated = group
             .update_info(name, description)
             .map_err(|_| UpdateGroupError::Internal)?;

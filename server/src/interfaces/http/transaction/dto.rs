@@ -40,6 +40,8 @@ pub enum TransactionTypeResponse {
     Withdraw,
     Expense,
     Investment,
+    SettlementPayment,
+    Claim,
 }
 
 impl From<TransactionType> for TransactionTypeResponse {
@@ -49,6 +51,8 @@ impl From<TransactionType> for TransactionTypeResponse {
             TransactionType::Withdraw => TransactionTypeResponse::Withdraw,
             TransactionType::Expense => TransactionTypeResponse::Expense,
             TransactionType::Investment => TransactionTypeResponse::Investment,
+            TransactionType::SettlementPayment => TransactionTypeResponse::SettlementPayment,
+            TransactionType::Claim => TransactionTypeResponse::Claim,
         }
     }
 }

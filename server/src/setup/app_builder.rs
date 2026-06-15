@@ -16,6 +16,7 @@ use crate::setup::{
 };
 
 use crate::infrastructure::auth::web_3_auth::Web3Auth;
+use crate::setup::builders::settlements::build_settlements_service;
 use crate::{
     application::startup::live_sync::LiveSyncService,
     // infrastructure
@@ -86,9 +87,8 @@ pub fn build_app() -> Router {
 
     let user_service = build_user_service(user_repo.clone());
 
-    let group_service = build_group_service(group_repo.clone());
-
     let treasury_service = build_treasury_service(
+        group_repo.clone(),
         user_wallet_repo.clone(),
         group_wallet_repo.clone(),
         transaction_repo.clone(),
@@ -96,19 +96,32 @@ pub fn build_app() -> Router {
     );
 
     let governance_service = build_governance_service(
-        governance_repo,
+        governance_repo.clone(),
         group_repo.clone(),
         user_repo,
-        user_wallet_repo,
+        user_wallet_repo.clone(),
     );
-    let expense_service = build_expense_service(expense_repo.clone());
+    let expense_service = build_expense_service(group_repo.clone(), expense_repo.clone());
     let balances_service =
-        build_balances_service(transaction_repo, group_repo.clone(), expense_repo);
+        build_balances_service(transaction_repo.clone(), group_repo.clone(), expense_repo);
+    let group_service = build_group_service(
+        group_repo.clone(),
+        investment_repo.clone(),
+        governance_repo,
+        balances_service.clone(),
+    );
     let investment_service = build_investment_service(
         investment_repo,
         group_repo.clone(),
-        group_wallet_repo,
+        group_wallet_repo.clone(),
         balances_service.clone(),
+    );
+    let settlements_service = build_settlements_service(
+        balances_service.clone(),
+        group_repo.clone(),
+        user_wallet_repo.clone(),
+        group_wallet_repo.clone(),
+        transaction_repo.clone(),
     );
 
     let blockchain_service = Arc::new(EthereumService::new());
@@ -128,6 +141,7 @@ pub fn build_app() -> Router {
         governance_service,
         expense_service,
         balances_service,
+        settlements_service,
         investment_service,
 
         blockchain_service: blockchain_service.clone(),

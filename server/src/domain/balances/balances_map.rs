@@ -104,7 +104,10 @@ impl BalancesMap {
         let mut remainder = total_amount.clone() - total_deducted;
 
         let mut next = self.balances.clone();
-        for user_balance in next.values_mut() {
+        let mut sorted_users: Vec<UserId> = next.keys().copied().collect();
+        sorted_users.sort();
+        for user_id in sorted_users {
+            let user_balance = next.get_mut(&user_id).expect("user in map");
             let mut deduction = amount_per_user.clone();
             if remainder > BigDecimal::zero() {
                 deduction += min_unit.clone();
