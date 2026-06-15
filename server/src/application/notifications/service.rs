@@ -26,11 +26,8 @@ impl NotificationService {
     /// Notify about a group-scoped event (the main entry point for most business events).
     /// The service expands to active group members, checks their prefs (group then user level)
     /// for the email channel, and if enabled calls the matching specific email method.
-    pub async fn notify_group_event(&self, event_name: &str, group_id: GroupId, group_name: &str) {
-        if let Err(e) = self
-            .notify_group_event_inner(event_name, group_id, group_name)
-            .await
-        {
+    pub async fn notify_group_event(&self, event_name: &str, group_id: GroupId) {
+        if let Err(e) = self.notify_group_event_inner(event_name, group_id).await {
             // Never let notification failures break the main business flow.
             eprintln!(
                 "notification dispatch error (non-fatal): {:?} for event {} in group {}",
@@ -43,8 +40,12 @@ impl NotificationService {
         &self,
         event_name: &str,
         group_id: GroupId,
-        group_name: &str,
     ) -> Result<(), RepoError> {
+        let group_name = match self.group_repo.get_group_details(group_id)? {
+            Some(details) => details.name,
+            None => return Ok(()),
+        };
+
         // 1. Discover active members (the service auto-broadcasts per requirement)
         let members = self.group_repo.get_group_members(group_id)?;
 
@@ -115,7 +116,7 @@ impl NotificationService {
 
             // 5. Fire the specific email method (non-blocking for the caller in practice)
             let _ = self
-                .send_for_event(event_name, &recipient, group_name)
+                .send_for_event(event_name, &recipient, &group_name)
                 .await;
         }
 

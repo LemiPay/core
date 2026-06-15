@@ -38,7 +38,7 @@ pub async fn create_group(
     // Seed a notification for the creator (and any initial members) so email can fire if prefs allow.
     state
         .notification_service
-        .notify_group_event("new_member_added", GroupId(output.group_id.0), &name)
+        .notify_group_event("new_member_added", GroupId(output.group_id.0))
         .await;
 
     Ok(Json(CreateGroupResponse {

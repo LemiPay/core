@@ -54,10 +54,9 @@ pub async fn create_investment_proposal(
         )
         .map_err(AppError::from)?;
 
-    let group_name = "el grupo";
     state
         .notification_service
-        .notify_group_event("investment_created", GroupId(group_id), group_name)
+        .notify_group_event("investment_created", GroupId(group_id))
         .await;
 
     Ok(Json(item.into()))
@@ -74,10 +73,9 @@ pub async fn execute_investment_proposal(
         .execute_investment_proposal(user.user_id.0, group_id, payload.proposal_id)
         .map_err(AppError::from)?;
 
-    let group_name = "el grupo";
     state
         .notification_service
-        .notify_group_event("proposal_executed", GroupId(group_id), group_name)
+        .notify_group_event("proposal_executed", GroupId(group_id))
         .await;
 
     Ok(Json(item.into()))
