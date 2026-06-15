@@ -38,7 +38,8 @@ impl GroupPolicy {
             .get_user_balance(&user_id)
             .ok_or(GroupError::NotMember)?;
 
-        if !balance.is_zero() {
+        let epsilon = BigDecimal::from_str("0.000000000001").expect("valid epsilon literal"); // 10^-12
+        if balance.abs() >= epsilon {
             return Err(GroupError::BalanceNotZero);
         }
         Ok(())
