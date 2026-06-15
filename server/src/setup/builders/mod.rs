@@ -4,6 +4,7 @@ pub mod expense;
 pub mod governance;
 pub mod group;
 pub mod investment;
+pub mod permission;
 pub mod settlements;
 pub mod treasury;
 pub mod users;

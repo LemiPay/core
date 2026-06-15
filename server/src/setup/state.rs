@@ -1,4 +1,5 @@
 use super::config::AppConfig;
+use crate::application::permission::PermissionService;
 use crate::application::settlements::service::SettlementsService;
 use crate::application::{
     auth::AuthService, balances::BalancesService, expense::ExpenseService,
@@ -25,6 +26,7 @@ pub struct AppState {
     pub balances_service: BalancesService,
     pub settlements_service: SettlementsService,
     pub investment_service: InvestmentService,
+    pub permission_service: PermissionService,
 
     pub blockchain_service: Arc<dyn BlockchainService>,
     pub fund_event_repo: Arc<dyn FundEventRepository>,

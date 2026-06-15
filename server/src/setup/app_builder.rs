@@ -9,8 +9,8 @@ use crate::setup::{
     builders::{
         auth::build_auth_service, balances::build_balances_service, expense::build_expense_service,
         governance::build_governance_service, group::build_group_service,
-        investment::build_investment_service, treasury::build_treasury_service,
-        users::build_user_service,
+        investment::build_investment_service, permission::build_permission_service,
+        treasury::build_treasury_service, users::build_user_service,
     },
     state::AppState,
 };
@@ -34,6 +34,7 @@ use crate::{
                 group_repo_impl::DieselGroupRepository,
                 group_wallet_repo_impl::DieselGroupWalletRepository,
                 investment_repo_impl::DieselInvestmentRepository,
+                permission_repo_impl::DieselPermissionRepository,
                 transaction_repo_impl::DieselTransactionRepository,
                 user_repo_impl::DieselUserRepository,
                 user_wallet_repo_impl::DieselUserWalletRepository,
@@ -68,6 +69,7 @@ pub fn build_app() -> Router {
     let governance_repo = Arc::new(DieselGovernanceRepository::new(pool.clone()));
     let expense_repo = Arc::new(DieselExpenseRepository::new(pool.clone()));
     let investment_repo = Arc::new(DieselInvestmentRepository::new(pool.clone()));
+    let permission_repo = Arc::new(DieselPermissionRepository::new(pool.clone()));
 
     let hash_service = Arc::new(Argon2Hasher::new().expect("argon2 fail"));
     let token_service = Arc::new(JwtService::new(db_config.jwt_secret));
@@ -124,6 +126,8 @@ pub fn build_app() -> Router {
         transaction_repo.clone(),
     );
 
+    let permission_service = build_permission_service(permission_repo, group_repo.clone());
+
     let blockchain_service = Arc::new(EthereumService::new());
     let fund_event_repo = Arc::new(DieselFundEventRepository::new(pool.clone()));
 
@@ -143,6 +147,7 @@ pub fn build_app() -> Router {
         balances_service,
         settlements_service,
         investment_service,
+        permission_service,
 
         blockchain_service: blockchain_service.clone(),
         fund_event_repo: fund_event_repo.clone(),
