@@ -51,6 +51,9 @@ impl EnterDebtResolutionUseCase {
             .map_err(|_| EnterDebtResolutionError::Internal)?
             .ok_or(EnterDebtResolutionError::NotFound)?;
 
+        // Validate permissions/status before any side-effects.
+        GroupPolicy::can_enter_debt_resolution(input.actor_id, &group)
+            .map_err(EnterDebtResolutionError::from)?;
         let investments = self
             .investment_repo
             .list_group_investments(input.group_id.0)
