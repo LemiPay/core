@@ -13,8 +13,8 @@ use crate::{
     infrastructure::db::repositories::governance_repo_impl::DieselGovernanceRepository,
     infrastructure::db::repositories::group_repo_impl::DieselGroupRepository,
     infrastructure::db::repositories::investment_repo_impl::DieselInvestmentRepository,
+    infrastructure::db::repositories::notifications_repo_impl::DieselNotificationRepository,
     infrastructure::db::repositories::permission_repo_impl::DieselPermissionRepository,
-    notifications_repo_impl::DieselNotificationRepository,
 };
 
 pub fn build_group_service(

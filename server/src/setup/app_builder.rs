@@ -7,8 +7,7 @@ use super::router::create_router;
 
 use crate::setup::{
     builders::{
-        auth::build_auth_service, balances::build_balances_service,
-        balances::build_balances_service, email::build_email_service,
+        auth::build_auth_service, balances::build_balances_service, email::build_email_service,
         expense::build_expense_service, governance::build_governance_service,
         group::build_group_service, investment::build_investment_service,
         permission::build_permission_service, treasury::build_treasury_service,

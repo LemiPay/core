@@ -7,7 +7,6 @@ use axum::{
 use uuid::Uuid;
 
 use crate::application::notifications::repository::NotificationRepository;
-use crate::domain::group::GroupId;
 use crate::domain::user::UserId;
 
 use crate::interfaces::http::{
