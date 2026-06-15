@@ -1,12 +1,15 @@
 <script lang="ts">
-	import { signMessage } from '@wagmi/core';
-	import { getAddress } from 'viem';
+	import { readContract, signMessage } from '@wagmi/core';
+	import { getAddress, formatUnits, parseUnits } from 'viem';
+	import { sepolia } from '@reown/appkit/networks';
+	import { env } from '$env/dynamic/public';
 	import NumberField from '$lib/components/input_fields/NumberField.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Modal from '$lib/components/modals/Modal.svelte';
 	import { ModalState } from '$lib/utils/modal_state.svelte';
 	import { formatAmount, truncateToDecimals, DISPLAY_DECIMALS } from '$lib/utils/format_utils';
 	import { shortenAddress } from '$lib/utils/address_utils';
+	import { calculateFundBreakdown, DEFAULT_FUND_FEE_BPS } from '$lib/utils/blockchain_utils';
 	import {
 		authActions,
 		walletAuthState,
@@ -15,6 +18,20 @@
 	import { isSuccess } from '$lib/types/client.types';
 	import { requestWithdrawChallenge, withdrawFromWallet } from '$lib/api/endpoints/user_wallet';
 	import { getWithdrawAppOrigin } from '$lib/utils/withdraw_utils';
+
+	const vaultAbi = [
+		{
+			type: 'function',
+			name: 'feeBps',
+			inputs: [],
+			outputs: [{ type: 'uint256' }],
+			stateMutability: 'view'
+		}
+	] as const;
+
+	const TOKEN_CONFIG: Record<string, { decimals: number }> = {
+		USDC: { decimals: 6 }
+	};
 
 	interface Props {
 		open: boolean;
@@ -32,10 +49,38 @@
 	let amount = $state('');
 	let connectedAddress = $state<string | null>(null);
 	let loadingWallet = $state(false);
+	let feeBps = $state<bigint>(DEFAULT_FUND_FEE_BPS);
 
+	const tokenConfig = $derived(TOKEN_CONFIG[ticker]);
 	const grossAmountStr = $derived(String(amount).replace(',', '.'));
 	const parsedAmount = $derived(Number(grossAmountStr));
 	const amountValid = $derived(Number.isFinite(parsedAmount) && parsedAmount > 0);
+	const breakdown = $derived.by(() => {
+		if (!amountValid || !tokenConfig) return null;
+		try {
+			const grossUnits = parseUnits(grossAmountStr, tokenConfig.decimals);
+			return calculateFundBreakdown(grossUnits, feeBps);
+		} catch {
+			return null;
+		}
+	});
+	const feePercentLabel = $derived(breakdown?.feePercentLabel ?? `${Number(feeBps) / 100}%`);
+	const feeAmountStr = $derived.by(() => {
+		if (!amountValid) return null;
+		if (breakdown && tokenConfig) {
+			return formatAmount(formatUnits(breakdown.feeUnits, tokenConfig.decimals));
+		}
+		const fee = truncateToDecimals((parsedAmount * Number(feeBps)) / 10000, DISPLAY_DECIMALS);
+		return formatAmount(fee);
+	});
+	const netAmountStr = $derived.by(() => {
+		if (!amountValid || feeAmountStr === null) return null;
+		if (breakdown && tokenConfig) {
+			return formatAmount(formatUnits(breakdown.netUnits, tokenConfig.decimals));
+		}
+		const fee = truncateToDecimals((parsedAmount * Number(feeBps)) / 10000, DISPLAY_DECIMALS);
+		return formatAmount(truncateToDecimals(parsedAmount - fee, DISPLAY_DECIMALS));
+	});
 	const lemiPayBalanceNum = $derived(Number(String(balance).replace(',', '.')));
 	const lemiPayBalanceValid = $derived(
 		Number.isFinite(lemiPayBalanceNum) && lemiPayBalanceNum >= 0
@@ -77,6 +122,7 @@
 
 	function resetQuote() {
 		connectedAddress = null;
+		feeBps = DEFAULT_FUND_FEE_BPS;
 	}
 
 	async function loadWithdrawQuote() {
@@ -87,6 +133,16 @@
 
 		loadingWallet = true;
 		try {
+			const vaultAddress = env.PUBLIC_VAULT_CONTRACT_ADDRESS as `0x${string}` | undefined;
+			if (vaultAddress) {
+				feeBps = await readContract(wagmiAdapter.wagmiConfig, {
+					address: vaultAddress,
+					abi: vaultAbi,
+					functionName: 'feeBps',
+					chainId: sepolia.id
+				}).catch(() => DEFAULT_FUND_FEE_BPS);
+			}
+
 			const address = await authActions.ensureWalletReadyForTx();
 			connectedAddress = address;
 		} catch {
@@ -373,13 +429,21 @@
 									</div>
 								</div>
 
-								{#if amountValid}
+								{#if amountValid && feeAmountStr !== null && netAmountStr !== null}
 									<div class="space-y-2 border-t border-rose-200/40 pt-3 dark:border-rose-400/15">
 										<div class="flex items-center justify-between gap-3 text-sm">
 											<span class="text-muted-foreground">Se debita de Lemipay</span>
 											<span
 												class="shrink-0 font-semibold text-rose-800 tabular-nums dark:text-rose-300"
 												>-{formatAmount(grossAmountStr)} {ticker}</span
+											>
+										</div>
+
+										<div class="flex items-center justify-between gap-3 text-sm">
+											<span class="text-muted-foreground">Comisión ({feePercentLabel})</span>
+											<span
+												class="shrink-0 font-medium text-amber-700 tabular-nums dark:text-amber-400"
+												>-{feeAmountStr} {ticker}</span
 											>
 										</div>
 
@@ -392,7 +456,7 @@
 											<span
 												class="shrink-0 text-sm font-bold text-emerald-700 tabular-nums dark:text-emerald-300"
 											>
-												{formatAmount(grossAmountStr)}
+												{netAmountStr}
 												{ticker}
 											</span>
 										</div>
@@ -420,9 +484,12 @@
 												>
 											</div>
 											<div class="flex items-center justify-between gap-3 text-sm">
-												<span class="text-muted-foreground">Comisión Lemipay</span>
-												<span class="shrink-0 font-medium text-emerald-700 dark:text-emerald-400"
-													>0 {ticker}</span
+												<span class="text-muted-foreground"
+													>Comisión Lemipay ({feePercentLabel})</span
+												>
+												<span
+													class="shrink-0 font-medium text-amber-700 tabular-nums dark:text-amber-400"
+													>-{feeAmountStr} {ticker}</span
 												>
 											</div>
 											<p class="text-[11px] leading-relaxed text-muted-foreground">
@@ -456,10 +523,16 @@
 											<p class="mt-0.5 text-xs text-muted-foreground">
 												Recibís:
 												<span class="font-semibold text-emerald-700 dark:text-emerald-300">
-													{formatAmount(grossAmountStr)}
+													{netAmountStr}
 													{ticker}
 												</span>
 												en Sepolia
+												{#if feeAmountStr !== '0.0000'}
+													<span class="text-muted-foreground">
+														(después de {feeAmountStr}
+														{ticker} de comisión)
+													</span>
+												{/if}
 											</p>
 										</div>
 									</div>
