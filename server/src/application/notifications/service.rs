@@ -115,7 +115,7 @@ impl NotificationService {
 
             // 5. Fire the specific email method (non-blocking for the caller in practice)
             let _ = self
-                .send_for_event(event_name, &recipient, group_name, &member.name)
+                .send_for_event(event_name, &recipient, group_name)
                 .await;
         }
 
@@ -127,49 +127,48 @@ impl NotificationService {
         event_name: &str,
         to: &DomainEmail,
         group_name: &str,
-        name: &str,
     ) -> Result<(), crate::infrastructure::email::email_sender::EmailServiceError> {
         match event_name {
             "proposal_created" => {
                 self.email_service
-                    .send_proposal_created_email(to, group_name, name)
+                    .send_proposal_created_email(to, group_name)
                     .await
             }
             "proposal_approved" => {
                 self.email_service
-                    .send_proposal_approved_email(to, group_name, "propuesta")
+                    .send_proposal_approved_email(to, group_name)
                     .await
             }
             "proposal_rejected" => {
                 self.email_service
-                    .send_proposal_rejected_email(to, group_name, "propuesta")
+                    .send_proposal_rejected_email(to, group_name)
                     .await
             }
             "proposal_executed" => {
                 self.email_service
-                    .send_proposal_executed_email(to, group_name, "propuesta")
+                    .send_proposal_executed_email(to, group_name)
                     .await
             }
 
             "new_member_added" => {
                 self.email_service
-                    .send_new_member_added_email(to, group_name, name)
+                    .send_new_member_added_email(to, group_name)
                     .await
             }
 
             "fund_round_created" => {
                 self.email_service
-                    .send_fund_round_created_email(to, group_name, name)
+                    .send_fund_round_created_email(to, group_name)
                     .await
             }
             "investment_created" => {
                 self.email_service
-                    .send_investment_created_email(to, group_name, name)
+                    .send_investment_created_email(to, group_name)
                     .await
             }
             "expense_created" => {
                 self.email_service
-                    .send_expense_created_email(to, group_name, name, "gasto")
+                    .send_expense_created_email(to, group_name)
                     .await
             }
 

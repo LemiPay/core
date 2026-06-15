@@ -20,51 +20,42 @@ pub trait EmailService: Send + Sync {
         &self,
         to: &Email,
         group_name: &str,
-        actor_name: &str,
     ) -> Result<(), EmailServiceError>;
     async fn send_proposal_approved_email(
         &self,
         to: &Email,
         group_name: &str,
-        proposal_kind: &str,
     ) -> Result<(), EmailServiceError>;
     async fn send_proposal_rejected_email(
         &self,
         to: &Email,
         group_name: &str,
-        proposal_kind: &str,
     ) -> Result<(), EmailServiceError>;
     async fn send_proposal_executed_email(
         &self,
         to: &Email,
         group_name: &str,
-        proposal_kind: &str,
     ) -> Result<(), EmailServiceError>;
 
     async fn send_new_member_added_email(
         &self,
         to: &Email,
         group_name: &str,
-        new_member_name: &str,
     ) -> Result<(), EmailServiceError>;
 
     async fn send_fund_round_created_email(
         &self,
         to: &Email,
         group_name: &str,
-        actor_name: &str,
     ) -> Result<(), EmailServiceError>;
     async fn send_investment_created_email(
         &self,
         to: &Email,
         group_name: &str,
-        actor_name: &str,
     ) -> Result<(), EmailServiceError>;
     async fn send_expense_created_email(
         &self,
         to: &Email,
         group_name: &str,
-        actor_name: &str,
-        description: &str,
     ) -> Result<(), EmailServiceError>;
 }

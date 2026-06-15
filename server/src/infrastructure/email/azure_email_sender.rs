@@ -167,18 +167,17 @@ impl EmailService for AzureEmailSender {
         &self,
         to: &Email,
         group_name: &str,
-        actor_name: &str,
     ) -> Result<(), EmailServiceError> {
         let template = EventNotificationTemplate {
             email_title: "Nueva propuesta en LemiPay",
             heading: "Nueva propuesta creada",
             intro_text: &format!(
-                "{} creó una nueva propuesta en el grupo {}. Revisa los detalles y vota si es necesario.",
-                actor_name, group_name
+                "Se creó una nueva propuesta en el grupo {}. Revisa los detalles y vota si es necesario.",
+                group_name
             ),
             detail_label: "Grupo",
             detail_value: group_name,
-            closing_text: "Si tienes dudas, responde este correo. ¡Gracias por participar!",
+            closing_text: "¡Gracias por participar en las decisiones del grupo!",
         };
         let html = template.render().map_err(|_| EmailServiceError::Internal)?;
         let body = AzureWelcomeRequest {
@@ -194,18 +193,14 @@ impl EmailService for AzureEmailSender {
         &self,
         to: &Email,
         group_name: &str,
-        proposal_kind: &str,
     ) -> Result<(), EmailServiceError> {
         let template = EventNotificationTemplate {
             email_title: "Propuesta aprobada",
             heading: "Propuesta aprobada",
-            intro_text: &format!(
-                "La propuesta de tipo {} en el grupo {} ha sido aprobada.",
-                proposal_kind, group_name
-            ),
+            intro_text: &format!("Una propuesta en el grupo {} fue aprobada.", group_name),
             detail_label: "Grupo",
             detail_value: group_name,
-            closing_text: "Revisa el historial del grupo para más información.",
+            closing_text: "Revisa el historial del grupo para ver los detalles.",
         };
         let html = template.render().map_err(|_| EmailServiceError::Internal)?;
         let body = AzureWelcomeRequest {
@@ -221,18 +216,14 @@ impl EmailService for AzureEmailSender {
         &self,
         to: &Email,
         group_name: &str,
-        proposal_kind: &str,
     ) -> Result<(), EmailServiceError> {
         let template = EventNotificationTemplate {
             email_title: "Propuesta rechazada",
             heading: "Propuesta rechazada",
-            intro_text: &format!(
-                "La propuesta de tipo {} en el grupo {} ha sido rechazada.",
-                proposal_kind, group_name
-            ),
+            intro_text: &format!("Una propuesta en el grupo {} fue rechazada.", group_name),
             detail_label: "Grupo",
             detail_value: group_name,
-            closing_text: "Puedes crear una nueva propuesta si es necesario.",
+            closing_text: "Puedes crear una nueva propuesta si lo consideras necesario.",
         };
         let html = template.render().map_err(|_| EmailServiceError::Internal)?;
         let body = AzureWelcomeRequest {
@@ -248,14 +239,13 @@ impl EmailService for AzureEmailSender {
         &self,
         to: &Email,
         group_name: &str,
-        proposal_kind: &str,
     ) -> Result<(), EmailServiceError> {
         let template = EventNotificationTemplate {
             email_title: "Propuesta ejecutada",
             heading: "Propuesta ejecutada",
             intro_text: &format!(
-                "La propuesta de tipo {} en el grupo {} ha sido ejecutada exitosamente.",
-                proposal_kind, group_name
+                "Una propuesta en el grupo {} fue ejecutada exitosamente.",
+                group_name
             ),
             detail_label: "Grupo",
             detail_value: group_name,
@@ -275,18 +265,14 @@ impl EmailService for AzureEmailSender {
         &self,
         to: &Email,
         group_name: &str,
-        new_member_name: &str,
     ) -> Result<(), EmailServiceError> {
         let template = EventNotificationTemplate {
             email_title: "Nuevo miembro en el grupo",
-            heading: "¡Bienvenido al grupo!",
-            intro_text: &format!(
-                "{} ahora forma parte del grupo {}.",
-                new_member_name, group_name
-            ),
+            heading: "Nuevo miembro en el grupo",
+            intro_text: &format!("Se agregó un nuevo miembro al grupo {}.", group_name),
             detail_label: "Grupo",
             detail_value: group_name,
-            closing_text: "Invita a más personas y sigue gestionando las finanzas del grupo.",
+            closing_text: "Revisa los miembros del grupo para conocer quién se sumó.",
         };
         let html = template.render().map_err(|_| EmailServiceError::Internal)?;
         let body = AzureWelcomeRequest {
@@ -302,14 +288,13 @@ impl EmailService for AzureEmailSender {
         &self,
         to: &Email,
         group_name: &str,
-        actor_name: &str,
     ) -> Result<(), EmailServiceError> {
         let template = EventNotificationTemplate {
             email_title: "Nueva ronda de fondeo",
             heading: "Ronda de fondeo iniciada",
             intro_text: &format!(
-                "{} inició una nueva ronda de fondeo en el grupo {}. ¡Participa!",
-                actor_name, group_name
+                "Se inició una nueva ronda de fondeo en el grupo {}. ¡Participa!",
+                group_name
             ),
             detail_label: "Grupo",
             detail_value: group_name,
@@ -329,14 +314,13 @@ impl EmailService for AzureEmailSender {
         &self,
         to: &Email,
         group_name: &str,
-        actor_name: &str,
     ) -> Result<(), EmailServiceError> {
         let template = EventNotificationTemplate {
             email_title: "Nueva propuesta de inversión",
             heading: "Propuesta de inversión",
             intro_text: &format!(
-                "{} propuso una inversión en el grupo {}. Revisa y vota.",
-                actor_name, group_name
+                "Se creó una nueva propuesta de inversión en el grupo {}. Revisa y vota.",
+                group_name
             ),
             detail_label: "Grupo",
             detail_value: group_name,
@@ -356,19 +340,14 @@ impl EmailService for AzureEmailSender {
         &self,
         to: &Email,
         group_name: &str,
-        actor_name: &str,
-        description: &str,
     ) -> Result<(), EmailServiceError> {
         let template = EventNotificationTemplate {
             email_title: "Nuevo gasto registrado",
-            heading: "Gasto registrado",
-            intro_text: &format!(
-                "{} registró un nuevo gasto en el grupo {}: \"{}\".",
-                actor_name, group_name, description
-            ),
+            heading: "Nuevo gasto",
+            intro_text: &format!("Se agregó un nuevo gasto en el grupo {}.", group_name),
             detail_label: "Grupo",
             detail_value: group_name,
-            closing_text: "Revisa el historial de gastos del grupo.",
+            closing_text: "Revisa el historial de gastos del grupo para ver los detalles.",
         };
         let html = template.render().map_err(|_| EmailServiceError::Internal)?;
         let body = AzureWelcomeRequest {
