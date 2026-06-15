@@ -132,14 +132,12 @@ impl GovernanceService {
 
     pub fn cancel_fund_round(
         &self,
-        user_id: Uuid,
         fund_round_id: Uuid,
     ) -> Result<FundRoundProposalDetails, GovernanceError> {
         let stored = Self::map_repo(self.governance_repo.find_fund_round(fund_round_id))?
             .ok_or(GovernanceError::NotFound)?;
         let round = to_domain_fund_round(&stored);
 
-        GovernancePolicy::ensure_proposal_creator(&round.proposal, UserId(user_id))?;
         GovernancePolicy::ensure_fund_round_active(&round)?;
         round
             .proposal

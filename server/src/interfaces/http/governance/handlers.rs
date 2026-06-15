@@ -312,9 +312,23 @@ pub async fn cancel_fund_round(
     user: AuthUser,
     Path(fund_round_id): Path<Uuid>,
 ) -> Result<Json<FundRoundProposalResponse>, AppError> {
+    let (details, _, _) = state
+        .governance_service
+        .find_fund_round_status(fund_round_id)
+        .map_err(AppError::from)?;
+
+    state
+        .permission_service
+        .check_allowed(
+            user.user_id,
+            GroupId(details.proposal.group_id),
+            &Action::CancelFundRound,
+        )
+        .map_err(AppError::from)?;
+
     let item = state
         .governance_service
-        .cancel_fund_round(user.user_id.0, fund_round_id)
+        .cancel_fund_round(fund_round_id)
         .map_err(AppError::from)?;
     Ok(Json(item.into()))
 }
