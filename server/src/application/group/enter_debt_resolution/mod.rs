@@ -5,13 +5,16 @@ use crate::application::group::{
     enter_debt_resolution::dto::{EnterDebtResolutionInput, EnterDebtResolutionOutput},
     traits::repository::GroupRepository,
 };
+use crate::application::investment::traits::repository::InvestmentRepository;
 use crate::domain::group::GroupError;
+use crate::domain::investment::InvestmentStatus;
 
 #[derive(Debug)]
 pub enum EnterDebtResolutionError {
     NotFound,
     Forbidden,
     NotActive,
+    ActiveInvestments,
     Internal,
 }
 
@@ -28,6 +31,7 @@ impl From<GroupError> for EnterDebtResolutionError {
 #[derive(Clone)]
 pub struct EnterDebtResolutionUseCase {
     pub group_repo: Arc<dyn GroupRepository>,
+    pub investment_repo: Arc<dyn InvestmentRepository>,
 }
 
 impl EnterDebtResolutionUseCase {
@@ -40,6 +44,19 @@ impl EnterDebtResolutionUseCase {
             .find_by_id(input.group_id)
             .map_err(|_| EnterDebtResolutionError::Internal)?
             .ok_or(EnterDebtResolutionError::NotFound)?;
+
+        let investments = self
+            .investment_repo
+            .list_group_investments(input.group_id.0)
+            .map_err(|_| EnterDebtResolutionError::Internal)?;
+
+        let has_non_withdrawn = investments
+            .iter()
+            .any(|inv| inv.status != InvestmentStatus::Withdrawn);
+
+        if has_non_withdrawn {
+            return Err(EnterDebtResolutionError::ActiveInvestments);
+        }
 
         let updated = group
             .enter_debt_resolution(input.actor_id)

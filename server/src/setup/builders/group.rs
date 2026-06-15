@@ -10,10 +10,12 @@ use crate::{
         make_group_admin::MakeGroupAdminUseCase, update_group::UpdateGroupUseCase,
     },
     infrastructure::db::repositories::group_repo_impl::DieselGroupRepository,
+    infrastructure::db::repositories::investment_repo_impl::DieselInvestmentRepository,
 };
 
 pub fn build_group_service(
     group_repo: Arc<DieselGroupRepository>,
+    investment_repo: Arc<DieselInvestmentRepository>,
     balances_service: BalancesService,
 ) -> GroupService {
     GroupService {
@@ -45,6 +47,7 @@ pub fn build_group_service(
         },
         enter_debt_resolution: EnterDebtResolutionUseCase {
             group_repo: group_repo.clone(),
+            investment_repo: investment_repo.clone(),
         },
     }
 }

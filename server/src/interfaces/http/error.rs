@@ -208,6 +208,9 @@ impl From<EnterDebtResolutionError> for AppError {
             EnterDebtResolutionError::NotActive => {
                 AppError::Forbidden("El grupo no esta activo".into())
             }
+            EnterDebtResolutionError::ActiveInvestments => {
+                AppError::Forbidden("Retirá todas las inversiones antes de cerrar el grupo".into())
+            }
             EnterDebtResolutionError::Internal => AppError::Internal,
         }
     }
