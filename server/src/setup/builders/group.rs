@@ -51,6 +51,7 @@ pub fn build_group_service(
             group_repo: group_repo.clone(),
             investment_repo: investment_repo.clone(),
             governance_repo: governance_repo.clone(),
+            balances_service: balances_service.clone(),
         },
     }
 }

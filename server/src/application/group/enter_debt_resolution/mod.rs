@@ -1,6 +1,7 @@
 pub mod dto;
 use std::sync::Arc;
 
+use crate::application::balances::BalancesService;
 use crate::application::governance::traits::repository::GovernanceRepository;
 use crate::application::group::{
     enter_debt_resolution::dto::{EnterDebtResolutionInput, EnterDebtResolutionOutput},
@@ -8,7 +9,7 @@ use crate::application::group::{
 };
 use crate::application::investment::traits::repository::InvestmentRepository;
 use crate::domain::governance::ProposalStatus;
-use crate::domain::group::GroupError;
+use crate::domain::group::{GroupError, GroupPolicy};
 use crate::domain::investment::InvestmentStatus;
 
 #[derive(Debug)]
@@ -36,6 +37,7 @@ pub struct EnterDebtResolutionUseCase {
     pub group_repo: Arc<dyn GroupRepository>,
     pub investment_repo: Arc<dyn InvestmentRepository>,
     pub governance_repo: Arc<dyn GovernanceRepository>,
+    pub balances_service: BalancesService,
 }
 
 impl EnterDebtResolutionUseCase {
@@ -106,11 +108,22 @@ impl EnterDebtResolutionUseCase {
             }
         }
 
-        // ── Transition ──
+        let balances = self
+            .balances_service
+            .get_balances(input.group_id)
+            .map_err(|_| EnterDebtResolutionError::Internal)?;
 
-        let updated = group
-            .enter_debt_resolution(input.actor_id)
-            .map_err(EnterDebtResolutionError::from)?;
+        let balances_map = balances.to_domain();
+
+        let updated = if GroupPolicy::can_end_group(balances_map.clone()).is_ok() {
+            group
+                .deactivate(balances_map)
+                .map_err(|_| EnterDebtResolutionError::Internal)?
+        } else {
+            group
+                .enter_debt_resolution(input.actor_id)
+                .map_err(EnterDebtResolutionError::from)?
+        };
 
         self.group_repo
             .save(&updated)
