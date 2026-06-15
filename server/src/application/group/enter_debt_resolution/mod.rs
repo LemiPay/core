@@ -49,8 +49,6 @@ impl EnterDebtResolutionUseCase {
             .map_err(|_| EnterDebtResolutionError::Internal)?
             .ok_or(EnterDebtResolutionError::NotFound)?;
 
-        // ── P1: Check for non-withdrawn investments ──
-
         let investments = self
             .investment_repo
             .list_group_investments(input.group_id.0)
@@ -94,8 +92,6 @@ impl EnterDebtResolutionUseCase {
             );
             return Err(EnterDebtResolutionError::ActiveProposals(msg));
         }
-
-        // ── Auto-cancel open new member proposals ──
 
         let new_member_proposals = self
             .governance_repo
