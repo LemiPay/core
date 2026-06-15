@@ -197,7 +197,7 @@
 
 	function buildMockMeta(group: GroupSummary, index: number): GroupMeta {
 		const seed = seedFromString(group.group_id + group.group_name);
-		const currency = ['USDC', 'USD', 'ARS'][seed % 3];
+		const currency = 'USDC';
 		const treasury = 850 + ((seed * 137 + index * 503) % 9200);
 		const balance = ((seed % 2 === 0 ? 1 : -1) * (120 + ((seed * 17) % 880))) / (index + 1);
 		const proposals = group.status.toLowerCase() === 'active' ? 1 + (seed % 4) : seed % 2;
