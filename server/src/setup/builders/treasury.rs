@@ -3,13 +3,12 @@ use std::sync::Arc;
 use crate::application::treasury::list_user_transactions::ListUserTransactionsUseCase;
 use crate::application::treasury::{
     TreasuryService, create_group_wallet::CreateGroupWalletUseCase,
-    create_user_wallet::CreateUserWalletUseCase, faucet_fund_wallet::FaucetFundWalletUseCase,
-    faucet_withdraw_wallet::FaucetWithdrawWalletUseCase, fund_group::FundGroupUseCase,
-    get_group_transaction::GetGroupTransactionUseCase,
+    create_user_wallet::CreateUserWalletUseCase, fund_group::FundGroupUseCase,
+    fund_wallet::FundWalletUseCase, get_group_transaction::GetGroupTransactionUseCase,
     get_user_wallet_by_address_and_ticker::GetUserWalletByAddressAndTickerUseCase,
     list_group_transactions::ListGroupTransactionsUseCase,
     list_group_wallets::ListGroupWalletsUseCase, list_user_wallets::ListUserWalletsUseCase,
-    transfer_funds::TransferFundsUseCase,
+    transfer_funds::TransferFundsUseCase, withdraw_wallet::WithdrawWalletUseCase,
 };
 use crate::infrastructure::db::repositories::{
     currency_repo_impl::DieselCurrencyRepository, group_repo_impl::DieselGroupRepository,
@@ -31,10 +30,10 @@ pub fn build_treasury_service(
             user_wallet_repo: user_wallet_repo.clone(),
             currency_repo: currency_repo.clone(),
         },
-        faucet_fund_wallet: FaucetFundWalletUseCase {
+        fund_wallet: FundWalletUseCase {
             user_wallet_repo: user_wallet_repo.clone(),
         },
-        faucet_withdraw_wallet: FaucetWithdrawWalletUseCase {
+        withdraw_wallet: WithdrawWalletUseCase {
             user_wallet_repo: user_wallet_repo.clone(),
         },
         transfer_funds: TransferFundsUseCase {

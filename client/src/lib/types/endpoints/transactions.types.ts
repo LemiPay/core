@@ -30,6 +30,21 @@ export type WithdrawProposalExpanded = {
 	withdraw_proposal?: WithdrawProposal;
 };
 
+export type BlockchainEvent = {
+	id: string;
+	event_type: string;
+	sender: string;
+	wallet_address: string;
+	token_address: string;
+	currency_id: string;
+	gross_amount: string;
+	fee_amount: string;
+	net_amount: string;
+	tx_hash: string;
+	block_number: number;
+	created_at: string;
+};
+
 export type Transaction = {
 	id: string;
 	tx_hash: string | null;

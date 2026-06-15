@@ -14,6 +14,7 @@
 	import type { WithdrawProposalExpanded } from '$lib/types/endpoints/transactions.types';
 	import type { WalletCurrency } from '$lib/types/endpoints/wallets.types';
 	import { shortenAddress } from '$lib/utils/address_utils';
+	import { formatAmount } from '$lib/utils/format_utils';
 	import SideBar from './ui/SideBar.svelte';
 
 	interface Props {
@@ -164,7 +165,9 @@
 								<div class="flex items-start justify-between">
 									<div class="space-y-1">
 										<div class="flex items-center gap-2">
-											<span class="text-lg font-bold text-black">${getProposalAmount(p)}</span>
+											<span class="text-lg font-bold text-black"
+												>${formatAmount(getProposalAmount(p))}</span
+											>
 										</div>
 										<div class="text-xs text-gray-500 capitalize">
 											{new Date(p.proposal.created_at).toLocaleDateString('es-AR', {

@@ -247,7 +247,7 @@
 						<option value="" disabled>Seleccionar wallet personal...</option>
 						{#each compatibleWallets as wallet (wallet.wallet_id)}
 							<option value={wallet.wallet_id}>
-								{shortenAddress(wallet.address)} — ${wallet.balance}
+								{shortenAddress(wallet.address)} — ${formatAmount(wallet.balance)}
 								{wallet.ticker}
 							</option>
 						{/each}

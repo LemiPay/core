@@ -11,6 +11,7 @@
 		error?: string;
 		success?: string;
 		loading?: boolean;
+		panelClass?: string;
 	}
 
 	const {
@@ -22,7 +23,8 @@
 		footer,
 		error,
 		success,
-		loading = false
+		loading = false,
+		panelClass = ''
 	}: Props = $props();
 
 	function handleBackdropClick(e: MouseEvent) {
@@ -42,7 +44,7 @@
 	<!-- Backdrop -->
 	<div
 		role="presentation"
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+		class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 py-6 backdrop-blur-sm sm:items-center sm:py-8"
 		onclick={handleBackdropClick}
 	>
 		<!-- Panel -->
@@ -52,7 +54,10 @@
 			aria-labelledby="modal-title"
 			aria-busy={loading}
 			tabindex="-1"
-			class="w-full max-w-md rounded-xl border border-border bg-card p-8 text-card-foreground shadow-xl shadow-black/10 dark:shadow-black/30"
+			class={[
+				'my-auto w-full rounded-xl border border-border bg-card p-6 text-card-foreground shadow-xl shadow-black/10 sm:p-8 dark:shadow-black/30',
+				panelClass || 'max-w-md'
+			]}
 		>
 			<!-- Header -->
 			<div class="mb-6 flex items-start justify-between gap-4">

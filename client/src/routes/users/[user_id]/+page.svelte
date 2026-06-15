@@ -92,7 +92,7 @@
 		<!-- Loading skeleton -->
 		{#if isLoading}
 			<div
-				class="overflow-hidden rounded-[2.5rem] border border-border/60 bg-card shadow-xl"
+				class="overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-xl"
 				in:fade={{ duration: 200 }}
 			>
 				<div class="h-32 animate-pulse bg-muted/50"></div>
@@ -108,7 +108,7 @@
 			<!-- Error state -->
 		{:else if error}
 			<div
-				class="rounded-[2.5rem] border border-rose-200 bg-rose-50 p-10 text-center dark:border-rose-900/30 dark:bg-rose-900/10"
+				class="rounded-[2rem] border border-rose-200 bg-rose-50 p-10 text-center dark:border-rose-900/30 dark:bg-rose-900/10"
 				in:scale={{ duration: 220 }}
 			>
 				<div
@@ -127,7 +127,7 @@
 			<div in:fly={{ y: 14, duration: 400 }} class="space-y-6">
 				<!-- Tarjeta Principal (Hero Cover) -->
 				<section
-					class="relative overflow-hidden rounded-[2.5rem] border border-border/80 bg-card shadow-xl shadow-black/5 dark:shadow-none"
+					class="relative overflow-hidden rounded-[2rem] border border-border/80 bg-card shadow-xl shadow-black/5 dark:shadow-none"
 				>
 					<!-- Banner Header -->
 					<div
@@ -204,8 +204,8 @@
 
 			<!-- Fallback -->
 		{:else}
-			<div class="rounded-[2.5rem] border border-dashed border-border bg-card p-12 text-center">
-				<div class="mx-auto flex size-14 items-center justify-center rounded-3xl bg-muted">
+			<div class="rounded-[2rem] border border-dashed border-border bg-card p-12 text-center">
+				<div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-muted">
 					<UserIcon class="size-6 text-muted-foreground" />
 				</div>
 				<h3 class="mt-5 text-lg font-semibold">Sin información disponible</h3>

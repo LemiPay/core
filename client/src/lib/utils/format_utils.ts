@@ -1,6 +1,28 @@
-export function formatAmount(value: number): string {
-	return value.toFixed(2);
+export function parseBalanceValue(v: string | number): number {
+	if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+	const n = Number(v);
+	return Number.isFinite(n) ? n : 0;
 }
+
+export const DISPLAY_DECIMALS = 4;
+
+/** Truncates toward zero — never rounds up (e.g. 9.99999 → 9.9999 at 4 dp). */
+export function truncateToDecimals(value: number, decimals: number = DISPLAY_DECIMALS): number {
+	if (!Number.isFinite(value)) return 0;
+	const factor = 10 ** decimals;
+	return Math.trunc(value * factor) / factor;
+}
+
+export function formatAmount(value: string | number, decimals: number = DISPLAY_DECIMALS): string {
+	return truncateToDecimals(parseBalanceValue(value), decimals).toFixed(decimals);
+}
+
+export function formatMoney(value: string | number, currency = 'USD'): string {
+	const n = parseBalanceValue(value);
+	const sign = n < 0 ? '-' : '';
+	return `${sign}$${formatAmount(Math.abs(n))} ${currency}`;
+}
+
 export function getInitials(name: string): string {
 	if (!name) return '?';
 	return (
@@ -19,12 +41,6 @@ export function formatDate(value: string): string {
 		month: '2-digit',
 		year: 'numeric'
 	});
-}
-
-export function parseBalanceValue(v: string | number): number {
-	if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
-	const n = Number(v);
-	return Number.isFinite(n) ? n : 0;
 }
 
 export function formatTxType(t: string): string {

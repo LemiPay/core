@@ -24,6 +24,7 @@
 	import { parseBalanceValue } from '$lib/utils/format_utils';
 	import NewGroup from '$lib/components/modals/group/NewGroup.svelte';
 	import DashboardLayout from './DashboardLayout.svelte';
+	import { formatMoney } from '$lib/utils/format_utils';
 
 	type FilterRole = 'all' | 'Admin' | 'Member';
 	type FilterStatus = 'all' | 'Active' | 'DebtResolution' | 'Ended';
@@ -262,11 +263,11 @@
 		return `${value < 0 ? '-' : ''}$${formatted} ${currency}`;
 	}
 
-	function formatMoney(value: number, currency = 'USD') {
+	/*function formatMoney(value: number, currency = 'USD') {
 		return `${value < 0 ? '-' : ''}$${Math.abs(value).toLocaleString('en-US', {
 			maximumFractionDigits: 0
 		})} ${currency}`;
-	}
+	}*/
 
 	function getStatusClasses(status: string) {
 		if (status.toLowerCase() === 'active')

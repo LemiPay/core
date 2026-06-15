@@ -3,8 +3,10 @@ use crate::application::settlements::service::SettlementsService;
 use crate::application::{
     auth::AuthService, balances::BalancesService, expense::ExpenseService,
     governance::GovernanceService, group::GroupService, investment::InvestmentService,
-    treasury::TreasuryService, users::UserService,
+    treasury::TreasuryService, treasury::traits::currency_repo::CurrencyRepository,
+    treasury::traits::fund_event_repo::FundEventRepository, users::UserService,
 };
+use crate::infrastructure::blockchain::BlockchainService;
 use std::sync::Arc;
 
 // ----------------------
@@ -23,6 +25,10 @@ pub struct AppState {
     pub balances_service: BalancesService,
     pub settlements_service: SettlementsService,
     pub investment_service: InvestmentService,
+
+    pub blockchain_service: Arc<dyn BlockchainService>,
+    pub fund_event_repo: Arc<dyn FundEventRepository>,
+    pub currency_repo: Arc<dyn CurrencyRepository>,
 }
 
 pub type SharedState = Arc<AppState>;

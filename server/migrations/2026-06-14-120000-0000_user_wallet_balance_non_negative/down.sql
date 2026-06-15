@@ -1,0 +1,1 @@
+ALTER TABLE user_wallet DROP CONSTRAINT IF EXISTS user_wallet_balance_non_negative;

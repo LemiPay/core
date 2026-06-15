@@ -2,6 +2,7 @@ import { authedApiFetch } from '../client';
 
 import type { ApiResponse } from '$lib/types/client.types';
 import type {
+	BlockchainEvent,
 	ExecuteWithdrawProposal,
 	Transaction,
 	WithdrawProposalExpanded,
@@ -42,6 +43,12 @@ export async function executeWithdrawProposal(
 
 export async function listGroupTransactions(group_id: string): ApiResponse<Transaction[]> {
 	return authedApiFetch(`/transaction/${group_id}/list`, { method: 'GET' });
+}
+
+export async function listBlockchainEvents(): ApiResponse<BlockchainEvent[]> {
+	return await authedApiFetch<BlockchainEvent[]>(`/blockchain-event/me`, {
+		method: 'GET'
+	});
 }
 
 export async function listUserTransactions(): ApiResponse<Transaction[]> {

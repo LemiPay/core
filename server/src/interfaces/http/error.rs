@@ -12,6 +12,7 @@ use crate::application::settlements::claim::error::ClaimError;
 use crate::application::settlements::get_settlements::error::GetSettlementError;
 use crate::application::settlements::pay_settlement::error::PaySettlementError;
 use crate::application::treasury::list_user_transactions::ListUserTransactionsError;
+use crate::infrastructure::blockchain::error::BlockchainError;
 use crate::{
     application::{
         auth::error::AuthError,
@@ -27,13 +28,12 @@ use crate::{
         },
         treasury::{
             create_group_wallet::CreateGroupWalletError, create_user_wallet::CreateUserWalletError,
-            faucet_fund_wallet::FaucetFundWalletError,
-            faucet_withdraw_wallet::FaucetWithdrawWalletError, fund_group::FundGroupError,
+            fund_group::FundGroupError, fund_wallet::FundWalletError,
             get_group_transaction::GetGroupTransactionError,
             get_user_wallet_by_address_and_ticker::GetUserWalletError,
             list_group_transactions::ListGroupTransactionsError,
             list_group_wallets::ListGroupWalletsError, list_user_wallets::ListUserWalletsError,
-            transfer_funds::TransferFundsError,
+            transfer_funds::TransferFundsError, withdraw_wallet::WithdrawWalletError,
         },
     },
     infrastructure::db::error::DbError,
@@ -64,6 +64,9 @@ pub enum AppError {
 
     #[error("Core operation failed")]
     Core,
+
+    #[error("Invalid amount")]
+    InvalidAmount(String),
 }
 
 #[derive(Serialize)]
@@ -85,6 +88,7 @@ impl IntoResponse for AppError {
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, self.to_string()),
             AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
             AppError::Core => (StatusCode::CONFLICT, self.to_string()),
+            AppError::InvalidAmount(msg) => (StatusCode::BAD_REQUEST, msg),
         };
 
         let body = Json(ErrorResponse { message });
@@ -248,35 +252,35 @@ impl From<CreateUserWalletError> for AppError {
     }
 }
 
-impl From<FaucetFundWalletError> for AppError {
-    fn from(err: FaucetFundWalletError) -> Self {
+impl From<FundWalletError> for AppError {
+    fn from(err: FundWalletError) -> Self {
         match err {
-            FaucetFundWalletError::InvalidAmount => {
+            FundWalletError::InvalidAmount => {
                 AppError::BadRequest("La cantidad tiene que ser mayor a 0".into())
             }
-            FaucetFundWalletError::NotFound => AppError::NotFound,
-            FaucetFundWalletError::NotOwner => {
+            FundWalletError::NotFound => AppError::NotFound,
+            FundWalletError::NotOwner => {
                 AppError::Forbidden("No podes fondear una wallet que no es tuya".into())
             }
-            FaucetFundWalletError::Internal => AppError::Internal,
+            FundWalletError::Internal => AppError::Internal,
         }
     }
 }
 
-impl From<FaucetWithdrawWalletError> for AppError {
-    fn from(err: FaucetWithdrawWalletError) -> Self {
+impl From<WithdrawWalletError> for AppError {
+    fn from(err: WithdrawWalletError) -> Self {
         match err {
-            FaucetWithdrawWalletError::InvalidAmount => {
+            WithdrawWalletError::InvalidAmount => {
                 AppError::BadRequest("La cantidad tiene que ser mayor a 0".into())
             }
-            FaucetWithdrawWalletError::NotFound => AppError::NotFound,
-            FaucetWithdrawWalletError::NotOwner => {
+            WithdrawWalletError::NotFound => AppError::NotFound,
+            WithdrawWalletError::NotOwner => {
                 AppError::Forbidden("No podes retirar de una wallet que no es tuya".into())
             }
-            FaucetWithdrawWalletError::InsufficientFunds => {
+            WithdrawWalletError::InsufficientFunds => {
                 AppError::BadRequest("Fondos insuficientes".into())
             }
-            FaucetWithdrawWalletError::Internal => AppError::Internal,
+            WithdrawWalletError::Internal => AppError::Internal,
         }
     }
 }
@@ -602,6 +606,17 @@ impl From<BalancesError> for AppError {
             BalancesError::Internal => AppError::Internal,
             BalancesError::UserNotFound => AppError::Core,
             BalancesError::InsufficientFunds => AppError::Core,
+        }
+    }
+}
+
+impl From<BlockchainError> for AppError {
+    fn from(err: BlockchainError) -> Self {
+        match err {
+            BlockchainError::RpcError(_msg) => AppError::Internal,
+            BlockchainError::BlockchainService(msg) => {
+                AppError::BadRequest(format!("Error de blockchain: {msg}"))
+            }
         }
     }
 }
