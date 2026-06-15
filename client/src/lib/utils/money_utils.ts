@@ -1,4 +1,6 @@
-export function roundBalance(balance: string, decimals: number = 5): string {
-	console.log(balance);
-	return parseFloat(balance).toFixed(decimals);
+import { formatAmount } from './format_utils';
+
+/** @deprecated Use formatAmount from format_utils instead */
+export function roundBalance(balance: string | number): string {
+	return formatAmount(balance);
 }

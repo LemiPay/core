@@ -4,6 +4,7 @@
 	import type { WalletCurrency } from '$lib/types/endpoints/wallets.types';
 	import { X, ChevronDown } from 'lucide-svelte';
 	import { shortenAddress } from '$lib/utils/address_utils';
+	import { formatAmount } from '$lib/utils/format_utils';
 
 	interface Props {
 		id?: string;
@@ -98,7 +99,7 @@
 				<option value={returnType === 'wallet_id' ? wallet.wallet_id : wallet.address}>
 					{shortenAddress(wallet.address)} — {wallet.ticker}
 					{#if wallet.balance}
-						(Saldo: ${wallet.balance})
+						(Saldo: ${formatAmount(wallet.balance)})
 					{/if}
 				</option>
 			{/each}

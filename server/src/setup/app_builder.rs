@@ -17,15 +17,18 @@ use crate::setup::{
 
 use crate::infrastructure::auth::web_3_auth::Web3Auth;
 use crate::{
+    application::startup::live_sync::LiveSyncService,
     // infrastructure
     infrastructure::{
         auth::{argon2_hasher::Argon2Hasher, jwt_service::JwtService},
+        blockchain::ethereum_service::EthereumService,
         db::{
             config::DbConfig,
             pool::{DbPool, create_pool},
             repositories::{
                 auth_repo_impl::DieselAuthRepository, currency_repo_impl::DieselCurrencyRepository,
                 expense_repo_impl::DieselExpenseRepository,
+                fund_event_repo_impl::DieselFundEventRepository,
                 governance_repo_impl::DieselGovernanceRepository,
                 group_repo_impl::DieselGroupRepository,
                 group_wallet_repo_impl::DieselGroupWalletRepository,
@@ -108,6 +111,9 @@ pub fn build_app() -> Router {
         balances_service.clone(),
     );
 
+    let blockchain_service = Arc::new(EthereumService::new());
+    let fund_event_repo = Arc::new(DieselFundEventRepository::new(pool.clone()));
+
     // -------------------------
     // 5. State
     // -------------------------
@@ -123,20 +129,29 @@ pub fn build_app() -> Router {
         expense_service,
         balances_service,
         investment_service,
+
+        blockchain_service: blockchain_service.clone(),
+        fund_event_repo: fund_event_repo.clone(),
+        currency_repo: currency_repo.clone(),
     });
 
     // -------------------------
     // 6. Background pulse scheduler — 1 pulse every 10s = 1 simulated day
     // -------------------------
     let pulse_svc = state.investment_service.clone();
+
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(10));
+
         loop {
             interval.tick().await;
             let svc = pulse_svc.clone();
+
             match tokio::task::spawn_blocking(move || svc.process_pulse()).await {
                 Ok(Ok(res)) => {
-                    println!("Pulse: {} updated, {} matured", res.updated, res.matured)
+                    if res.updated > 0 || res.matured > 0 {
+                        println!("Pulse: {} updated, {} matured", res.updated, res.matured)
+                    }
                 }
                 Ok(Err(e)) => eprintln!("Pulse error: {}", e),
                 Err(e) => eprintln!("Pulse task panicked: {}", e),
@@ -145,7 +160,16 @@ pub fn build_app() -> Router {
     });
 
     // -------------------------
-    // 7. Router
+    // 7. Background live blockchain sync — polls every N seconds
+    // -------------------------
+    let live_sync = LiveSyncService::new(fund_event_repo, blockchain_service.clone());
+
+    tokio::spawn(async move {
+        live_sync.start().await;
+    });
+
+    // -------------------------
+    // 8. Router
     // -------------------------
     create_router(state)
 }

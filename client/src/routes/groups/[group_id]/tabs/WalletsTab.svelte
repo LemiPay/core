@@ -3,7 +3,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import { shortenAddress, copyToClipboard } from '$lib/utils/address_utils';
 	import type { GroupState } from '../group.svelte';
-	import { roundBalance } from '$lib/utils/money_utils';
+	import { formatAmount } from '$lib/utils/format_utils';
 
 	let { groupState, onCreateWallet, onFundWallet, onWithdraw } = $props<{
 		groupState: GroupState;
@@ -33,7 +33,7 @@
 				>
 					<div class="space-y-1">
 						<div class="flex items-center gap-2">
-							<span class="text-lg font-bold text-foreground">${roundBalance(wallet.balance)}</span>
+							<span class="text-lg font-bold text-foreground">${formatAmount(wallet.balance)}</span>
 							<span
 								class="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-primary-foreground uppercase"
 							>

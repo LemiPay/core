@@ -1,11 +1,11 @@
 use crate::application::auth::traits::challenge_cache::{ChallengeCacheTrait, Web3AuthCacheTrait};
 use crate::application::auth::traits::web3_auth::Web3AuthTrait;
+use crate::infrastructure::blockchain::BlockchainService;
+use crate::infrastructure::blockchain::ethereum_service::EthereumService;
 use alloy::primitives::{Address, Bytes, eip191_hash_message};
-use alloy::providers::ProviderBuilder;
 use async_trait::async_trait;
-use erc6492::verify_signature;
 use moka::sync::Cache;
-use std::env;
+use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -16,21 +16,19 @@ pub struct ChallengeData {
 }
 
 pub struct Web3Auth {
-    rpc_url: String,
+    blockchain_service: Arc<dyn BlockchainService>,
     cache: Cache<String, ChallengeData>,
 }
 
 impl Web3Auth {
     pub fn new() -> Self {
-        match env::var("ALCHEMY_RPC_URL") {
-            Ok(url) => Self {
-                rpc_url: url,
-                cache: Web3Auth::new_cache(),
-            },
-            Err(_) => panic!("ALCHEMY_RPC_URL environment variable not set"),
+        Self {
+            blockchain_service: Arc::new(EthereumService::new()),
+            cache: Web3Auth::new_cache(),
         }
     }
 }
+
 #[async_trait]
 impl Web3AuthTrait for Web3Auth {
     fn generate_nonce(&self) -> String {
@@ -76,17 +74,9 @@ impl Web3AuthTrait for Web3Auth {
 
         let message = eip191_hash_message(self.generate_message(&address_trim, &nonce, &issued_at));
 
-        let rpc_url = match self.rpc_url.parse() {
-            Ok(url) => url,
-            Err(_) => return false,
-        };
-
-        let provider = ProviderBuilder::new().connect_http(rpc_url);
-
-        match verify_signature(signature_trim, address_trim, message, &provider).await {
-            Ok(verification) => verification.is_valid(),
-            Err(_) => false,
-        }
+        self.blockchain_service
+            .verify_signature(signature_trim, address_trim, message)
+            .await
     }
 }
 

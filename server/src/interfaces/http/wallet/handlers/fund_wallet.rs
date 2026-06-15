@@ -10,22 +10,22 @@ use crate::domain::treasury::UserWalletId;
 use crate::interfaces::http::{
     auth::extractor::AuthUser,
     error::AppError,
-    wallet::dto::{FaucetAmountRequest, UserWalletResponse},
+    wallet::dto::{FundAmountRequest, UserWalletResponse},
 };
 use crate::setup::state::SharedState;
 
-pub async fn faucet_withdraw_wallet(
+pub async fn fund_wallet(
     State(state): State<SharedState>,
     user: AuthUser,
     Path(wallet_id): Path<Uuid>,
-    Json(req): Json<FaucetAmountRequest>,
+    Json(req): Json<FundAmountRequest>,
 ) -> Result<Json<UserWalletResponse>, AppError> {
     let amount = BigDecimal::from_str(&req.amount)
         .map_err(|_| AppError::BadRequest("Monto inválido".into()))?;
 
     let details = state
         .treasury_service
-        .faucet_withdraw_wallet
+        .fund_wallet
         .execute(user.user_id, UserWalletId(wallet_id), amount)
         .map_err(AppError::from)?;
 

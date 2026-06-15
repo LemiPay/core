@@ -3,6 +3,7 @@
 	import { isSuccess } from '$lib/types/client.types';
 	import type { GroupWallet } from '$lib/types/endpoints/groups.types';
 	import { X, ChevronDown } from 'lucide-svelte';
+	import { formatAmount } from '$lib/utils/format_utils';
 
 	interface Props {
 		group_id: string;
@@ -87,7 +88,7 @@
 
 			{#each wallets as wallet (wallet.id)}
 				<option value={returnType === 'wallet_id' ? wallet.id : wallet.currency_id}>
-					{wallet.currency_ticker ?? 'USDC'} — Saldo: ${wallet.balance}
+					{wallet.currency_ticker ?? 'USDC'} — Saldo: ${formatAmount(wallet.balance)}
 				</option>
 			{/each}
 		</select>
