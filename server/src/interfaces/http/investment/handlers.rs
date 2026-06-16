@@ -1,4 +1,5 @@
 use crate::domain::group::GroupId;
+use crate::domain::permission::action::Action;
 use axum::{
     Json,
     extract::{Path, State},
@@ -43,6 +44,11 @@ pub async fn create_investment_proposal(
     user: AuthUser,
     Json(payload): Json<CreateInvestmentProposalRequest>,
 ) -> Result<Json<InvestmentProposalResponse>, AppError> {
+    state
+        .permission_service
+        .check_allowed(user.user_id, GroupId(group_id), &Action::CreateInvestment)
+        .map_err(AppError::from)?;
+
     let item = state
         .investment_service
         .create_investment_proposal(

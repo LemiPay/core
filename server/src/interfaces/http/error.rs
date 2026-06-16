@@ -620,3 +620,17 @@ impl From<BlockchainError> for AppError {
         }
     }
 }
+
+impl From<crate::application::permission::PermissionError> for AppError {
+    fn from(err: crate::application::permission::PermissionError) -> Self {
+        match err {
+            crate::application::permission::PermissionError::NotMember => {
+                AppError::Forbidden("No sos miembro de este grupo".into())
+            }
+            crate::application::permission::PermissionError::ActionNotAllowed => {
+                AppError::Forbidden("No tenés permiso para realizar esta acción".into())
+            }
+            crate::application::permission::PermissionError::Internal => AppError::Internal,
+        }
+    }
+}

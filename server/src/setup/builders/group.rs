@@ -10,11 +10,11 @@ use crate::{
         leave_group::LeaveGroupUseCase, list_user_groups::ListUserGroupsUseCase,
         make_group_admin::MakeGroupAdminUseCase, update_group::UpdateGroupUseCase,
     },
-    infrastructure::db::repositories::{
-        governance_repo_impl::DieselGovernanceRepository, group_repo_impl::DieselGroupRepository,
-        investment_repo_impl::DieselInvestmentRepository,
-        notifications_repo_impl::DieselNotificationRepository,
-    },
+    infrastructure::db::repositories::governance_repo_impl::DieselGovernanceRepository,
+    infrastructure::db::repositories::group_repo_impl::DieselGroupRepository,
+    infrastructure::db::repositories::investment_repo_impl::DieselInvestmentRepository,
+    infrastructure::db::repositories::notifications_repo_impl::DieselNotificationRepository,
+    infrastructure::db::repositories::permission_repo_impl::DieselPermissionRepository,
 };
 
 pub fn build_group_service(
@@ -23,11 +23,13 @@ pub fn build_group_service(
     governance_repo: Arc<DieselGovernanceRepository>,
     notification_repo: Arc<DieselNotificationRepository>,
     balances_service: BalancesService,
+    permission_repo: Arc<DieselPermissionRepository>,
 ) -> GroupService {
     GroupService {
         create_group: CreateGroupUseCase {
             group_repo: group_repo.clone(),
             notification_repo,
+            permission_repo: permission_repo.clone(),
         },
         get_group: GetGroupUseCase {
             group_repo: group_repo.clone(),

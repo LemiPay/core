@@ -1,0 +1,8 @@
+POST {{host}}/permission/79c4b3b0-3442-43a5-8c7f-0559acd39253
+Content-Type: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjNmMzNzI5Ni1iMTJkLTRhMDAtYmI1Zi1hZjM2OWNmODljNjQiLCJleHAiOjE3ODIxNTg0ODV9.ekgX9n8SZsULHepHisBd8GA10c2HY7dWGNLNmw187JA
+
+{
+  "action": "invite_member",
+  "role": "Member"
+}

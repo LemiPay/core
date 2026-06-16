@@ -6,6 +6,7 @@ pub mod governance;
 pub mod group;
 pub mod investment;
 pub mod notifications;
+pub mod permission;
 pub mod settlements;
 pub mod startup;
 pub mod treasury;

@@ -1,3 +1,5 @@
+use crate::domain::group::GroupId;
+use crate::domain::permission::action::Action;
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -5,7 +7,6 @@ use axum::{
 use uuid::Uuid;
 
 use crate::application::notifications::repository::NotificationRepository;
-use crate::domain::group::GroupId;
 use crate::domain::user::UserId;
 
 use crate::interfaces::http::{
@@ -65,6 +66,11 @@ pub async fn create_new_member_proposal(
     user: AuthUser,
     Json(payload): Json<NewMemberRequest>,
 ) -> Result<Json<NewMemberProposalResponse>, AppError> {
+    state
+        .permission_service
+        .check_allowed(user.user_id, GroupId(group_id), &Action::InviteMember)
+        .map_err(AppError::from)?;
+
     let item = state
         .governance_service
         .create_new_member_proposal(
@@ -120,8 +126,14 @@ pub async fn respond_new_member_proposal(
 pub async fn delete_proposal(
     State(state): State<SharedState>,
     Path(group_id): Path<Uuid>,
+    user: AuthUser,
     Query(params): Query<ProposalParams>,
 ) -> Result<Json<ProposalResponse>, AppError> {
+    state
+        .permission_service
+        .check_allowed(user.user_id, GroupId(group_id), &Action::CancelProposal)
+        .map_err(AppError::from)?;
+
     let item = state
         .governance_service
         .cancel_proposal(params.proposal_id, group_id)
@@ -200,6 +212,11 @@ pub async fn create_fund_round_proposal(
     Path(group_id): Path<Uuid>,
     Json(payload): Json<CreateFundRoundRequest>,
 ) -> Result<Json<FundRoundProposalResponse>, AppError> {
+    state
+        .permission_service
+        .check_allowed(user.user_id, GroupId(group_id), &Action::CreateFundRound)
+        .map_err(AppError::from)?;
+
     let item = state
         .governance_service
         .create_fund_round_proposal(
@@ -295,9 +312,23 @@ pub async fn cancel_fund_round(
     user: AuthUser,
     Path(fund_round_id): Path<Uuid>,
 ) -> Result<Json<FundRoundProposalResponse>, AppError> {
+    let (details, _, _) = state
+        .governance_service
+        .find_fund_round_status(fund_round_id)
+        .map_err(AppError::from)?;
+
+    state
+        .permission_service
+        .check_allowed(
+            user.user_id,
+            GroupId(details.proposal.group_id),
+            &Action::CancelFundRound,
+        )
+        .map_err(AppError::from)?;
+
     let item = state
         .governance_service
-        .cancel_fund_round(user.user_id.0, fund_round_id)
+        .cancel_fund_round(fund_round_id)
         .map_err(AppError::from)?;
     Ok(Json(item.into()))
 }

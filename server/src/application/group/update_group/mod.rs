@@ -5,7 +5,7 @@ use validator::ValidateLength;
 use crate::domain::group::GroupPolicy;
 use crate::{
     application::group::{dto::GroupDetails, traits::repository::GroupRepository},
-    domain::{group::GroupId, user::UserId},
+    domain::group::GroupId,
 };
 
 #[derive(Debug)]
@@ -25,19 +25,10 @@ pub struct UpdateGroupUseCase {
 impl UpdateGroupUseCase {
     pub fn execute(
         &self,
-        actor_id: UserId,
         group_id: GroupId,
         name: Option<String>,
         description: Option<String>,
     ) -> Result<GroupDetails, UpdateGroupError> {
-        if !self
-            .group_repo
-            .is_admin(actor_id, group_id)
-            .map_err(|_| UpdateGroupError::Internal)?
-        {
-            return Err(UpdateGroupError::Forbidden);
-        }
-
         if name.is_none() && description.is_none() {
             return Err(UpdateGroupError::BadRequest(
                 "No hay campos para actualizar".into(),

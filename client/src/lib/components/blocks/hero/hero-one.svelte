@@ -91,7 +91,7 @@
 										<span class="text-nowrap">Dashboard</span>
 									</Button>
 								</div>
-								<Button href="/profile" size="lg" variant="ghost" class="rounded-xl px-5"
+								<Button href="/profile/me" size="lg" variant="ghost" class="rounded-xl px-5"
 									>Ver Perfil</Button
 								>
 							</div>

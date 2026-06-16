@@ -7,6 +7,7 @@ pub mod group_repo_impl;
 pub mod group_wallet_repo_impl;
 pub mod investment_repo_impl;
 pub mod notifications_repo_impl;
+pub mod permission_repo_impl;
 pub mod transaction_repo_impl;
 pub mod user_repo_impl;
 pub mod user_wallet_repo_impl;

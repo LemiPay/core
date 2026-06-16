@@ -31,14 +31,14 @@ pub fn routes(state: SharedState) -> Router<SharedState> {
             "/proposal/{group_id}",
             post(create_investment_proposal).route_layer(middleware::from_fn_with_state(
                 state.clone(),
-                is_group_admin_middleware,
+                is_in_group_middleware,
             )),
         )
         .route(
             "/execute/{group_id}",
             post(execute_investment_proposal).route_layer(middleware::from_fn_with_state(
                 state.clone(),
-                is_group_admin_middleware,
+                is_in_group_middleware,
             )),
         )
         .route(

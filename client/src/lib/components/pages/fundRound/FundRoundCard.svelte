@@ -53,13 +53,7 @@
 		!readonly && proposalStatus === 'Approved' && !status.is_completed && !hasContributed
 	);
 
-	const isCreator = $derived(
-		!!currentUserId && status.fund_round.proposal.created_by === currentUserId
-	);
-
-	const canCancel = $derived(
-		!readonly && isCreator && proposalStatus === 'Approved' && !status.is_completed
-	);
+	const canCancel = $derived(!readonly && proposalStatus === 'Approved' && !status.is_completed);
 
 	const isOpen = $derived(expandedFundRoundId === proposalId);
 </script>

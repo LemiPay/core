@@ -44,8 +44,30 @@ pub async fn is_group_admin_middleware(
         .is_admin(user.user_id, GroupId(group_id))
     {
         Ok(true) => Ok(next.run(req).await),
-        Ok(false) => Err(StatusCode::FORBIDDEN),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Ok(false) => {
+            let body = serde_json::json!({
+                "message": "Solo los administradores pueden realizar esta acción"
+            });
+            let json = serde_json::to_string(&body).unwrap();
+            let res = Response::builder()
+                .status(StatusCode::FORBIDDEN)
+                .header("content-type", "application/json")
+                .body(Body::from(json))
+                .unwrap();
+            Ok(res)
+        }
+        Err(_) => {
+            let body = serde_json::json!({
+                "message": "Error interno del servidor"
+            });
+            let json = serde_json::to_string(&body).unwrap();
+            let res = Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .header("content-type", "application/json")
+                .body(Body::from(json))
+                .unwrap();
+            Ok(res)
+        }
     }
 }
 

@@ -12,7 +12,7 @@ use tower_http::cors::CorsLayer;
 
 use crate::interfaces::http::{
     auth, blockchain_event, core, expense, governance, group, group_wallet, investment,
-    notifications, transaction, users, wallet,
+    notifications, permission, transaction, users, wallet,
 };
 
 pub fn create_router(state: SharedState) -> Router {
@@ -40,6 +40,7 @@ pub fn create_router(state: SharedState) -> Router {
         .nest("/core", core::routes(state.clone()))
         .nest("/group-wallet", group_wallet::routes(state.clone()))
         .nest("/investment", investment::routes(state.clone()))
+        .nest("/permission", permission::routes(state.clone()))
         .nest("/transaction", transaction::routes(state.clone()))
         .nest("/notifications", notifications::routes(state.clone()))
         .nest("/blockchain-event", blockchain_event::routes(state.clone()))
