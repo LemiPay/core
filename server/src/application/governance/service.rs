@@ -3,10 +3,13 @@ use std::{str::FromStr, sync::Arc};
 use bigdecimal::BigDecimal;
 
 use crate::application::{
-    common::repo_error::RepoError, governance::error::GovernanceError,
+    common::repo_error::RepoError,
+    governance::error::GovernanceError,
     governance::traits::repository::GovernanceRepository,
     group::traits::repository::GroupRepository,
-    treasury::traits::user_wallet_repo::UserWalletRepository,
+    treasury::traits::{
+        group_wallet_repo::GroupWalletRepository, user_wallet_repo::UserWalletRepository,
+    },
     users::traits::repository::UserRepository,
 };
 use crate::domain::governance::{AutoApproveVotingPolicy, ProposalStatus, VotingPolicy};
@@ -17,6 +20,7 @@ pub struct GovernanceService {
     pub group_repo: Arc<dyn GroupRepository>,
     pub user_repo: Arc<dyn UserRepository>,
     pub user_wallet_repo: Arc<dyn UserWalletRepository>,
+    pub group_wallet_repo: Arc<dyn GroupWalletRepository>,
 }
 
 impl GovernanceService {

@@ -109,6 +109,7 @@ pub fn build_app() -> Router {
         group_repo.clone(),
         user_repo.clone(),
         user_wallet_repo.clone(),
+        group_wallet_repo.clone(),
     );
     let expense_service = build_expense_service(group_repo.clone(), expense_repo.clone());
     let balances_service =

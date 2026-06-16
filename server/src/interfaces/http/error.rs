@@ -497,6 +497,12 @@ impl From<GovernanceError> for AppError {
             GovernanceError::GroupNotActive => {
                 AppError::Forbidden("El grupo no esta activo".into())
             }
+            GovernanceError::GroupWalletNotFound => {
+                AppError::BadRequest("El grupo no tiene wallet para esa moneda".into())
+            }
+            GovernanceError::InsufficientGroupFunds => {
+                AppError::BadRequest("El monto excede el saldo del grupo".into())
+            }
         }
     }
 }
