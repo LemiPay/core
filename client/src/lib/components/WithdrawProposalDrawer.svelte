@@ -32,6 +32,7 @@
 	let proposals = $state<WithdrawProposalExpanded[]>([]);
 	let wallets = $state<WalletCurrency[]>([]);
 	let error = $state('');
+	let executeError = $state('');
 
 	// Estado para el acordeón de ejecución
 	let executingProposalId = $state<string | null>(null);
@@ -71,11 +72,13 @@
 			// Reseteamos el estado visual al abrir
 			executingProposalId = null;
 			selectedWalletId = '';
+			executeError = '';
 		}
 	});
 
 	// Lógica del acordeón
 	function toggleExecution(proposalId: string) {
+		executeError = '';
 		if (executingProposalId === proposalId) {
 			executingProposalId = null;
 			selectedWalletId = '';
@@ -98,12 +101,12 @@
 		if (!selectedWallet) return;
 		const currencyId = getProposalCurrencyId(proposal);
 		if (!currencyId) {
-			error = 'No se pudo determinar la moneda de la propuesta.';
+			executeError = 'No se pudo determinar la moneda de la propuesta.';
 			return;
 		}
 
 		actionLoading = true;
-		error = '';
+		executeError = '';
 
 		const request = {
 			currency_id: currencyId,
@@ -116,7 +119,9 @@
 		actionLoading = false;
 
 		if (!isSuccess(res)) {
-			error = res.message || 'Error al ejecutar la propuesta.';
+			executeError =
+				res.message ||
+				'No se pudo ejecutar el retiro. Verificá que el grupo tenga fondos disponibles.';
 			return;
 		}
 
@@ -230,6 +235,14 @@
 									>
 										Seleccioná tu wallet de destino
 									</label>
+
+									{#if executeError}
+										<div
+											class="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+										>
+											{executeError}
+										</div>
+									{/if}
 
 									{#if compatibleWallets.length === 0}
 										<p class="text-xs text-red-500">

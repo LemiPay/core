@@ -19,6 +19,8 @@ pub enum GovernanceError {
     ContributionExceedsTarget,
     InvalidStatusTransition,
     SenderWalletNotFound,
+    GroupWalletNotFound,
+    InsufficientGroupFunds,
 }
 
 impl From<RepoError> for GovernanceError {

@@ -26,7 +26,7 @@ use crate::domain::user::UserId;
 use crate::domain::{
     group::GroupId,
     investment::{Investment, InvestmentPolicy},
-    treasury::{CurrencyId, Money},
+    treasury::{CurrencyId, Money, TreasuryError, TreasuryPolicy},
 };
 #[derive(Clone)]
 pub struct InvestmentService {
@@ -125,6 +125,21 @@ impl InvestmentService {
 
         let strategy = Self::map_repo(self.investment_repo.find_strategy(proposal.strategy_id))?
             .ok_or(InvestmentError::StrategyNotFound)?;
+
+        let wallet = Self::map_repo(
+            self.group_wallet_repo
+                .find_by_group_and_currency(GroupId(group_id), CurrencyId(proposal.currency_id)),
+        )?
+        .ok_or(InvestmentError::GroupWalletNotFound)?;
+
+        let amount_money =
+            Money::positive(proposal.amount.clone(), CurrencyId(proposal.currency_id))
+                .map_err(|_| InvestmentError::InvalidAmount)?;
+
+        TreasuryPolicy::ensure_group_can_cover(&wallet, &amount_money).map_err(|e| match e {
+            TreasuryError::InsufficientFunds => InvestmentError::InsufficientGroupFunds,
+            _ => InvestmentError::Internal,
+        })?;
 
         let matures_at =
             Investment::calculate_matures_at(Utc::now().naive_utc(), strategy.duration_days);

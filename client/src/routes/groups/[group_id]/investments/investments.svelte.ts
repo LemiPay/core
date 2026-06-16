@@ -166,7 +166,9 @@ export class InvestmentsState {
 		const res = await executeInvestmentProposal(this.groupId, { proposal_id: proposalId });
 		this.executing = false;
 		if (!isSuccess(res)) {
-			this.executeError = res.message || 'Error al ejecutar inversión.';
+			this.executeError =
+				res.message ||
+				'No se pudo ejecutar la inversión. Verificá que el grupo tenga fondos disponibles.';
 			return false;
 		}
 		await this.loadInvestments();

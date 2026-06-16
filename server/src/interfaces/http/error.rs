@@ -435,9 +435,9 @@ impl From<InvestmentError> for AppError {
             InvestmentError::GroupWalletNotFound => {
                 AppError::BadRequest("El grupo no tiene una wallet para esta moneda".into())
             }
-            InvestmentError::InsufficientGroupFunds => {
-                AppError::BadRequest("El grupo no tiene fondos suficientes".into())
-            }
+            InvestmentError::InsufficientGroupFunds => AppError::BadRequest(
+                "El grupo no tiene fondos suficientes para esta inversión. El saldo pudo haber cambiado por otras operaciones.".into(),
+            ),
             InvestmentError::NotGroupAdmin => {
                 AppError::Forbidden("Solo administradores pueden realizar esta acción".into())
             }
@@ -497,6 +497,12 @@ impl From<GovernanceError> for AppError {
             GovernanceError::GroupNotActive => {
                 AppError::Forbidden("El grupo no esta activo".into())
             }
+            GovernanceError::GroupWalletNotFound => {
+                AppError::BadRequest("El grupo no tiene wallet para esa moneda".into())
+            }
+            GovernanceError::InsufficientGroupFunds => AppError::BadRequest(
+                "El grupo no tiene fondos suficientes para completar el retiro. El saldo pudo haber cambiado por otras operaciones.".into(),
+            )
         }
     }
 }
