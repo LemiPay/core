@@ -3,11 +3,9 @@
 	import {
 		Activity,
 		ArrowUpRight,
-		Clock,
 		Landmark,
 		Plus,
 		Sparkles,
-		TrendingUp,
 		UserPlus,
 		Users,
 		Wallet
@@ -17,11 +15,13 @@
 	import { fade, fly, scale } from 'svelte/transition';
 	import { resolve } from '$app/paths';
 
-	import { getMyGroups } from '$lib/api/endpoints/groups';
+	import { getMyGroups, getGroupMembers } from '$lib/api/endpoints/groups';
 	import { getGroupBalances } from '$lib/api/endpoints/core';
 	import { getNotifications, markNotificationRead } from '$lib/api/endpoints/notifications';
+	import { listGroupInvestments } from '$lib/api/endpoints/investments';
 	import { isSuccess } from '$lib/types/client.types';
 	import type { NotificationRecord } from '$lib/types/endpoints/notifications.types';
+	import type { Investment } from '$lib/types/endpoints/investments.types';
 	import NotificationActivityList from '$lib/components/NotificationActivityList.svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { parseBalanceValue } from '$lib/utils/format_utils';
@@ -36,31 +36,8 @@
 		hasDebtors: boolean;
 	};
 
-	type GroupMeta = {
-		members: number;
-		treasury: number;
-		expenses: number;
-		proposals: number;
-		activityLabel: string;
-		currency: string;
+	type GroupTreasury = {
 		balance: number;
-		yieldGenerated: number;
-		icon: string;
-		health: 'healthy' | 'warning' | 'debt';
-	};
-
-	type EnrichedGroupSummary = GroupSummary & { meta: GroupMeta };
-
-	type InvestmentMock = {
-		id: string;
-		group_id: string;
-		strategy_name: string;
-		amount: number;
-		current_value: number;
-		actual_return: number | null;
-		status: 'Active' | 'Closed';
-		expected_return_percentage: number;
-		risk_level: 'Low' | 'Medium' | 'High';
 		currency: string;
 	};
 
@@ -75,6 +52,11 @@
 	let didInitializeStatusFilter = $state(false);
 
 	let groupDebtInfo = $state<Record<string, DebtInfo | null>>({});
+	let groupMembersCount = $state<Record<string, number>>({});
+	let groupTreasury = $state<Record<string, GroupTreasury>>({});
+	let realInvestments = $state<Investment[]>([]);
+	let loadingMembers = $state(false);
+	let loadingTreasury = $state(false);
 
 	let filterRole = $state<FilterRole>('all');
 	let filterStatus = $state<FilterStatus>('Active');
@@ -94,15 +76,8 @@
 
 	const userName = $derived($authStore.user?.name?.split(' ')[0] ?? 'Mateo');
 
-	const gruposEnriquecidos = $derived(
-		misGrupos.map((group, index) => ({
-			...group,
-			meta: buildMockMeta(group, index)
-		}))
-	);
-
 	const gruposFiltrados = $derived(
-		gruposEnriquecidos.filter((g) => {
+		misGrupos.filter((g) => {
 			const roleMatch = filterRole === 'all' || g.role.toLowerCase() === filterRole.toLowerCase();
 			const statusMatch =
 				filterStatus === 'all' || g.status.toLowerCase() === filterStatus.toLowerCase();
@@ -110,99 +85,39 @@
 		})
 	);
 
-	const dashboardMetrics = $derived.by(() => {
-		const groups = gruposEnriquecidos;
-		const totalTreasury = groups.reduce((total, group) => total + group.meta.treasury, 0);
-		const totalBalance = groups.reduce((total, group) => total + group.meta.balance, 0);
-		const activeGroups = groups.filter((group) => group.status.toLowerCase() === 'active').length;
-		const pendingProposals = groups.reduce((total, group) => total + group.meta.proposals, 0);
-		const yieldGenerated = groups.reduce((total, group) => total + group.meta.yieldGenerated, 0);
-
-		return {
-			totalTreasury,
-			totalBalance,
-			activeGroups,
-			pendingProposals,
-			yieldGenerated
-		};
-	});
-
-	const allInvestments = $derived.by(() => {
-		return gruposEnriquecidos.flatMap((group) =>
-			buildMockInvestments(group.group_id, group.meta.currency)
-		);
-	});
+	const activeGroupsCount = $derived(
+		misGrupos.filter((g) => g.status.toLowerCase() === 'active').length
+	);
 
 	const investmentMetrics = $derived.by(() => {
-		const totalInvested = allInvestments.reduce((sum, inv) => sum + inv.amount, 0);
-		const totalCurrentValue = allInvestments.reduce((sum, inv) => sum + inv.current_value, 0);
+		const totalInvested = realInvestments.reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
+		const totalCurrentValue = realInvestments.reduce(
+			(sum, inv) => sum + parseFloat(inv.current_value),
+			0
+		);
 		const totalReturn = totalCurrentValue - totalInvested;
 		const returnPercentage = totalInvested > 0 ? (totalReturn / totalInvested) * 100 : 0;
-		const activeInvestments = allInvestments.filter((inv) => inv.status === 'Active').length;
+		const activeInvestments = realInvestments.filter((inv) => inv.status === 'active').length;
 
 		return { totalInvested, totalCurrentValue, totalReturn, returnPercentage, activeInvestments };
 	});
 
-	function seedFromString(value: string) {
-		return value.split('').reduce((total, char) => total + char.charCodeAt(0), 0);
+	function riskLabel(risk: string) {
+		if (risk === 'low') return 'Bajo';
+		if (risk === 'medium') return 'Medio';
+		return 'Alto';
 	}
 
-	function buildMockMeta(group: GroupSummary, index: number): GroupMeta {
-		const seed = seedFromString(group.group_id + group.group_name);
-		const currency = 'USDC';
-		const treasury = 850 + ((seed * 137 + index * 503) % 9200);
-		const balance = ((seed % 2 === 0 ? 1 : -1) * (120 + ((seed * 17) % 880))) / (index + 1);
-		const proposals = group.status.toLowerCase() === 'active' ? 1 + (seed % 4) : seed % 2;
-		const health = balance < -250 ? 'debt' : proposals > 3 ? 'warning' : 'healthy';
-
-		return {
-			members: 3 + (seed % 8),
-			treasury,
-			expenses: 4 + (seed % 18),
-			proposals,
-			activityLabel: ['Ahora', 'Hace 8 min', 'Hoy', 'Ayer'][seed % 4],
-			currency,
-			balance,
-			yieldGenerated: Number((1.8 + (seed % 42) / 10).toFixed(1)),
-			icon: ['✈️', '🏠', '🎉', '💸', '🚀', '☕', '🏝️', '🧾'][seed % 8],
-			health
-		};
+	function statusLabel(status: string) {
+		if (status === 'active') return 'Activo';
+		if (status === 'matured') return 'Para retirar';
+		return 'Retirado';
 	}
 
-	function buildMockInvestments(group_id: string, group_currency: string): InvestmentMock[] {
-		const seed = seedFromString(group_id + 'inv');
-		const strategies = [
-			{ name: 'Fondo Común Lemipay', risk: 'Low' as const, expectedReturn: 3.0 },
-			{ name: 'Top 100 ARG', risk: 'Medium' as const, expectedReturn: 7.5 },
-			{ name: 'Fondo Común Lemipay', risk: 'Low' as const, expectedReturn: 3.0 },
-			{ name: 'Michael Saylor', risk: 'High' as const, expectedReturn: 15.0 },
-			{ name: 'Top 100 ARG', risk: 'Medium' as const, expectedReturn: 7.5 }
-		];
-
-		if (seed % 3 === 0) return [];
-
-		const count = 1 + ((seed * 7) % 2);
-
-		return Array.from({ length: count }, (_, i) => {
-			const strategy = strategies[(seed + i * 3) % strategies.length];
-			const amount = 200 + ((seed * 137 + i * 503) % 5000);
-			const currentValue =
-				Math.round(amount * (1 + (2 + ((seed * i + 17) % 15)) / 100) * 100) / 100;
-			const actualReturn = Math.round(((currentValue - amount) / amount) * 10000) / 100;
-
-			return {
-				id: `inv-${group_id}-${i}`,
-				group_id,
-				strategy_name: strategy.name,
-				amount,
-				current_value: currentValue,
-				actual_return: actualReturn,
-				status: seed % 7 === 0 ? 'Closed' : 'Active',
-				expected_return_percentage: strategy.expectedReturn,
-				risk_level: strategy.risk,
-				currency: group_currency
-			};
-		});
+	function groupIcon(group_id: string) {
+		const icons = ['✈️', '🏠', '🎉', '💸', '🚀', '☕', '🏝️', '🧾'];
+		const seed = group_id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+		return icons[seed % icons.length];
 	}
 
 	function formatBalance(value: number, currency: string) {
@@ -213,12 +128,6 @@
 		});
 		return `${value < 0 ? '-' : ''}$${formatted} ${currency}`;
 	}
-
-	/*function formatMoney(value: number, currency = 'USD') {
-		return `${value < 0 ? '-' : ''}$${Math.abs(value).toLocaleString('en-US', {
-			maximumFractionDigits: 0
-		})} ${currency}`;
-	}*/
 
 	function getStatusClasses(status: string) {
 		if (status.toLowerCase() === 'active')
@@ -239,16 +148,6 @@
 		if (status === 'DebtResolution') return 'En resolución';
 		if (status === 'Ended') return 'Finalizado';
 		return status;
-	}
-
-	function getHealthClasses(health: GroupMeta['health']) {
-		if (health === 'healthy') {
-			return 'bg-emerald-500 shadow-emerald-500/30';
-		}
-		if (health === 'warning') {
-			return 'bg-amber-400 shadow-amber-400/30';
-		}
-		return 'bg-rose-500 shadow-rose-500/30';
 	}
 
 	const activityLimit = 3;
@@ -302,9 +201,58 @@
 			didInitializeStatusFilter = true;
 		}
 
-		const debtGroups = res.body.filter(
+		const activeGroups = misGrupos.filter((g) => g.status.toLowerCase() === 'active');
+		const debtGroups = misGrupos.filter(
 			(g) => g.status === 'DebtResolution' || g.status === 'Ended'
 		);
+
+		if (activeGroups.length > 0) {
+			loadingMembers = true;
+			loadingTreasury = true;
+
+			const memberResults = await Promise.allSettled(
+				activeGroups.map((g) => getGroupMembers(g.group_id))
+			);
+			const newMembersCount: Record<string, number> = {};
+			for (let i = 0; i < memberResults.length; i++) {
+				const result = memberResults[i];
+				const groupId = activeGroups[i].group_id;
+				if (result.status === 'fulfilled' && isSuccess(result.value)) {
+					newMembersCount[groupId] = result.value.body.length;
+				}
+			}
+			groupMembersCount = newMembersCount;
+			loadingMembers = false;
+
+			const treasuryResults = await Promise.allSettled(
+				activeGroups.map((g) => getGroupBalances(g.group_id))
+			);
+			const newTreasury: Record<string, GroupTreasury> = {};
+			for (let i = 0; i < treasuryResults.length; i++) {
+				const result = treasuryResults[i];
+				const groupId = activeGroups[i].group_id;
+				if (result.status === 'fulfilled' && isSuccess(result.value)) {
+					newTreasury[groupId] = {
+						balance: parseBalanceValue(result.value.body.group_balance),
+						currency: 'USDC'
+					};
+				}
+			}
+			groupTreasury = newTreasury;
+			loadingTreasury = false;
+		}
+
+		const investmentResults = await Promise.allSettled(
+			misGrupos.map((g) => listGroupInvestments(g.group_id))
+		);
+		const allInv: Investment[] = [];
+		for (const result of investmentResults) {
+			if (result.status === 'fulfilled' && isSuccess(result.value)) {
+				allInv.push(...result.value.body);
+			}
+		}
+		realInvestments = allInv;
+
 		if (debtGroups.length > 0) {
 			loadingBalances = true;
 			const currentUserId = $authStore.user?.id;
@@ -402,41 +350,14 @@
 						</div>
 					</div>
 					<div class="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-2">
-						<!--
-                        <div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
-                            <p class="text-xs font-medium text-muted-foreground">Total en grupos</p>
-                            <p class="mt-2 text-2xl font-semibold">
-                                {formatMoney(dashboardMetrics.totalTreasury)}
-                            </p>
-                        </div>
-                        -->
 						<div></div>
-						<!--
-                        <div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
-                            <p class="text-xs font-medium text-muted-foreground">Balance total</p>
-                            <p
-                                class={dashboardMetrics.totalBalance >= 0
-                                    ? 'mt-2 text-2xl font-semibold text-emerald-600 dark:text-emerald-300'
-                                    : 'mt-2 text-2xl font-semibold text-rose-600 dark:text-rose-300'}
-                            >
-                                {formatMoney(dashboardMetrics.totalBalance)}
-                            </p>
-                        </div>
-                        -->
 						<div
-							class=" max-h-30 rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur"
+							class="max-h-30 rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur"
 						>
 							<p class="text-xs font-medium text-muted-foreground">Grupos activos</p>
-							<p class="mt-2 text-2xl font-semibold">{dashboardMetrics.activeGroups}</p>
+							<p class="mt-2 text-2xl font-semibold">{activeGroupsCount}</p>
 						</div>
-						<!--
-                        <div class="rounded-3xl border border-border/80 bg-background/70 p-4 backdrop-blur">
-                            <p class="text-xs font-medium text-muted-foreground">Yield generado</p>
-                            <p class="mt-2 text-2xl font-semibold text-lime-700 dark:text-lime-300">
-                                +{dashboardMetrics.yieldGenerated.toFixed(1)}%
-                            </p>
-                        </div>
-                        -->
+						<div></div>
 						<div></div>
 					</div>
 				</div>
@@ -561,7 +482,7 @@
 							{/each}
 						</div>
 					{:else if gruposFiltrados.length > 0}
-						<div class="mt-6 grid gap-4 md:grid-cols-2">
+						<div class="mt-6 grid gap-4 md:grid-cols-1">
 							{#each gruposFiltrados as grupo, index (grupo.group_id)}
 								<a
 									href={resolve(`/groups/${grupo.group_id}`)}
@@ -578,7 +499,7 @@
 											<div
 												class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-muted text-2xl shadow-inner"
 											>
-												{grupo.meta.icon}
+												{groupIcon(grupo.group_id)}
 											</div>
 											<div class="min-w-0">
 												<h3 class="truncate text-lg font-semibold">{grupo.group_name}</h3>
@@ -595,7 +516,7 @@
 													? 'rounded-full bg-violet-500/15 px-2.5 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300'
 													: 'rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground'}
 											>
-												{grupo.role}
+												{roleOptions.find((el) => el.val === grupo.role)?.label}
 											</span>
 											<span
 												class={[
@@ -626,15 +547,15 @@
 													<p class="font-semibold text-muted-foreground">No disponible</p>
 												{:else if info.balance < -0.01}
 													<p class="font-semibold text-amber-600">
-														Debes {formatBalance(Math.abs(info.balance), grupo.meta.currency)}
+														Debes {formatBalance(Math.abs(info.balance), 'USDC')}
 													</p>
 												{:else if info.balance > 0.01 && info.hasDebtors}
 													<p class="font-semibold text-emerald-600">
-														Te deben {formatBalance(info.balance, grupo.meta.currency)}
+														Te deben {formatBalance(info.balance, 'USDC')}
 													</p>
 												{:else if info.balance > 0.01}
 													<p class="font-semibold text-emerald-600">
-														Podés retirar {formatBalance(info.balance, grupo.meta.currency)}
+														Podés retirar {formatBalance(info.balance, 'USDC')}
 													</p>
 												{:else}
 													<p class="font-semibold text-muted-foreground">Saldado</p>
@@ -650,7 +571,11 @@
 													<Users class="size-3.5" />
 													Miembros
 												</div>
-												<p class="font-semibold">{grupo.meta.members}</p>
+												{#if loadingMembers}
+													<p class="h-5 w-16 animate-pulse rounded bg-muted"></p>
+												{:else}
+													<p class="font-semibold">{groupMembersCount[grupo.group_id] ?? '-'}</p>
+												{/if}
 											</div>
 
 											<div class="rounded-2xl bg-muted/60 p-3">
@@ -660,9 +585,18 @@
 													<Wallet class="size-3.5" />
 													Treasury
 												</div>
-												<p class="font-semibold">
-													{formatMoney(grupo.meta.treasury, grupo.meta.currency)}
-												</p>
+												{#if loadingTreasury}
+													<p class="h-5 w-24 animate-pulse rounded bg-muted"></p>
+												{:else}
+													{@const treasury = groupTreasury[grupo.group_id]}
+													{#if treasury}
+														<p class="font-semibold">
+															{formatMoney(treasury.balance, treasury.currency)}
+														</p>
+													{:else}
+														<p class="font-semibold text-muted-foreground">No disponible</p>
+													{/if}
+												{/if}
 											</div>
 										</div>
 									{/if}
@@ -828,7 +762,7 @@
 						<div class="mt-5 space-y-3">
 							<div class="flex items-center justify-between rounded-2xl bg-muted/60 p-3">
 								<span class="text-sm text-muted-foreground">Propuestas activas</span>
-								<span class="font-semibold">{dashboardMetrics.pendingProposals}</span>
+								<span class="font-semibold">—</span>
 							</div>
 							<div class="flex items-center justify-between rounded-2xl bg-muted/60 p-3">
 								<span class="text-sm text-muted-foreground">Health promedio</span>
@@ -860,27 +794,32 @@
 						</div>
 					</div>
 					<div class="mt-5 space-y-3">
-						{#each allInvestments as inv (inv.id)}
-							<div
-								class="rounded-2xl border border-border/70 bg-background p-3 transition hover:bg-muted/60"
+						{#each realInvestments as inv (inv.id)}
+							<a
+								href={resolve(`/groups/${inv.group_id}/investments/${inv.id}`)}
+								class="block rounded-2xl border border-border/70 bg-background p-3 transition hover:bg-muted/60"
 							>
 								<div class="flex items-start justify-between gap-2">
 									<p class="text-sm font-semibold">{inv.strategy_name}</p>
 									<span
-										class={inv.actual_return != null && inv.actual_return >= 0
+										class={parseFloat(inv.amount) > 0 &&
+										parseFloat(inv.current_value) >= parseFloat(inv.amount)
 											? 'shrink-0 text-xs font-semibold text-emerald-600 dark:text-emerald-300'
 											: 'shrink-0 text-xs font-semibold text-rose-600 dark:text-rose-300'}
 									>
-										{inv.actual_return != null
-											? (inv.actual_return >= 0 ? '+' : '') + inv.actual_return.toFixed(1) + '%'
+										{parseFloat(inv.amount) > 0
+											? (parseFloat(inv.current_value) >= parseFloat(inv.amount) ? '+' : '') +
+												(
+													((parseFloat(inv.current_value) - parseFloat(inv.amount)) /
+														parseFloat(inv.amount)) *
+													100
+												).toFixed(1) +
+												'%'
 											: '—'}
 									</span>
 								</div>
 								<p class="mt-1 text-xs text-muted-foreground">
-									{formatMoney(inv.amount, inv.currency)} → {formatMoney(
-										inv.current_value,
-										inv.currency
-									)}
+									{formatMoney(inv.amount, 'USDC')} → {formatMoney(inv.current_value, 'USDC')}
 								</p>
 								<div class="mt-2 flex items-center gap-2">
 									<span
@@ -890,17 +829,17 @@
 												? 'rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300'
 												: 'rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium text-rose-700 dark:text-rose-300'}
 									>
-										{inv.risk_level}
+										{riskLabel(inv.risk_level)}
 									</span>
 									<span
-										class={inv.status === 'Active'
+										class={inv.status === 'active'
 											? 'rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300'
 											: 'rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground'}
 									>
-										{inv.status}
+										{statusLabel(inv.status)}
 									</span>
 								</div>
-							</div>
+							</a>
 						{:else}
 							<div
 								class="rounded-2xl border border-dashed border-border bg-background p-4 text-center"

@@ -230,8 +230,9 @@
 
 	{#snippet footer()}
 		<Button label="Cancelar" variant="secondary" onclick={handleClose} />
+
 		<Button
-			label="Crear expense"
+			label="Registrar gasto"
 			type="submit"
 			form="create-expense-form"
 			disabled={!formValid || groupWallets.length === 0}
