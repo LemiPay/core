@@ -29,7 +29,7 @@ pub async fn update_group(
     let group = state
         .group_service
         .update_group
-        .execute(user.user_id, GroupId(id), req.name, req.description)
+        .execute(GroupId(id), req.name, req.description)
         .map_err(AppError::from)?;
 
     Ok(Json(GroupResponse {

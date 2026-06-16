@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Trash2, Pencil, HandCoins, LogOut, TrendingUp, ShieldAlert } from 'lucide-svelte';
+	import { Pencil, HandCoins, LogOut, TrendingUp, ShieldAlert } from 'lucide-svelte';
 
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 
 	// API UI bindings (Solo las que borran/salen)
-	import { deleteGroup, enterDebtResolution, leaveGroup } from '$lib/api/endpoints/groups';
+	import { enterDebtResolution, leaveGroup } from '$lib/api/endpoints/groups';
 	import { cancelFundRoundProposal } from '$lib/api/endpoints/fund_rounds';
 
 	// Helpers y Estado Global
@@ -50,7 +50,7 @@
 	let activeTab = $state<Tab>('general');
 
 	let showNewMemberModal = $state(false);
-	let showDeleteModal = $state(false);
+
 	let showEditModal = $state(false);
 	let showCreateWalletModal = $state(false);
 	let showFundWalletModal = $state(false);
@@ -224,7 +224,7 @@
 							<HandCoins class="h-4 w-4" />
 						{/snippet}
 					</Button>
-					{#if !groupState.readonly && isCurrentUserAdmin}
+					{#if !groupState.readonly}
 						<button
 							onclick={() => (showConfirmDebtResolution = true)}
 							class="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 transition hover:bg-amber-100 hover:text-amber-800"
@@ -248,13 +248,6 @@
 							title="Salir del grupo"
 						>
 							<LogOut class="h-4 w-4" />
-						</button>
-						<button
-							onclick={() => (showDeleteModal = true)}
-							class="rounded-md p-2 text-muted-foreground transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-400/10 dark:hover:text-red-300"
-							title="Eliminar grupo"
-						>
-							<Trash2 class="h-4 w-4" />
 						</button>
 					{/if}
 				</div>
@@ -448,16 +441,7 @@
 			onconfirm={() => leaveGroup(groupId)}
 			onsuccess={() => (window.location.href = '/dashboard')}
 		/>
-		<Confirm
-			open={showDeleteModal}
-			title="Eliminar grupo"
-			description="Vas a poder revisar la historia del grupo pero no hacer nada"
-			message="Esta acción no se puede deshacer"
-			successMsg="Grupo eliminado"
-			onclose={() => (showDeleteModal = false)}
-			onconfirm={() => deleteGroup(groupId)}
-			onsuccess={() => (window.location.href = '/dashboard')}
-		/>
+
 		<Confirm
 			open={showCancelFundRoundModal}
 			title="Cancelar ronda"
