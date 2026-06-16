@@ -231,7 +231,7 @@
 							title="Iniciar resolución de deudas"
 						>
 							<ShieldAlert class="h-4 w-4" />
-							Finalizar grupo
+							Resolver deudas
 						</button>
 					{/if}
 					{#if !groupState.readonly}

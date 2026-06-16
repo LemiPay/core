@@ -26,7 +26,6 @@
 			description: 'Actualizar nombre y descripción del grupo',
 			category: 'Grupo'
 		},
-		{ action: 'delete_group', description: 'Eliminar o finalizar el grupo', category: 'Grupo' },
 		{
 			action: 'enter_debt_resolution',
 			description: 'Iniciar resolución de deudas',
@@ -43,11 +42,6 @@
 			action: 'cancel_fund_round',
 			description: 'Cancelar rondas de fondeo',
 			category: 'Gobernanza'
-		},
-		{
-			action: 'manage_any_expense',
-			description: 'Editar o eliminar cualquier gasto del grupo',
-			category: 'Gastos'
 		},
 		{
 			action: 'create_investment',
@@ -69,7 +63,6 @@
 		const icons: Record<string, string> = {
 			Grupo: '🏠',
 			Gobernanza: '🗳️',
-			Gastos: '💰',
 			Inversiones: '📈'
 		};
 		return icons[category] || '🔘';
