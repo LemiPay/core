@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatAmount, formatDate } from '$lib/utils/format_utils';
+	import { formatAmount, formatDate, formatTxType } from '$lib/utils/format_utils';
 	import type { BlockchainEvent, Transaction } from '$lib/types/endpoints/transactions.types';
 
 	interface Props {
@@ -14,7 +14,7 @@
 		const txItems = transactionsArray.map((t) => ({
 			type: t.tx_type,
 			amount: t.amount,
-			sign: t.tx_type === 'withdraw' ? '-' : '+',
+			sign: t.tx_type === 'withdraw' || t.tx_type === 'settlement_payment' ? '-' : '+',
 			date: t.created_at,
 			sortKey: t.created_at
 		}));
@@ -47,13 +47,7 @@
 					class="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 transition hover:border-gray-300"
 				>
 					<div class="flex flex-col gap-0.5">
-						<span class="font-bold text-black capitalize"
-							>{item.type === 'Fund'
-								? 'Fondeo'
-								: item.type === 'Withdraw'
-									? 'Retiro'
-									: item.type}</span
-						>
+						<span class="font-bold text-black">{formatTxType(item.type)}</span>
 					</div>
 					<div class="flex flex-col items-end gap-0.5">
 						<span class="font-bold text-black">

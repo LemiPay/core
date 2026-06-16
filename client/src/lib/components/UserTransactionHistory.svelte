@@ -1,6 +1,6 @@
 <script lang="ts">
 	import SideBar from './ui/SideBar.svelte';
-	import { formatAmount } from '$lib/utils/format_utils';
+	import { formatAmount, formatTxType } from '$lib/utils/format_utils';
 
 	interface Props {
 		open: boolean;
@@ -23,15 +23,12 @@
 	import { formatDate } from '$lib/utils/format_utils';
 	import type { BlockchainEvent, Transaction } from '$lib/types/endpoints/transactions.types';
 
-	function translateTxType(type: string) {
-		const types: Record<string, string> = {
-			deposit: 'Depósito',
-			withdraw: 'Retiro',
-			expense: 'Gasto',
-			investment: 'Inversión',
-			Fund: 'Fondeo'
+	function translateLabel(label: string) {
+		const map: Record<string, string> = {
+			'Investment execution': 'Ejecución de inversión',
+			'Investment return': 'Retorno de inversión'
 		};
-		return types[type] || type;
+		return map[label] || '';
 	}
 
 	function mergeAndSort() {
@@ -39,14 +36,14 @@
 			type: t.tx_type,
 			label: t.description ?? '',
 			amount: t.amount,
-			sign: t.tx_type === 'withdraw' ? '-' : '+',
+			sign: t.tx_type === 'withdraw' || t.tx_type === 'settlement_payment' ? '-' : '+',
 			date: t.created_at,
 			sortKey: t.created_at
 		}));
 
 		const eventItems = blockchainEvents.map((e) => ({
 			type: e.event_type,
-			label: e.event_type === 'Fund' ? 'Fondeo' : 'Retiro',
+			label: '',
 			amount: e.net_amount,
 			sign: e.event_type === 'Withdraw' ? '-' : '+',
 			date: e.created_at,
@@ -72,12 +69,8 @@
 								class="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition hover:border-border/80"
 							>
 								<div class="flex flex-col gap-0.5">
-									<span class="font-bold text-black capitalize"
-										>{item.type === 'Fund'
-											? 'Fondeo'
-											: item.type === 'Withdraw'
-												? 'Retiro'
-												: item.label || translateTxType(item.type)}</span
+									<span class="font-bold text-black"
+										>{translateLabel(item.label) || item.label || formatTxType(item.type)}</span
 									>
 								</div>
 								<div class="flex flex-col items-end gap-0.5">

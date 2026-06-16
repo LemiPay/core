@@ -44,13 +44,17 @@ export function formatDate(value: string): string {
 }
 
 export function formatTxType(t: string): string {
+	const key = t.toLowerCase();
 	const map: Record<string, string> = {
-		Deposit: 'Depósito',
-		Withdraw: 'Retiro',
-		Expense: 'Gasto',
-		Investment: 'Inversión'
+		deposit: 'Depósito',
+		withdraw: 'Retiro',
+		expense: 'Gasto',
+		investment: 'Inversión',
+		settlement_payment: 'Pago de deuda',
+		claim: 'Retiro final',
+		fund: 'Fondeo'
 	};
-	return map[t] ?? t;
+	return map[key] ?? t;
 }
 
 export function formatDateTimeShort(iso: string): string {
