@@ -4,6 +4,7 @@ import type { ApiResponse } from '$lib/types/client.types';
 import type {
 	ExpandedProposal,
 	NewMemberData,
+	NewMemberProposalResponse,
 	ReceivedNewMemberProposalExpanded
 } from '$lib/types/endpoints/proposals.types';
 
@@ -16,6 +17,14 @@ export async function createNewMemberProposal(data: NewMemberData): ApiResponse<
 
 export async function getReceivedProposals(): ApiResponse<ReceivedNewMemberProposalExpanded[]> {
 	return authedApiFetch('/governance/received', {
+		method: 'GET'
+	});
+}
+
+export async function getGroupNewMemberProposals(
+	group_id: string
+): ApiResponse<NewMemberProposalResponse[]> {
+	return authedApiFetch(`/governance/group/${group_id}`, {
 		method: 'GET'
 	});
 }

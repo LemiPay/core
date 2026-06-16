@@ -43,3 +43,9 @@ export type ReceivedNewMemberProposalExpanded = {
 	new_member_proposal: NewMemberProposal;
 	proposal_type: ProposalType;
 };
+
+export type NewMemberProposalResponse = {
+	proposal: Proposal;
+	new_member_id: Uuid;
+	kind: string;
+};
