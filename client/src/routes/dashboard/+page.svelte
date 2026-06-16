@@ -102,6 +102,18 @@
 		return { totalInvested, totalCurrentValue, totalReturn, returnPercentage, activeInvestments };
 	});
 
+	function riskLabel(risk: string) {
+		if (risk === 'low') return 'Bajo';
+		if (risk === 'medium') return 'Medio';
+		return 'Alto';
+	}
+
+	function statusLabel(status: string) {
+		if (status === 'active') return 'Activo';
+		if (status === 'matured') return 'Para retirar';
+		return 'Retirado';
+	}
+
 	function groupIcon(group_id: string) {
 		const icons = ['✈️', '🏠', '🎉', '💸', '🚀', '☕', '🏝️', '🧾'];
 		const seed = group_id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
@@ -783,19 +795,25 @@
 					</div>
 					<div class="mt-5 space-y-3">
 						{#each realInvestments as inv (inv.id)}
-							<div
-								class="rounded-2xl border border-border/70 bg-background p-3 transition hover:bg-muted/60"
+							<a
+								href={resolve(`/groups/${inv.group_id}/investments/${inv.id}`)}
+								class="block rounded-2xl border border-border/70 bg-background p-3 transition hover:bg-muted/60"
 							>
 								<div class="flex items-start justify-between gap-2">
 									<p class="text-sm font-semibold">{inv.strategy_name}</p>
 									<span
-										class={inv.actual_return != null && parseFloat(inv.actual_return) >= 0
+										class={parseFloat(inv.amount) > 0 &&
+										parseFloat(inv.current_value) >= parseFloat(inv.amount)
 											? 'shrink-0 text-xs font-semibold text-emerald-600 dark:text-emerald-300'
 											: 'shrink-0 text-xs font-semibold text-rose-600 dark:text-rose-300'}
 									>
-										{inv.actual_return != null
-											? (parseFloat(inv.actual_return) >= 0 ? '+' : '') +
-												parseFloat(inv.actual_return).toFixed(1) +
+										{parseFloat(inv.amount) > 0
+											? (parseFloat(inv.current_value) >= parseFloat(inv.amount) ? '+' : '') +
+												(
+													((parseFloat(inv.current_value) - parseFloat(inv.amount)) /
+														parseFloat(inv.amount)) *
+													100
+												).toFixed(1) +
 												'%'
 											: '—'}
 									</span>
@@ -811,17 +829,17 @@
 												? 'rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300'
 												: 'rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium text-rose-700 dark:text-rose-300'}
 									>
-										{inv.risk_level}
+										{riskLabel(inv.risk_level)}
 									</span>
 									<span
 										class={inv.status === 'active'
 											? 'rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300'
 											: 'rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground'}
 									>
-										{inv.status}
+										{statusLabel(inv.status)}
 									</span>
 								</div>
-							</div>
+							</a>
 						{:else}
 							<div
 								class="rounded-2xl border border-dashed border-border bg-background p-4 text-center"
