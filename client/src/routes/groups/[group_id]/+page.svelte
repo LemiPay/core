@@ -193,10 +193,16 @@
 							{groupState.groupData.name}
 						</h1>
 						{#if groupState.groupData.status}
+							{@const statusLabel =
+								groupState.groupData.status === 'Active'
+									? 'Activo'
+									: groupState.groupData.status === 'DebtResolution'
+										? 'En resolución'
+										: 'Finalizado'}
 							<span
 								class="rounded border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
 							>
-								{groupState.groupData.status}
+								{statusLabel}
 							</span>
 						{/if}
 					</div>
