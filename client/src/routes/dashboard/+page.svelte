@@ -482,7 +482,7 @@
 							{/each}
 						</div>
 					{:else if gruposFiltrados.length > 0}
-						<div class="mt-6 grid gap-4 md:grid-cols-2">
+						<div class="mt-6 grid gap-4 md:grid-cols-1">
 							{#each gruposFiltrados as grupo, index (grupo.group_id)}
 								<a
 									href={resolve(`/groups/${grupo.group_id}`)}
@@ -516,7 +516,7 @@
 													? 'rounded-full bg-violet-500/15 px-2.5 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300'
 													: 'rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground'}
 											>
-												{grupo.role}
+												{roleOptions.find((el) => el.val === grupo.role)?.label}
 											</span>
 											<span
 												class={[
