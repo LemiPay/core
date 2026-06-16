@@ -75,6 +75,22 @@ impl GovernanceService {
         let domain = to_domain_withdraw(&stored);
         GovernancePolicy::ensure_withdraw_can_execute(&domain, UserId(user_id), GroupId(group_id))?;
 
+        let group_wallet = Self::map_repo(
+            self.group_wallet_repo
+                .find_by_group_and_currency(GroupId(group_id), CurrencyId(currency_id)),
+        )?
+        .ok_or(GovernanceError::GroupWalletNotFound)?;
+
+        let amount_money = Money::positive(stored.amount.clone(), CurrencyId(currency_id))
+            .map_err(|_| GovernanceError::InvalidAmount)?;
+
+        TreasuryPolicy::ensure_group_can_cover(&group_wallet, &amount_money).map_err(
+            |e| match e {
+                TreasuryError::InsufficientFunds => GovernanceError::InsufficientGroupFunds,
+                _ => GovernanceError::Internal,
+            },
+        )?;
+
         Self::map_repo(self.governance_repo.execute_withdraw(
             proposal_id,
             user_id,
