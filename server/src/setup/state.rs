@@ -2,7 +2,7 @@ use super::config::AppConfig;
 use crate::application::permission::PermissionService;
 use crate::application::settlements::service::SettlementsService;
 use crate::application::{
-    auth::AuthService, balances::BalancesService, expense::ExpenseService,
+    auth::AuthService, balances::BalancesService, expense::ExpenseService, friend::FriendService,
     governance::GovernanceService, group::GroupService, investment::InvestmentService,
     treasury::TreasuryService, treasury::traits::currency_repo::CurrencyRepository,
     treasury::traits::fund_event_repo::FundEventRepository, users::UserService,
@@ -26,6 +26,7 @@ pub struct AppState {
     pub treasury_service: TreasuryService,
     pub governance_service: GovernanceService,
     pub expense_service: ExpenseService,
+    pub friend_service: FriendService,
     pub balances_service: BalancesService,
     pub settlements_service: SettlementsService,
     pub investment_service: InvestmentService,

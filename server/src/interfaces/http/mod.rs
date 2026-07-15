@@ -3,6 +3,7 @@ pub mod blockchain_event;
 pub mod core;
 pub mod error;
 pub mod expense;
+pub mod friend;
 pub mod governance;
 pub mod group;
 pub mod group_wallet;

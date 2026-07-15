@@ -11,7 +11,7 @@
 	import AsideMenu from './AsideMenu.svelte';
 	import { page } from '$app/state';
 
-	import { Activity, LayoutDashboard, ReceiptText, Settings, Users, Landmark } from 'lucide-svelte';
+	import { Activity, LayoutDashboard, UserPlus, Settings, Users, Landmark } from 'lucide-svelte';
 
 	const baseSidebarItems: {
 		label: string;
@@ -21,7 +21,7 @@
 		{ label: 'Dashboard', icon: LayoutDashboard, link: '/dashboard' },
 		{ label: 'Actividad', icon: Activity, link: '/dashboard/activity' },
 		{ label: 'Grupos', icon: Users, link: '/dashboard/groups' },
-		{ label: 'Gastos', icon: ReceiptText, link: '/dashboard/expenses' },
+		{ label: 'Amigos', icon: UserPlus, link: '/dashboard/expenses' },
 		{ label: 'Gobernanza', icon: Landmark, link: '/dashboard/governance' },
 		// { label: 'Treasury', icon: Landmark, link: '/dashboard/treasury' },
 		{ label: 'Settings', icon: Settings, link: '/dashboard/settings' }
