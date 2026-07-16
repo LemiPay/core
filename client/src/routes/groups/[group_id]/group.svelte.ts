@@ -15,6 +15,8 @@ import {
 import { getExpenses, getGroupExpenses } from '$lib/api/endpoints/expenses';
 import { listGroupTransactions } from '$lib/api/endpoints/transactions';
 import { getMyWallets } from '$lib/api/endpoints/wallets';
+import { getGroupNewMemberProposals } from '$lib/api/endpoints/proposals';
+import { userInfo } from '$lib/api/auth';
 import { authStore } from '$lib/stores/auth';
 import { isSuccess } from '$lib/types/client.types';
 
@@ -29,7 +31,16 @@ import type {
 import type { Transaction } from '$lib/types/endpoints/transactions.types';
 import type { Expense } from '$lib/types/endpoints/expenses.types';
 import type { WalletCurrency } from '$lib/types/endpoints/wallets.types';
+import type { ProposalStatus } from '$lib/types/endpoints/proposals.types';
 import { formatAmount, parseBalanceValue } from '$lib/utils/format_utils';
+
+export type PendingMember = {
+	user_id: string;
+	name: string;
+	email: string;
+	proposal_id: string;
+	status: ProposalStatus;
+};
 
 // --- CLASE DE ESTADO ---
 export class GroupState {
@@ -43,6 +54,8 @@ export class GroupState {
 
 	groupData = $state<Group>({} as Group);
 	members = $state<UserBadge[]>([]);
+	pendingMembers = $state<PendingMember[]>([]);
+	loadingPendingMembers = $state(true);
 	wallets = $state<GroupWallet[]>([]);
 
 	// Fund Rounds State
@@ -253,8 +266,72 @@ export class GroupState {
 		try {
 			const res = await getGroupMembers(this.groupId);
 			if (isSuccess(res)) this.members = res.body;
+			// Refresh pending invites after members (to filter already joined)
+			await this.loadPendingMembersData();
 		} finally {
 			this.loadingMembers = false;
+		}
+	}
+
+	/**
+	 * Open invites: backend auto-approves on create (`Approved`) until the invitee
+	 * accepts (`Executed`) or rejects (`Rejected`). Also keep `Pending` for future voting.
+	 * Rejected / canceled / expired / executed are not shown.
+	 */
+	async loadPendingMembersData() {
+		this.loadingPendingMembers = true;
+		try {
+			const res = await getGroupNewMemberProposals(this.groupId);
+			if (!isSuccess(res)) {
+				this.pendingMembers = [];
+				return;
+			}
+
+			const memberIds = new Set(this.members.map((m) => m.user_id));
+			const openStatuses = new Set<ProposalStatus>(['Pending', 'Approved']);
+
+			const open = res.body.filter(
+				(p) => openStatuses.has(p.proposal.status) && !memberIds.has(p.new_member_id)
+			);
+
+			// Dedupe by user (keep latest proposal)
+			const byUser = new Map<string, (typeof open)[number]>();
+			for (const p of open) {
+				const existing = byUser.get(p.new_member_id);
+				if (
+					!existing ||
+					new Date(p.proposal.updated_at).getTime() >
+						new Date(existing.proposal.updated_at).getTime()
+				) {
+					byUser.set(p.new_member_id, p);
+				}
+			}
+
+			const resolved = await Promise.all(
+				[...byUser.values()].map(async (p) => {
+					const userRes = await userInfo(p.new_member_id);
+					if (!isSuccess(userRes)) {
+						return {
+							user_id: p.new_member_id,
+							name: 'Usuario',
+							email: '',
+							proposal_id: p.proposal.id,
+							status: p.proposal.status
+						} satisfies PendingMember;
+					}
+					return {
+						user_id: userRes.body.id,
+						name: userRes.body.name,
+						email: userRes.body.email,
+						proposal_id: p.proposal.id,
+						status: p.proposal.status
+					} satisfies PendingMember;
+				})
+			);
+
+			this.pendingMembers = resolved;
+		} finally {
+			this.loadingPendingMembers = false;
 		}
 	}
 
