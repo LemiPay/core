@@ -74,6 +74,15 @@ pub fn build_app() -> Router {
     let governance_repo = Arc::new(DieselGovernanceRepository::new(pool.clone()));
     let expense_repo = Arc::new(DieselExpenseRepository::new(pool.clone()));
     let investment_repo = Arc::new(DieselInvestmentRepository::new(pool.clone()));
+
+    // Sync strategies + baskets from config/investment_strategies.toml
+    match crate::infrastructure::db::repositories::investment_repo_impl::sync_strategies_from_config(
+        &pool,
+    ) {
+        Ok(n) if n > 0 => {}
+        Ok(_) => {}
+        Err(e) => eprintln!("WARNING: investment strategies config sync failed: {e}"),
+    }
     let notification_repo = Arc::new(DieselNotificationRepository::new(pool.clone()));
     let permission_repo = Arc::new(DieselPermissionRepository::new(pool.clone()));
 

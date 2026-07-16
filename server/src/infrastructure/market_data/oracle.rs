@@ -268,13 +268,28 @@ impl CoinGeckoPriceOracle {
                 .and_then(|o| o.get("usd"))
                 .and_then(|v| v.as_f64())
             {
-                if let Ok(bd) = BigDecimal::from_str(&format!("{:.8}", price)) {
+                // Reject dust (wrong id often returns ~1e-12 which formats to 0)
+                if !price.is_finite() || price < 1e-6 {
+                    eprintln!("CoinGecko: ignoring dust/invalid price for id={id} usd={price}");
+                    continue;
+                }
+                if let Some(bd) = f64_to_bd(price) {
                     out.insert(id.clone(), bd);
                 }
+            } else {
+                eprintln!("CoinGecko: no usd price in response for id={id}");
             }
         }
         out
     }
+}
+
+/// Parse f64 → BigDecimal without truncating small-but-valid prices to zero.
+fn f64_to_bd(price: f64) -> Option<BigDecimal> {
+    // Use enough precision; avoid `{:.8}` which turns 2e-12 into "0.00000000"
+    BigDecimal::from_str(&format!("{:.12}", price))
+        .ok()
+        .filter(|d| *d > BigDecimal::from(0))
 }
 
 #[async_trait]
@@ -325,17 +340,22 @@ impl PriceOracle for CoinGeckoPriceOracle {
             }
         }
 
-        // Fallbacks: stale cache, then mock
+        // Fallbacks: stale cache, then mock — always fill so execute never fails on CG gaps
         for a in need {
             if result.contains_key(&a.id) {
                 continue;
             }
             if let Some(stale) = self.cache.get_stale(a.id) {
-                eprintln!("CoinGecko: stale cache for {}", a.symbol);
-                result.insert(a.id, stale);
-                continue;
+                if stale > BigDecimal::from(0) {
+                    eprintln!("CoinGecko: stale cache for {}", a.symbol);
+                    result.insert(a.id, stale);
+                    continue;
+                }
             }
-            eprintln!("CoinGecko: mock fallback for {}", a.symbol);
+            eprintln!(
+                "CoinGecko: mock fallback for {} (missing or invalid API price; check api id in coingecko_tickers.toml)",
+                a.symbol
+            );
             let mock = self.mock_fallback.prices_sync(std::slice::from_ref(a));
             if let Some(p) = mock.get(&a.id) {
                 self.cache.put(a.id, p.clone());
@@ -343,7 +363,31 @@ impl PriceOracle for CoinGeckoPriceOracle {
             }
         }
 
-        let _ = unresolved;
+        // Also mock any unresolved symbols
+        for a in unresolved {
+            if result.contains_key(&a.id) {
+                continue;
+            }
+            let mock = self.mock_fallback.prices_sync(std::slice::from_ref(a));
+            if let Some(p) = mock.get(&a.id) {
+                self.cache.put(a.id, p.clone());
+                result.insert(a.id, p.clone());
+            }
+        }
+
+        if result.len() < assets.len() {
+            // Last resort: mock anything still missing
+            for a in assets {
+                if result.contains_key(&a.id) {
+                    continue;
+                }
+                let mock = self.mock_fallback.prices_sync(std::slice::from_ref(a));
+                if let Some(p) = mock.get(&a.id) {
+                    result.insert(a.id, p.clone());
+                }
+            }
+        }
+
         if result.len() < assets.len() {
             return Err(PriceOracleError::MissingPrice(
                 "could not resolve all asset prices".into(),

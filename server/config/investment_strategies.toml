@@ -1,0 +1,116 @@
+# =============================================================================
+# Investment strategies catalog — LemiPay
+# =============================================================================
+#
+# Edit this file to add/change strategies and baskets. Restart the server to apply
+# (synced into Postgres on startup).
+#
+# Rules:
+#   - allocation weights are in basis points (10000 = 100%). Must sum to 10000
+#     for mark_to_market strategies. Omit / leave empty for simulated.
+#   - Symbols must exist in config/coingecko_tickers.toml
+#   - id (UUID) is optional but recommended so existing investments keep the same strategy
+#   - valuation_mode: "mark_to_market" | "simulated"
+#   - category: simulated | crypto | stocks | mixed | rwa
+#   - risk_level: low | medium | high
+#
+# Path override (optional):
+#   INVESTMENT_STRATEGIES_FILE=/path/to/investment_strategies.toml
+# =============================================================================
+
+# ── Simulated (legacy paper formula) ────────────────────────────────────────
+
+[[strategies]]
+id = "c0000001-0000-4000-8000-000000000001"
+name = "Fondo Común Lemipay"
+description = "Bajo riesgo, retorno estable y predecible"
+risk_level = "low"
+duration_days = 30
+valuation_mode = "simulated"
+category = "simulated"
+ragequit_fee_bps = 200
+expected_return_percentage = 3.0
+
+[[strategies]]
+id = "c0000001-0000-4000-8000-000000000002"
+name = "TOP 100 ARG"
+description = "Riesgo medio, buen retorno balanceado"
+risk_level = "medium"
+duration_days = 60
+valuation_mode = "simulated"
+category = "simulated"
+ragequit_fee_bps = 200
+expected_return_percentage = 7.5
+
+[[strategies]]
+id = "c0000001-0000-4000-8000-000000000003"
+name = "Michael Saylor"
+description = "Alto riesgo, alto retorno potencial"
+risk_level = "high"
+duration_days = 90
+valuation_mode = "simulated"
+category = "simulated"
+ragequit_fee_bps = 200
+expected_return_percentage = 15.0
+
+# ── Mark-to-market (CoinGecko prices) ───────────────────────────────────────
+
+[[strategies]]
+id = "b0000001-0000-4000-8000-000000000001"
+name = "Crypto Bluechips"
+description = "Bluechips crypto: BTC, ETH, SOL (precios CoinGecko)."
+risk_level = "medium"
+duration_days = 30
+valuation_mode = "mark_to_market"
+category = "crypto"
+ragequit_fee_bps = 200
+expected_return_percentage = 0
+allocation = { BTC = 5000, ETH = 3000, SOL = 2000 }
+
+[[strategies]]
+id = "b0000001-0000-4000-8000-000000000002"
+name = "Crypto Aggressive"
+description = "Crypto de mayor volatilidad: SOL, ETH, BTC, DOGE."
+risk_level = "high"
+duration_days = 45
+valuation_mode = "mark_to_market"
+category = "crypto"
+ragequit_fee_bps = 200
+expected_return_percentage = 0
+allocation = { SOL = 4000, ETH = 3000, BTC = 2000, DOGE = 1000 }
+
+[[strategies]]
+id = "b0000001-0000-4000-8000-000000000003"
+name = "Tech Equity + SpaceX"
+description = "Stocks (paper): AAPL, MSFT, NVDA, GOOGL y SPCX (SpaceX). Precios vía CoinGecko."
+risk_level = "medium"
+duration_days = 60
+valuation_mode = "mark_to_market"
+category = "stocks"
+ragequit_fee_bps = 200
+expected_return_percentage = 0
+allocation = { AAPL = 3000, MSFT = 2500, NVDA = 2000, GOOGL = 1500, SPCX = 1000 }
+
+[[strategies]]
+id = "b0000001-0000-4000-8000-000000000004"
+name = "Gold Reserve"
+description = "Exposición 100% a oro (commodities en CoinGecko)."
+risk_level = "low"
+duration_days = 30
+valuation_mode = "mark_to_market"
+category = "rwa"
+ragequit_fee_bps = 100
+expected_return_percentage = 0
+allocation = { GOLD = 10000 }
+
+[[strategies]]
+id = "b0000001-0000-4000-8000-000000000005"
+name = "Balanced Mix"
+description = "Mix crypto + stocks + gold: BTC, ETH, AAPL, SPCX, GOLD."
+risk_level = "medium"
+duration_days = 300
+valuation_mode = "mark_to_market"
+category = "mixed"
+ragequit_fee_bps = 200
+expected_return_percentage = 0
+allocation = { BTC = 3000, ETH = 1500, AAPL = 2000, SPCX = 1500, GOLD = 2000 }

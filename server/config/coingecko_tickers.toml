@@ -2,23 +2,24 @@
 # CoinGecko ticker map — LemiPay investments
 # =============================================================================
 #
-# Sections = URL tag on CoinGecko:
-#   [coins]        → https://www.coingecko.com/en/coins/{id}
-#   [stocks]       → https://www.coingecko.com/en/stocks/{id}
-#   [commodities]  → https://www.coingecko.com/en/commodities/{id}
+# Sections = URL tag:
+#   [coins]        → https://www.coingecko.com/en/coins/{page}
+#   [stocks]       → https://www.coingecko.com/en/stocks/{page}
+#   [commodities]  → https://www.coingecko.com/en/commodities/{page}
 #
-# Format inside each section:
-#   TICKER = "coingecko-id"
+# Value forms:
+#   TICKER = "slug"
+#     → page = api = slug  (OK for pure coins)
 #
-# Used for:
-#   1) Live prices:  GET /api/v3/simple/price?ids={id}&vs_currencies=usd
-#   2) UI link ↗:    https://www.coingecko.com/en/{section}/{id}
+#   TICKER = { page = "web-slug", api = "coin-api-id" }
+#     → link uses page; /simple/price uses api
+#     Use this for stocks/commodities: the website path ≠ the API coin id.
 #
-# How to find an id: open the asset page; last path segment is the id.
-# Restart the server after editing this file.
+# Find API ids: https://api.coingecko.com/api/v3/search?query=nvidia
+# (look under "coins" → id field for tokenized stocks)
 #
-# Optional path override:
-#   COINGECKO_TICKERS_FILE=/path/to/coingecko_tickers.toml
+# Restart server after edits.
+# COINGECKO_TICKERS_FILE=/path/to/this.toml
 # =============================================================================
 
 [coins]
@@ -27,12 +28,14 @@ ETH = "ethereum"
 SOL = "solana"
 DOGE = "dogecoin"
 
+# Stocks: page = /en/stocks/{page}  |  api = CoinGecko coin id for /simple/price
 [stocks]
-AAPL = "apple"
-MSFT = "microsoft"
-NVDA = "nvidia"
-GOOGL = "alphabet-class-a"
-SPCX = "spacex"
+AAPL = { page = "apple", api = "apple-ondo-tokenized-stock" }
+MSFT = { page = "microsoft", api = "microsoft-ondo-tokenized-stock" }
+NVDA = { page = "nvidia", api = "nvidia-ondo-tokenized-stock" }
+GOOGL = { page = "alphabet", api = "alphabet-class-a-ondo-tokenized-stock" }
+SPCX = { page = "spacex", api = "spacex-bstocks-tokenized-stock" }
 
 [commodities]
-GOLD = "gold"
+# page for /en/commodities/gold ; api = tradeable gold token on CoinGecko
+GOLD = { page = "gold", api = "pax-gold" }

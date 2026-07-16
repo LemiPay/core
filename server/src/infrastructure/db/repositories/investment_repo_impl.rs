@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
 use diesel::{
@@ -873,4 +875,167 @@ impl InvestmentRepository for DieselInvestmentRepository {
             .map_err(|_| RepoError::Insert)?;
         Ok(())
     }
+}
+
+/// Sync strategy catalog from `config/investment_strategies.toml` into Postgres.
+/// Safe to call on every startup; upserts by id or name and rebuilds allocations.
+pub fn sync_strategies_from_config(pool: &DbPool) -> Result<usize, String> {
+    use crate::infrastructure::market_data::TickerMap;
+    use crate::infrastructure::market_data::strategies_config::{
+        asset_kind_for_symbol, asset_name_for_symbol, load_strategy_definitions,
+    };
+    use diesel::prelude::*;
+
+    let (defs, path) = load_strategy_definitions()?;
+    if defs.is_empty() {
+        return Ok(0);
+    }
+
+    let mut conn = pool.get().map_err(|_| "db connection failed".to_string())?;
+    let tickers = TickerMap::global();
+    let mut synced = 0usize;
+
+    for def in &defs {
+        let strategy_id = conn
+            .transaction::<Uuid, diesel::result::Error, _>(|tx| {
+                // 1) Ensure assets for allocation symbols
+                let mut symbol_to_asset: HashMap<String, Uuid> = HashMap::new();
+                for (sym, _) in &def.allocation {
+                    let existing = schema::asset::table
+                        .filter(schema::asset::symbol.eq(sym))
+                        .select(schema::asset::id)
+                        .first::<Uuid>(tx)
+                        .optional()?;
+
+                    let asset_id = if let Some(id) = existing {
+                        let ext = tickers
+                            .coingecko_id(sym)
+                            .unwrap_or(sym.as_str())
+                            .to_string();
+                        diesel::update(schema::asset::table.filter(schema::asset::id.eq(id)))
+                            .set((
+                                schema::asset::name.eq(asset_name_for_symbol(sym)),
+                                schema::asset::kind.eq(asset_kind_for_symbol(sym)),
+                                schema::asset::price_provider.eq("coingecko"),
+                                schema::asset::external_id.eq(ext),
+                                schema::asset::is_active.eq(true),
+                            ))
+                            .execute(tx)?;
+                        id
+                    } else {
+                        let id = Uuid::new_v4();
+                        let ext = tickers
+                            .coingecko_id(sym)
+                            .unwrap_or(sym.as_str())
+                            .to_string();
+                        diesel::insert_into(schema::asset::table)
+                            .values((
+                                schema::asset::id.eq(id),
+                                schema::asset::symbol.eq(sym.as_str()),
+                                schema::asset::name.eq(asset_name_for_symbol(sym)),
+                                schema::asset::kind.eq(asset_kind_for_symbol(sym)),
+                                schema::asset::price_provider.eq("coingecko"),
+                                schema::asset::external_id.eq(ext),
+                                schema::asset::is_active.eq(true),
+                            ))
+                            .execute(tx)?;
+                        id
+                    };
+                    symbol_to_asset.insert(sym.clone(), asset_id);
+                }
+
+                // 2) Find existing strategy by id, else by name
+                let mut existing_id: Option<Uuid> = None;
+                if let Some(id) = def.id {
+                    existing_id = schema::investment_strategy::table
+                        .filter(schema::investment_strategy::id.eq(id))
+                        .select(schema::investment_strategy::id)
+                        .first::<Uuid>(tx)
+                        .optional()?;
+                }
+                if existing_id.is_none() {
+                    existing_id = schema::investment_strategy::table
+                        .filter(schema::investment_strategy::name.eq(&def.name))
+                        .select(schema::investment_strategy::id)
+                        .first::<Uuid>(tx)
+                        .optional()?;
+                }
+
+                let strategy_id = if let Some(id) = existing_id {
+                    diesel::update(
+                        schema::investment_strategy::table
+                            .filter(schema::investment_strategy::id.eq(id)),
+                    )
+                    .set((
+                        schema::investment_strategy::name.eq(&def.name),
+                        schema::investment_strategy::description.eq(&def.description),
+                        schema::investment_strategy::risk_level.eq(&def.risk_level),
+                        schema::investment_strategy::expected_return_percentage
+                            .eq(&def.expected_return_percentage),
+                        schema::investment_strategy::duration_days.eq(def.duration_days),
+                        schema::investment_strategy::valuation_mode.eq(&def.valuation_mode),
+                        schema::investment_strategy::category.eq(&def.category),
+                        schema::investment_strategy::ragequit_fee_bps.eq(def.ragequit_fee_bps),
+                    ))
+                    .execute(tx)?;
+                    id
+                } else {
+                    let id = def.id.unwrap_or_else(Uuid::new_v4);
+                    diesel::insert_into(schema::investment_strategy::table)
+                        .values((
+                            schema::investment_strategy::id.eq(id),
+                            schema::investment_strategy::name.eq(&def.name),
+                            schema::investment_strategy::description.eq(&def.description),
+                            schema::investment_strategy::risk_level.eq(&def.risk_level),
+                            schema::investment_strategy::expected_return_percentage
+                                .eq(&def.expected_return_percentage),
+                            schema::investment_strategy::duration_days.eq(def.duration_days),
+                            schema::investment_strategy::valuation_mode.eq(&def.valuation_mode),
+                            schema::investment_strategy::category.eq(&def.category),
+                            schema::investment_strategy::ragequit_fee_bps.eq(def.ragequit_fee_bps),
+                        ))
+                        .execute(tx)?;
+                    id
+                };
+
+                // 3) Rebuild allocations for MTM (clear always so simulated has none)
+                diesel::delete(
+                    schema::strategy_allocation::table
+                        .filter(schema::strategy_allocation::strategy_id.eq(strategy_id)),
+                )
+                .execute(tx)?;
+
+                if def.valuation_mode == "mark_to_market" {
+                    for (sym, weight) in &def.allocation {
+                        let asset_id = symbol_to_asset
+                            .get(sym)
+                            .copied()
+                            .expect("asset ensured above");
+                        diesel::insert_into(schema::strategy_allocation::table)
+                            .values((
+                                schema::strategy_allocation::strategy_id.eq(strategy_id),
+                                schema::strategy_allocation::asset_id.eq(asset_id),
+                                schema::strategy_allocation::weight_bps.eq(weight),
+                            ))
+                            .execute(tx)?;
+                    }
+                }
+
+                Ok(strategy_id)
+            })
+            .map_err(|e| format!("sync strategy '{}': {e:?}", def.name))?;
+
+        let _ = strategy_id;
+        synced += 1;
+    }
+
+    if let Some(p) = path {
+        println!(
+            "Investment strategies: synced {synced} strategies from {}",
+            p.display()
+        );
+    } else {
+        println!("Investment strategies: synced {synced} strategies");
+    }
+    Ok(synced)
 }

@@ -220,18 +220,25 @@ impl InvestmentService {
                     .list_strategy_assets_for_pricing(strategy.id),
             )?;
             let refs = Self::to_price_refs(&price_assets);
-            let prices = self
-                .price_oracle
-                .get_usd_prices(&refs)
-                .await
-                .map_err(|_| InvestmentError::PriceUnavailable)?;
+            let prices = self.price_oracle.get_usd_prices(&refs).await.map_err(|e| {
+                eprintln!("execute: price oracle error: {e}");
+                InvestmentError::PriceUnavailable
+            })?;
 
             let ten_thousand = BigDecimal::from(10_000);
             for alloc in &strategy.allocations {
-                let price = prices
-                    .get(&alloc.asset_id)
-                    .ok_or(InvestmentError::PriceUnavailable)?;
+                let price = prices.get(&alloc.asset_id).ok_or_else(|| {
+                    eprintln!(
+                        "execute: missing price for asset_id={} in strategy {}",
+                        alloc.asset_id, strategy.name
+                    );
+                    InvestmentError::PriceUnavailable
+                })?;
                 if price <= &BigDecimal::zero() {
+                    eprintln!(
+                        "execute: non-positive price for asset_id={} price={}",
+                        alloc.asset_id, price
+                    );
                     return Err(InvestmentError::PriceUnavailable);
                 }
                 let notional =
