@@ -39,6 +39,19 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    asset (id) {
+        id -> Uuid,
+        symbol -> Text,
+        name -> Text,
+        kind -> Text,
+        price_provider -> Text,
+        external_id -> Text,
+        is_active -> Bool,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     blockchain_event (id) {
         id -> Uuid,
         event_type -> Text,
@@ -102,6 +115,16 @@ diesel::table! {
         expense_id -> Uuid,
         user_id -> Uuid,
         amount -> Numeric,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    friend (requester_id, addressee_id) {
+        requester_id -> Uuid,
+        addressee_id -> Uuid,
+        status -> Text,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -190,6 +213,20 @@ diesel::table! {
         matures_at -> Timestamp,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        exit_kind -> Nullable<Text>,
+        fee_amount -> Nullable<Numeric>,
+    }
+}
+
+diesel::table! {
+    investment_holding (id) {
+        id -> Uuid,
+        investment_id -> Uuid,
+        asset_id -> Uuid,
+        units -> Numeric,
+        weight_bps_at_entry -> Int4,
+        cost_basis_usd -> Numeric,
+        created_at -> Timestamp,
     }
 }
 
@@ -225,6 +262,9 @@ diesel::table! {
         expected_return_percentage -> Numeric,
         duration_days -> Int4,
         created_at -> Timestamp,
+        valuation_mode -> Text,
+        category -> Text,
+        ragequit_fee_bps -> Int4,
     }
 }
 
@@ -282,6 +322,15 @@ diesel::table! {
         status -> ProposalStatus,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    strategy_allocation (id) {
+        id -> Uuid,
+        strategy_id -> Uuid,
+        asset_id -> Uuid,
+        weight_bps -> Int4,
     }
 }
 
@@ -390,14 +439,16 @@ diesel::joinable!(fund_round_contribution -> transaction (transaction_id));
 diesel::joinable!(fund_round_contribution -> user (user_id));
 diesel::joinable!(fund_round_proposal -> currency (currency_id));
 diesel::joinable!(fund_round_proposal -> proposal (proposal_id));
-diesel::joinable!(group_permission -> group (group_id));
 diesel::joinable!(group_notification_preference -> group (group_id));
 diesel::joinable!(group_notification_preference -> notification_channel (channel_id));
 diesel::joinable!(group_notification_preference -> notification_event (event_id));
 diesel::joinable!(group_notification_preference -> user (user_id));
+diesel::joinable!(group_permission -> group (group_id));
 diesel::joinable!(group_wallet -> currency (currency_id));
 diesel::joinable!(group_wallet -> group (group_id));
 diesel::joinable!(investment -> investment_proposal (proposal_id));
+diesel::joinable!(investment_holding -> asset (asset_id));
+diesel::joinable!(investment_holding -> investment (investment_id));
 diesel::joinable!(investment_member -> investment (investment_id));
 diesel::joinable!(investment_member -> user (user_id));
 diesel::joinable!(investment_proposal -> currency (currency_id));
@@ -410,6 +461,8 @@ diesel::joinable!(notification -> group (group_id));
 diesel::joinable!(notification -> user (user_id));
 diesel::joinable!(proposal -> group (group_id));
 diesel::joinable!(proposal -> user (created_by));
+diesel::joinable!(strategy_allocation -> asset (asset_id));
+diesel::joinable!(strategy_allocation -> investment_strategy (strategy_id));
 diesel::joinable!(transaction -> currency (currency_id));
 diesel::joinable!(transaction -> group (group_id));
 diesel::joinable!(transaction -> user (user_id));
@@ -428,11 +481,13 @@ diesel::joinable!(withdraw_proposal -> currency (currency_id));
 diesel::joinable!(withdraw_proposal -> proposal (proposal_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    asset,
     blockchain_event,
     blockchain_sync_state,
     currency,
     expense,
     expense_participant,
+    friend,
     fund_round_contribution,
     fund_round_proposal,
     group,
@@ -440,6 +495,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     group_permission,
     group_wallet,
     investment,
+    investment_holding,
     investment_member,
     investment_proposal,
     investment_strategy,
@@ -449,6 +505,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     notification_channel,
     notification_event,
     proposal,
+    strategy_allocation,
     transaction,
     transaction_participant,
     user,

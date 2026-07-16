@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { HandCoins, CheckCircle2, Clock, ChevronRight, Loader2 } from 'lucide-svelte';
-	import { fade, slide } from 'svelte/transition';
+	import { slide } from 'svelte/transition';
 	import { authStore } from '$lib/stores/auth';
 
 	import Button from '$lib/components/ui/Button.svelte';
@@ -137,20 +137,22 @@
 	{#if open}
 		<SideBar title={'Propuestas de Retiro'} {onclose} {open}>
 			{#if error}
-				<div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
+				<div
+					class="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300"
+				>
 					{error}
 				</div>
 			{/if}
 
 			{#if loading}
 				<div class="flex items-center justify-center py-10">
-					<Loader2 class="h-6 w-6 animate-spin text-gray-400" />
+					<Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
 				</div>
 			{:else if proposals.length === 0}
 				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<HandCoins class="mb-3 h-8 w-8 text-gray-300" />
-					<p class="text-sm font-medium text-black">Sin propuestas</p>
-					<p class="text-sm text-gray-500">No hay retiros pendientes en este grupo.</p>
+					<HandCoins class="mb-3 h-8 w-8 text-muted-foreground" />
+					<p class="text-sm font-medium text-foreground">Sin propuestas</p>
+					<p class="text-sm text-muted-foreground">No hay retiros pendientes en este grupo.</p>
 				</div>
 			{:else}
 				<div class="space-y-4">
@@ -164,17 +166,17 @@
 						)}
 
 						<div
-							class="overflow-hidden rounded-lg border border-gray-200 bg-white transition-all hover:border-gray-300"
+							class="overflow-hidden rounded-lg border border-border bg-card text-card-foreground transition-all hover:border-input"
 						>
 							<div class="p-4">
 								<div class="flex items-start justify-between">
 									<div class="space-y-1">
 										<div class="flex items-center gap-2">
-											<span class="text-lg font-bold text-black"
+											<span class="text-lg font-bold text-foreground"
 												>${formatAmount(getProposalAmount(p))}</span
 											>
 										</div>
-										<div class="text-xs text-gray-500 capitalize">
+										<div class="text-xs text-muted-foreground capitalize">
 											{new Date(p.proposal.created_at).toLocaleDateString('es-AR', {
 												day: '2-digit',
 												month: 'short',
@@ -185,19 +187,19 @@
 
 									{#if isExecuted}
 										<span
-											class="inline-flex items-center gap-1 rounded bg-black px-2 py-1 text-xs font-medium text-white"
+											class="inline-flex items-center gap-1 rounded bg-foreground px-2 py-1 text-xs font-medium text-background"
 										>
 											<CheckCircle2 class="h-3 w-3" /> Ejecutado
 										</span>
 									{:else if isApproved}
 										<span
-											class="inline-flex items-center gap-1 rounded border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700"
+											class="inline-flex items-center gap-1 rounded border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:border-green-400/20 dark:bg-green-400/10 dark:text-green-300"
 										>
 											Aprobado
 										</span>
 									{:else}
 										<span
-											class="inline-flex items-center gap-1 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600"
+											class="inline-flex items-center gap-1 rounded border border-border bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
 										>
 											<Clock class="h-3 w-3" /> Pendiente
 										</span>
@@ -205,13 +207,13 @@
 								</div>
 
 								{#if isOwner && isApproved && !isExecuted}
-									<div class="mt-4 border-t border-gray-100 pt-3">
+									<div class="mt-4 border-t border-border pt-3">
 										<button
 											onclick={() => toggleExecution(p.proposal.id)}
 											class="flex w-full items-center justify-between text-sm font-medium transition-colors {executingProposalId ===
 											p.proposal.id
-												? 'text-black'
-												: 'text-gray-500 hover:text-black'}"
+												? 'text-foreground'
+												: 'text-muted-foreground hover:text-foreground'}"
 										>
 											<span>Ejecutar retiro</span>
 											<ChevronRight
@@ -226,33 +228,33 @@
 
 							{#if executingProposalId === p.proposal.id}
 								<div
-									class="border-t border-gray-100 bg-gray-50 p-4"
+									class="border-t border-border bg-muted/40 p-4"
 									transition:slide={{ duration: 200 }}
 								>
 									<label
 										for="wallet-select-{p.proposal.id}"
-										class="mb-2 block text-xs font-medium text-gray-600"
+										class="mb-2 block text-xs font-medium text-muted-foreground"
 									>
 										Seleccioná tu wallet de destino
 									</label>
 
 									{#if executeError}
 										<div
-											class="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+											class="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300"
 										>
 											{executeError}
 										</div>
 									{/if}
 
 									{#if compatibleWallets.length === 0}
-										<p class="text-xs text-red-500">
+										<p class="text-xs text-red-500 dark:text-red-300">
 											No tenés wallets compatibles con esta moneda.
 										</p>
 									{:else}
 										<select
 											id="wallet-select-{p.proposal.id}"
 											bind:value={selectedWalletId}
-											class="mb-3 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-black focus:border-black focus:ring-0 focus:outline-none"
+											class="mb-3 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-foreground focus:ring-0 focus:outline-none"
 										>
 											<option value="" disabled>Elegí una wallet</option>
 											{#each compatibleWallets as w (w.wallet_id)}

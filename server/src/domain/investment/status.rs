@@ -16,7 +16,8 @@ impl InvestmentStatus {
         use InvestmentStatus::*;
         match (self, next) {
             (Active, Matured) => true,
-            (Matured, Withdrawn) => true,
+            // maturity withdraw or ragequit (early exit)
+            (Matured, Withdrawn) | (Active, Withdrawn) => true,
             _ => false,
         }
     }
@@ -45,8 +46,8 @@ mod tests {
     }
 
     #[test]
-    fn active_cannot_withdraw_directly() {
-        assert!(!InvestmentStatus::Active.can_transition_to(InvestmentStatus::Withdrawn));
+    fn active_can_ragequit() {
+        assert!(InvestmentStatus::Active.can_transition_to(InvestmentStatus::Withdrawn));
     }
 
     #[test]

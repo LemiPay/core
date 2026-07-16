@@ -18,9 +18,11 @@
 		RefreshCw
 	} from 'lucide-svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import PriceSourceLink from '$lib/components/investments/PriceSourceLink.svelte';
 	import { formatAmount, formatDate, formatDateTimeShort } from '$lib/utils/format_utils';
 	import { InvestmentsState } from './investments.svelte';
 	import type { InvestmentStrategy } from '$lib/types/endpoints/investments.types';
+	import { categoryLabels, weightPct } from '$lib/types/endpoints/investments.types';
 
 	const groupId = page.params.group_id as string;
 	const investState = new InvestmentsState(groupId);
@@ -34,6 +36,19 @@
 	let selectedCurrencyId = $state('');
 	let showPastInvestments = $state(false);
 	let executingProposal = $state<string | null>(null);
+	let ragequitConfirmId = $state<string | null>(null);
+
+	const categoryBadge: Record<string, string> = {
+		simulated:
+			'bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-400/10 dark:border-slate-400/20 dark:text-slate-300',
+		crypto:
+			'bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-400/10 dark:border-violet-400/20 dark:text-violet-300',
+		stocks:
+			'bg-sky-50 border-sky-200 text-sky-700 dark:bg-sky-400/10 dark:border-sky-400/20 dark:text-sky-300',
+		mixed:
+			'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-400/10 dark:border-indigo-400/20 dark:text-indigo-300',
+		rwa: 'bg-teal-50 border-teal-200 text-teal-700 dark:bg-teal-400/10 dark:border-teal-400/20 dark:text-teal-300'
+	};
 
 	investState.loadAll().finally(() => (loadingInit = false));
 
@@ -73,16 +88,32 @@
 	async function handleWithdraw(investmentId: string) {
 		investState.withdrawError = '';
 		await investState.withdraw(investmentId);
+		ragequitConfirmId = null;
+	}
+
+	function ragequitPreview(inv: { current_value: string; ragequit_fee_bps?: number }) {
+		const nav = Number(inv.current_value);
+		const bps = inv.ragequit_fee_bps ?? 200;
+		const fee = (nav * bps) / 10000;
+		return { fee, payout: nav - fee, feePct: bps / 100 };
 	}
 
 	const riskConfig: Record<string, { color: string; bg: string; label: string }> = {
-		low: { color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', label: 'Bajo' },
+		low: {
+			color: 'text-emerald-700 dark:text-emerald-300',
+			bg: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-400/10 dark:border-emerald-400/20',
+			label: 'Bajo'
+		},
 		medium: {
-			color: 'text-amber-700',
-			bg: 'bg-amber-50 border-amber-200',
+			color: 'text-amber-700 dark:text-amber-300',
+			bg: 'bg-amber-50 border-amber-200 dark:bg-amber-400/10 dark:border-amber-400/20',
 			label: 'Medio'
 		},
-		high: { color: 'text-rose-700', bg: 'bg-rose-50 border-rose-200', label: 'Alto' }
+		high: {
+			color: 'text-rose-700 dark:text-rose-300',
+			bg: 'bg-rose-50 border-rose-200 dark:bg-rose-400/10 dark:border-rose-400/20',
+			label: 'Alto'
+		}
 	};
 </script>
 
@@ -107,13 +138,17 @@
 					<RefreshCw class="h-4 w-4" />
 				</button>
 			</div>
+			<p class="mt-2 max-w-2xl text-sm text-muted-foreground">
+				Portfolios paper con precios de mercado (crypto / stocks estilo Ondo / mix). No se adquieren
+				tokens on-chain. Las estrategias simuladas usan retorno sintético.
+			</p>
 		</div>
 
 		<div class="w-full max-w-4xl space-y-10 pb-16">
 			{#if investState.activeInvestments.length > 0}
 				<section class="space-y-4">
 					<h2 class="flex items-center gap-2 text-sm font-medium text-foreground">
-						<TrendingUp class="h-4 w-4 text-emerald-600" />
+						<TrendingUp class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
 						Inversiones activas
 						<span
 							class="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
@@ -129,69 +164,127 @@
 							{@const pctChange =
 								invested > 0 ? (((current - invested) / invested) * 100).toFixed(2) : '0'}
 							{@const isUp = current >= invested}
-							<a
-								href={`/groups/${groupId}/investments/${inv.id}`}
-								class="group block rounded-xl border border-border bg-card p-5 transition hover:border-border hover:shadow-sm"
+							{@const cat = inv.category ?? 'simulated'}
+							{@const rq = ragequitPreview(inv)}
+							<div
+								class="rounded-xl border border-border bg-card p-5 transition hover:border-border hover:shadow-sm"
 							>
-								<div class="mb-3 flex items-start justify-between gap-2">
-									<div class="min-w-0 space-y-0.5">
-										<p class="truncate text-sm font-medium text-foreground group-hover:underline">
-											{inv.strategy_name}
-										</p>
-										<p class="flex items-center gap-1.5 text-xs text-muted-foreground">
-											<Calendar class="h-3 w-3" />
-											Iniciada {formatDate(inv.started_at)}
-										</p>
-									</div>
-									<span
-										class="shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium {risk.bg} {risk.color}"
-									>
-										{risk.label}
-									</span>
-								</div>
-
-								<div class="grid grid-cols-2 gap-3">
-									<div>
-										<p
-											class="text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
-										>
-											Invertido
-										</p>
-										<p class="text-sm font-semibold text-foreground">
-											${formatAmount(invested)}
-											{investState.getTicker(inv.currency_id)}
-										</p>
-									</div>
-									<div>
-										<p
-											class="text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
-										>
-											Valor actual
-										</p>
-										<p
-											class="flex items-center gap-1 text-sm font-semibold {isUp
-												? 'text-emerald-700'
-												: 'text-rose-700'}"
-										>
-											${formatAmount(current)}
-											{investState.getTicker(inv.currency_id)}
-											<span class="text-[11px] font-medium">
-												{isUp ? '+' : ''}{pctChange}%
+								<a href={`/groups/${groupId}/investments/${inv.id}`} class="group block">
+									<div class="mb-3 flex items-start justify-between gap-2">
+										<div class="min-w-0 space-y-0.5">
+											<p class="truncate text-sm font-medium text-foreground group-hover:underline">
+												{inv.strategy_name}
+											</p>
+											<p class="flex items-center gap-1.5 text-xs text-muted-foreground">
+												<Calendar class="h-3 w-3" />
+												Iniciada {formatDate(inv.started_at)}
+											</p>
+										</div>
+										<div class="flex shrink-0 flex-col items-end gap-1">
+											<span
+												class="rounded-full border px-2.5 py-0.5 text-[11px] font-medium {risk.bg} {risk.color}"
+											>
+												{risk.label}
 											</span>
-											{#if isUp}
-												<TrendingUp class="h-3.5 w-3.5" />
-											{:else}
-												<TrendingDown class="h-3.5 w-3.5" />
-											{/if}
-										</p>
+											<span
+												class="rounded-full border px-2 py-0.5 text-[10px] font-medium {categoryBadge[
+													cat
+												] ?? categoryBadge.simulated}"
+											>
+												{categoryLabels[cat] ?? cat}
+											</span>
+										</div>
 									</div>
-								</div>
 
-								<div class="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
-									<BarChart3 class="h-3 w-3" />
-									<span>Ver detalle →</span>
-								</div>
-							</a>
+									<div class="grid grid-cols-2 gap-3">
+										<div>
+											<p
+												class="text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
+											>
+												Invertido
+											</p>
+											<p class="text-sm font-semibold text-foreground">
+												${formatAmount(invested)}
+												{investState.getTicker(inv.currency_id)}
+											</p>
+										</div>
+										<div>
+											<p
+												class="text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
+											>
+												Valor actual
+											</p>
+											<p
+												class="flex items-center gap-1 text-sm font-semibold {isUp
+													? 'text-emerald-700 dark:text-emerald-300'
+													: 'text-rose-700 dark:text-rose-300'}"
+											>
+												${formatAmount(current)}
+												{investState.getTicker(inv.currency_id)}
+												<span class="text-[11px] font-medium">
+													{isUp ? '+' : ''}{pctChange}%
+												</span>
+												{#if isUp}
+													<TrendingUp class="h-3.5 w-3.5" />
+												{:else}
+													<TrendingDown class="h-3.5 w-3.5" />
+												{/if}
+											</p>
+										</div>
+									</div>
+
+									<div class="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+										<BarChart3 class="h-3 w-3" />
+										<span>Ver detalle →</span>
+									</div>
+								</a>
+
+								{#if !readonly}
+									<div class="mt-4 border-t border-border pt-3">
+										{#if ragequitConfirmId === inv.id}
+											<div class="space-y-2">
+												<p class="text-xs text-muted-foreground">
+													Ragequit: se cierra la posición al NAV actual con fee del {rq.feePct}% (se
+													quema). Payout neto ≈ ${formatAmount(rq.payout)}
+													{investState.getTicker(inv.currency_id)}.
+												</p>
+												{#if investState.withdrawError}
+													<div
+														class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-2 text-xs text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
+													>
+														<AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+														<span>{investState.withdrawError}</span>
+													</div>
+												{/if}
+												<div class="flex gap-2">
+													<button
+														onclick={() => (ragequitConfirmId = null)}
+														class="px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
+													>
+														Cancelar
+													</button>
+													<Button
+														label={investState.withdrawing ? 'Saliendo...' : 'Confirmar ragequit'}
+														onclick={() => handleWithdraw(inv.id)}
+														disabled={investState.withdrawing}
+														loading={investState.withdrawing}
+													/>
+												</div>
+											</div>
+										{:else}
+											<button
+												onclick={() => {
+													investState.withdrawError = '';
+													ragequitConfirmId = inv.id;
+												}}
+												class="text-xs font-medium text-rose-700 hover:underline dark:text-rose-300"
+											>
+												Ragequit (early exit −{rq.feePct}%)
+											</button>
+										{/if}
+									</div>
+								{/if}
+							</div>
 						{/each}
 					</div>
 				</section>
@@ -200,7 +293,7 @@
 			{#if investState.proposals.length > 0}
 				<section class="space-y-4">
 					<h2 class="flex items-center gap-2 text-sm font-medium text-foreground">
-						<Check class="h-4 w-4 text-amber-600" />
+						<Check class="h-4 w-4 text-amber-600 dark:text-amber-400" />
 						Propuestas aprobadas
 						<span
 							class="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
@@ -210,7 +303,7 @@
 					</h2>
 					{#each investState.proposals as proposal}
 						<div
-							class="rounded-xl border border-amber-200 bg-amber-50/60 p-5 transition hover:shadow-sm"
+							class="rounded-xl border border-amber-200 bg-amber-50/60 p-5 transition hover:shadow-sm dark:border-amber-400/20 dark:bg-amber-400/10"
 						>
 							<div class="mb-4 flex items-start justify-between gap-3">
 								<div class="space-y-1">
@@ -224,7 +317,7 @@
 
 							{#if investState.executeError}
 								<div
-									class="mb-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800"
+									class="mb-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
 								>
 									<AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
 									<span>{investState.executeError}</span>
@@ -256,9 +349,9 @@
 
 				{#if investState.strategyError}
 					<div
-						class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800"
+						class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
 					>
-						<Info class="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
+						<Info class="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500 dark:text-rose-300" />
 						<span>{investState.strategyError}</span>
 					</div>
 				{/if}
@@ -267,6 +360,8 @@
 					{#each investState.strategies as strategy}
 						{@const risk = riskConfig[strategy.risk_level] ?? riskConfig.low}
 						{@const isFormOpen = showStrategyForm === strategy.id}
+						{@const cat = strategy.category ?? 'simulated'}
+						{@const isMtm = strategy.valuation_mode === 'mark_to_market'}
 						<div class="rounded-xl border border-border bg-card p-5 transition hover:shadow-sm">
 							<div class="mb-3 flex items-start justify-between gap-2">
 								<div class="min-w-0 space-y-1">
@@ -275,20 +370,62 @@
 										{strategy.description}
 									</p>
 								</div>
-								<span
-									class="shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium {risk.bg} {risk.color}"
-								>
-									{risk.label}
-								</span>
-							</div>
-
-							<div class="mb-4 space-y-2">
-								<div class="flex items-center justify-between text-xs">
-									<span class="text-muted-foreground">Retorno esperado</span>
-									<span class="font-semibold text-emerald-700">
-										+{strategy.expected_return_percentage}%
+								<div class="flex shrink-0 flex-col items-end gap-1">
+									<span
+										class="rounded-full border px-2 py-0.5 text-[11px] font-medium {risk.bg} {risk.color}"
+									>
+										{risk.label}
+									</span>
+									<span
+										class="rounded-full border px-2 py-0.5 text-[10px] font-medium {categoryBadge[
+											cat
+										] ?? categoryBadge.simulated}"
+									>
+										{categoryLabels[cat] ?? cat}
 									</span>
 								</div>
+							</div>
+
+							{#if isMtm && strategy.allocations?.length}
+								<div class="mb-3 flex flex-wrap gap-1">
+									{#each strategy.allocations as alloc}
+										<span
+											class="inline-flex items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+										>
+											{alloc.symbol}
+											{weightPct(alloc.weight_bps)}%
+											<PriceSourceLink
+												price_provider={alloc.price_provider}
+												external_id={alloc.external_id}
+												price_source_url={alloc.price_source_url}
+												symbol={alloc.symbol}
+												kind={alloc.kind}
+											/>
+										</span>
+									{/each}
+								</div>
+							{/if}
+
+							<div class="mb-4 space-y-2">
+								{#if isMtm}
+									<div class="flex items-center justify-between text-xs">
+										<span class="text-muted-foreground">Valuación</span>
+										<span class="font-semibold text-foreground">Mark-to-market</span>
+									</div>
+									<div class="flex items-center justify-between text-xs">
+										<span class="text-muted-foreground">Ragequit fee</span>
+										<span class="font-medium text-foreground"
+											>{(strategy.ragequit_fee_bps / 100).toFixed(1)}%</span
+										>
+									</div>
+								{:else}
+									<div class="flex items-center justify-between text-xs">
+										<span class="text-muted-foreground">Retorno esperado</span>
+										<span class="font-semibold text-emerald-700 dark:text-emerald-300">
+											+{strategy.expected_return_percentage}%
+										</span>
+									</div>
+								{/if}
 								<div class="flex items-center justify-between text-xs">
 									<span class="text-muted-foreground">Duración</span>
 									<span class="font-medium text-foreground">{strategy.duration_days} días</span>
@@ -300,7 +437,7 @@
 									<div class="space-y-3 border-t border-border pt-4">
 										{#if investState.proposeError}
 											<div
-												class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800"
+												class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
 											>
 												<AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
 												<span>{investState.proposeError}</span>
@@ -319,7 +456,7 @@
 												min="0"
 												bind:value={selectedAmount}
 												placeholder="Ej: 100"
-												class="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-foreground focus:outline-none"
+												class="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-foreground focus:outline-none"
 											/>
 										</div>
 
@@ -332,7 +469,7 @@
 												<select
 													id="currency-select"
 													bind:value={selectedCurrencyId}
-													class="w-full rounded-md border border-border px-3 py-2.5 text-sm"
+													class="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm text-foreground"
 												>
 													<option value="" disabled>Seleccionar moneda...</option>
 													{#each investState.walletCurrencies as wc}
@@ -343,7 +480,7 @@
 												</select>
 											{:else if investState.walletsError}
 												<div
-													class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800"
+													class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
 												>
 													<AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
 													<span>{investState.walletsError}</span>
@@ -391,7 +528,7 @@
 			{#if investState.maturedInvestments.length > 0}
 				<section class="space-y-4">
 					<h2 class="flex items-center gap-2 text-sm font-medium text-foreground">
-						<Check class="h-4 w-4 text-emerald-600" />
+						<Check class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
 						Inversiones finalizadas
 					</h2>
 
@@ -402,9 +539,9 @@
 							{@const actualReturn = Number(inv.actual_return ?? '0')}
 							{@const totalReturn = invested + actualReturn}
 							{@const pctReturn = invested > 0 ? ((actualReturn / invested) * 100).toFixed(2) : '0'}
-							{@const withdrawId = `withdraw-${inv.id}`}
+							{@const returnPositive = actualReturn >= 0}
 							<div
-								class="rounded-xl border border-emerald-200 bg-card p-5 transition hover:shadow-sm"
+								class="rounded-xl border border-emerald-200 bg-card p-5 transition hover:shadow-sm dark:border-emerald-400/20"
 							>
 								<div class="mb-3 flex items-start justify-between gap-2">
 									<div class="min-w-0 space-y-0.5">
@@ -442,8 +579,12 @@
 										>
 											Retorno
 										</p>
-										<p class="text-sm font-semibold text-emerald-700">
-											+${formatAmount(actualReturn)}
+										<p
+											class="text-sm font-semibold {returnPositive
+												? 'text-emerald-700 dark:text-emerald-300'
+												: 'text-rose-700 dark:text-rose-300'}"
+										>
+											{returnPositive ? '+' : ''}${formatAmount(actualReturn)}
 											{investState.getTicker(inv.currency_id)}
 										</p>
 									</div>
@@ -454,13 +595,19 @@
 									<span class="text-sm font-bold text-foreground">
 										${formatAmount(totalReturn)}
 										{investState.getTicker(inv.currency_id)}
-										<span class="text-xs font-medium text-emerald-600">(+{pctReturn}%)</span>
+										<span
+											class="text-xs font-medium {returnPositive
+												? 'text-emerald-600 dark:text-emerald-300'
+												: 'text-rose-600 dark:text-rose-300'}"
+										>
+											({returnPositive ? '+' : ''}{pctReturn}%)
+										</span>
 									</span>
 								</div>
 
 								{#if investState.withdrawError}
 									<div
-										class="mb-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800"
+										class="mb-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
 									>
 										<AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
 										<span>{investState.withdrawError}</span>
@@ -499,6 +646,8 @@
 						<div class="space-y-2">
 							{#each investState.withdrawnInvestments as inv}
 								{@const risk = riskConfig[inv.risk_level] ?? riskConfig.low}
+								{@const exitLabel =
+									inv.exit_kind === 'ragequit' ? 'Ragequit' : 'Retirada al madurar'}
 								<a
 									href={`/groups/${groupId}/investments/${inv.id}`}
 									class="group flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 transition hover:border-border hover:shadow-sm"
@@ -516,7 +665,11 @@
 											<p class="text-xs text-muted-foreground">
 												${formatAmount(Number(inv.amount))}
 												{investState.getTicker(inv.currency_id)}
-												· Retirada {formatDate(inv.updated_at)}
+												· {exitLabel}
+												{formatDate(inv.updated_at)}
+												{#if inv.exit_kind === 'ragequit' && inv.fee_amount}
+													· fee ${formatAmount(Number(inv.fee_amount))}
+												{/if}
 											</p>
 										</div>
 									</div>
@@ -546,7 +699,7 @@
 
 			{#if investState.investmentError}
 				<div
-					class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800"
+					class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
 				>
 					<Info class="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
 					<span>{investState.investmentError}</span>

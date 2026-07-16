@@ -77,6 +77,7 @@ pub async fn execute_investment_proposal(
     let item = state
         .investment_service
         .execute_investment_proposal(user.user_id.0, group_id, payload.proposal_id)
+        .await
         .map_err(AppError::from)?;
 
     state
@@ -96,6 +97,7 @@ pub async fn withdraw_investment(
     let item = state
         .investment_service
         .withdraw_investment(user.user_id.0, group_id, payload.investment_id)
+        .await
         .map_err(AppError::from)?;
     Ok(Json(item.into()))
 }
@@ -107,6 +109,7 @@ pub async fn list_group_investments(
     let items = state
         .investment_service
         .list_group_investments(group_id)
+        .await
         .map_err(AppError::from)?;
     Ok(Json(items.into_iter().map(Into::into).collect()))
 }

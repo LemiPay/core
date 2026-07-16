@@ -14,23 +14,23 @@
 </script>
 
 <div
-	class="flex flex-col gap-2 border-b bg-white p-4 transition-colors last:border-b-0 hover:bg-slate-50"
+	class="flex flex-col gap-2 border-b border-border bg-card p-4 text-card-foreground transition-colors last:border-b-0 hover:bg-muted/40"
 >
-	<p class="text-sm leading-snug text-slate-700">
-		<span class="font-semibold text-slate-900">{senderName}</span> te invitó a unirte al grupo
-		<span class="font-semibold text-slate-900">{groupName}</span>.
+	<p class="text-sm leading-snug text-muted-foreground">
+		<span class="font-semibold text-foreground">{senderName}</span> te invitó a unirte al grupo
+		<span class="font-semibold text-foreground">{groupName}</span>.
 	</p>
 
 	<div class="mt-1 flex gap-2">
 		<button
 			onclick={onAccept}
-			class="flex flex-1 items-center justify-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200"
+			class="flex flex-1 items-center justify-center gap-1 rounded-md bg-muted px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
 		>
 			<Check size={14} strokeWidth={3} /> Aceptar
 		</button>
 		<button
 			onclick={onDecline}
-			class="flex flex-1 items-center justify-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200"
+			class="flex flex-1 items-center justify-center gap-1 rounded-md bg-muted px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
 		>
 			<X size={14} strokeWidth={3} /> Rechazar
 		</button>

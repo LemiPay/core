@@ -11,7 +11,9 @@
 		Info,
 		Rocket
 	} from 'lucide-svelte';
+	import PriceSourceLink from '$lib/components/investments/PriceSourceLink.svelte';
 	import { formatAmount, formatDate } from '$lib/utils/format_utils';
+	import { categoryLabels, providerShortLabel } from '$lib/types/endpoints/investments.types';
 	import { InvestmentDetailState } from './investment_detail.svelte';
 
 	const groupId = page.params.group_id as string;
@@ -21,14 +23,42 @@
 	let loadingInit = $state(true);
 	detailState.loadAll().finally(() => (loadingInit = false));
 
+	/** Prices can be large (BTC) or tiny (DOGE) — adaptive decimals. */
+	function formatPrice(n: number): string {
+		if (!Number.isFinite(n)) return '—';
+		const abs = Math.abs(n);
+		if (abs >= 1000) return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+		if (abs >= 1) return n.toLocaleString('en-US', { maximumFractionDigits: 4 });
+		return n.toLocaleString('en-US', { maximumFractionDigits: 8 });
+	}
+
 	const riskConfig: Record<string, { color: string; bg: string; label: string }> = {
-		low: { color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', label: 'Bajo' },
+		low: {
+			color: 'text-emerald-700 dark:text-emerald-300',
+			bg: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-400/10 dark:border-emerald-400/20',
+			label: 'Bajo'
+		},
 		medium: {
-			color: 'text-amber-700',
-			bg: 'bg-amber-50 border-amber-200',
+			color: 'text-amber-700 dark:text-amber-300',
+			bg: 'bg-amber-50 border-amber-200 dark:bg-amber-400/10 dark:border-amber-400/20',
 			label: 'Medio'
 		},
-		high: { color: 'text-rose-700', bg: 'bg-rose-50 border-rose-200', label: 'Alto' }
+		high: {
+			color: 'text-rose-700 dark:text-rose-300',
+			bg: 'bg-rose-50 border-rose-200 dark:bg-rose-400/10 dark:border-rose-400/20',
+			label: 'Alto'
+		}
+	};
+	const categoryBadge: Record<string, string> = {
+		simulated:
+			'bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-400/10 dark:border-slate-400/20 dark:text-slate-300',
+		crypto:
+			'bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-400/10 dark:border-violet-400/20 dark:text-violet-300',
+		stocks:
+			'bg-sky-50 border-sky-200 text-sky-700 dark:bg-sky-400/10 dark:border-sky-400/20 dark:text-sky-300',
+		mixed:
+			'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-400/10 dark:border-indigo-400/20 dark:text-indigo-300',
+		rwa: 'bg-teal-50 border-teal-200 text-teal-700 dark:bg-teal-400/10 dark:border-teal-400/20 dark:text-teal-300'
 	};
 	function makeChartCoords(values: number[], baseline: number) {
 		const W = 600,
@@ -70,13 +100,27 @@
 		{@const risk = riskConfig[inv.risk_level] ?? riskConfig.low}
 		{@const currency = detailState.getTicker(inv.currency_id)}
 
+		{@const cat = inv.category ?? 'simulated'}
+		{@const isMtm = inv.valuation_mode === 'mark_to_market'}
 		<div class="w-full max-w-4xl pt-8 pb-6">
-			<div class="flex items-center gap-3">
+			<div class="flex flex-wrap items-center gap-2">
 				<h1 class="text-2xl font-bold tracking-tight text-foreground">{inv.strategy_name}</h1>
 				<span class="rounded-full border px-2.5 py-0.5 text-xs font-medium {risk.bg} {risk.color}">
 					{risk.label}
 				</span>
+				<span
+					class="rounded-full border px-2.5 py-0.5 text-xs font-medium {categoryBadge[cat] ??
+						categoryBadge.simulated}"
+				>
+					{categoryLabels[cat] ?? cat}
+				</span>
 			</div>
+			{#if isMtm}
+				<p class="mt-2 text-sm text-muted-foreground">
+					Portfolio paper mark-to-market. Precios de mercado; no se adquieren tokens Ondo ni crypto
+					on-chain.
+				</p>
+			{/if}
 		</div>
 
 		<div class="w-full max-w-4xl space-y-8 pb-16">
@@ -97,8 +141,8 @@
 					</p>
 					<p
 						class="flex items-center gap-1.5 text-2xl font-bold {detailState.isUp
-							? 'text-emerald-700'
-							: 'text-rose-700'}"
+							? 'text-emerald-700 dark:text-emerald-300'
+							: 'text-rose-700 dark:text-rose-300'}"
 					>
 						${formatAmount(detailState.currentValue)}
 						{currency}
@@ -119,11 +163,13 @@
 					</p>
 					<p class="flex items-center gap-1.5 text-2xl font-bold text-foreground">
 						{#if inv.status === 'active'}
-							<Rocket class="h-5 w-5 text-blue-600" />
+							<Rocket class="h-5 w-5 text-blue-600 dark:text-blue-400" />
 							<span class="text-base font-medium">Activa</span>
 						{:else if inv.status === 'matured'}
-							<Check class="h-5 w-5 text-emerald-600" />
-							<span class="text-base font-medium text-emerald-700">Finalizada</span>
+							<Check class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+							<span class="text-base font-medium text-emerald-700 dark:text-emerald-300"
+								>Finalizada</span
+							>
 						{:else}
 							<Clock class="h-5 w-5 text-muted-foreground" />
 							<span class="text-base font-medium text-muted-foreground">Retirada</span>
@@ -135,11 +181,17 @@
 			<div class="grid gap-4 sm:grid-cols-2">
 				<div class="rounded-xl border border-border bg-card p-5">
 					<p class="mb-1 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
-						Retorno esperado
+						{isMtm ? 'Valuación' : 'Retorno esperado'}
 					</p>
-					<p class="flex items-center gap-1.5 text-lg font-bold text-emerald-700">
-						+{inv.expected_return_percentage}%
-					</p>
+					{#if isMtm}
+						<p class="text-lg font-bold text-foreground">Mark-to-market</p>
+					{:else}
+						<p
+							class="flex items-center gap-1.5 text-lg font-bold text-emerald-700 dark:text-emerald-300"
+						>
+							+{inv.expected_return_percentage}%
+						</p>
+					{/if}
 				</div>
 				<div class="rounded-xl border border-border bg-card p-5">
 					<p class="mb-1 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
@@ -151,6 +203,127 @@
 					</p>
 				</div>
 			</div>
+
+			{#if inv.holdings && inv.holdings.length > 0}
+				<section class="space-y-3">
+					<div class="flex flex-wrap items-center justify-between gap-2">
+						<h2 class="flex items-center gap-2 text-sm font-medium text-foreground">
+							<BarChart3 class="h-4 w-4 text-muted-foreground" />
+							Holdings
+						</h2>
+						<p class="text-[11px] text-muted-foreground">
+							↗ CoinGecko: en/coins|stocks|commodities/id (config en
+							server/config/coingecko_tickers.toml)
+						</p>
+					</div>
+					<div class="overflow-hidden overflow-x-auto rounded-xl border border-border bg-card">
+						<table class="w-full min-w-[640px] text-sm">
+							<thead
+								class="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground"
+							>
+								<tr>
+									<th class="px-4 py-2 font-medium">Asset</th>
+									<th class="px-4 py-2 font-medium">Fuente</th>
+									<th class="px-4 py-2 font-medium">Units</th>
+									<th class="px-4 py-2 font-medium">Px entry</th>
+									<th class="px-4 py-2 font-medium">Px actual</th>
+									<th class="px-4 py-2 font-medium">Cost basis</th>
+									<th class="px-4 py-2 font-medium">Valor actual</th>
+									<th class="px-4 py-2 font-medium">PnL</th>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-border">
+								{#each inv.holdings as h}
+									{@const units = Number(h.units)}
+									{@const cost = Number(h.cost_basis_usd)}
+									{@const entryPx = (() => {
+										const raw = h.entry_price_usd;
+										if (raw !== undefined && raw !== null && raw !== '') {
+											const n = Number(raw);
+											if (Number.isFinite(n) && n > 0) return n;
+										}
+										return units > 0 ? cost / units : 0;
+									})()}
+									{@const currentPx = (() => {
+										const raw = h.current_price_usd;
+										if (raw !== undefined && raw !== null && raw !== '') {
+											const n = Number(raw);
+											if (Number.isFinite(n) && n > 0) return n;
+										}
+										// Fallback: pro-rate portfolio NAV by entry weight (approx.)
+										const w = h.weight_bps_at_entry ?? 0;
+										const nav = Number(inv.current_value);
+										if (w > 0 && units > 0 && Number.isFinite(nav) && nav > 0) {
+											return (nav * w) / 10000 / units;
+										}
+										return entryPx > 0 ? entryPx : null;
+									})()}
+									{@const currentVal = currentPx != null && units > 0 ? currentPx * units : null}
+									{@const pnl = currentVal != null ? currentVal - cost : null}
+									{@const pnlPct = pnl != null && cost > 0 ? (pnl / cost) * 100 : null}
+									<tr>
+										<td class="px-4 py-2.5">
+											<span class="inline-flex items-center gap-1.5">
+												<span class="font-medium text-foreground">{h.symbol}</span>
+												<PriceSourceLink
+													price_provider={h.price_provider}
+													external_id={h.external_id}
+													price_source_url={h.price_source_url}
+													symbol={h.symbol}
+													kind={h.kind}
+													size="md"
+												/>
+											</span>
+											<span class="ml-1 text-xs text-muted-foreground">{h.name}</span>
+										</td>
+										<td class="px-4 py-2.5 text-xs text-muted-foreground">
+											{providerShortLabel(h.price_provider, h.kind)}
+										</td>
+										<td class="px-4 py-2.5 font-mono text-xs text-foreground">
+											{Number(h.units).toPrecision(6)}
+										</td>
+										<td class="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+											${formatPrice(entryPx)}
+										</td>
+										<td class="px-4 py-2.5 font-mono text-xs text-foreground">
+											{#if currentPx != null}
+												${formatPrice(currentPx)}
+											{:else}
+												<span class="text-muted-foreground">—</span>
+											{/if}
+										</td>
+										<td class="px-4 py-2.5 text-muted-foreground">
+											${formatAmount(cost)}
+										</td>
+										<td class="px-4 py-2.5 font-medium text-foreground">
+											{#if currentVal != null}
+												${formatAmount(currentVal)}
+											{:else}
+												<span class="text-muted-foreground">—</span>
+											{/if}
+										</td>
+										<td class="px-4 py-2.5 text-xs font-medium">
+											{#if pnl != null && pnlPct != null}
+												<span
+													class={pnl >= 0
+														? 'text-emerald-700 dark:text-emerald-300'
+														: 'text-rose-700 dark:text-rose-300'}
+												>
+													{pnl >= 0 ? '+' : ''}${formatAmount(pnl)}
+													<span class="opacity-80">({pnl >= 0 ? '+' : ''}{pnlPct.toFixed(2)}%)</span
+													>
+												</span>
+											{:else}
+												<span class="text-muted-foreground">—</span>
+											{/if}
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</section>
+			{/if}
 
 			{#if detailState.chartData.length > 1}
 				{@const values = detailState.chartData.map((d) => d.value)}
@@ -262,10 +435,14 @@
 						<span class="text-muted-foreground">Riesgo</span>
 						<span class="font-medium {risk.color}">{risk.label}</span>
 					</div>
-					<div class="flex items-center justify-between px-4 py-3 text-sm">
-						<span class="text-muted-foreground">Retorno esperado</span>
-						<span class="font-medium text-emerald-700">+{inv.expected_return_percentage}%</span>
-					</div>
+					{#if !isMtm}
+						<div class="flex items-center justify-between px-4 py-3 text-sm">
+							<span class="text-muted-foreground">Retorno esperado</span>
+							<span class="font-medium text-emerald-700 dark:text-emerald-300"
+								>+{inv.expected_return_percentage}%</span
+							>
+						</div>
+					{/if}
 					<div class="flex items-center justify-between px-4 py-3 text-sm">
 						<span class="text-muted-foreground">Moneda</span>
 						<span class="font-medium text-foreground">{currency}</span>
@@ -274,11 +451,32 @@
 						<span class="text-muted-foreground">Iniciada</span>
 						<span class="text-foreground">{formatDate(inv.started_at)}</span>
 					</div>
-					{#if inv.actual_return}
+					{#if inv.exit_kind}
+						<div class="flex items-center justify-between px-4 py-3 text-sm">
+							<span class="text-muted-foreground">Tipo de salida</span>
+							<span class="font-medium text-foreground">
+								{inv.exit_kind === 'ragequit' ? 'Ragequit' : 'Madurez'}
+							</span>
+						</div>
+					{/if}
+					{#if inv.fee_amount && Number(inv.fee_amount) > 0}
+						<div class="flex items-center justify-between px-4 py-3 text-sm">
+							<span class="text-muted-foreground">Fee ragequit (quemado)</span>
+							<span class="font-medium text-rose-700 dark:text-rose-300">
+								${formatAmount(Number(inv.fee_amount))}
+								{currency}
+							</span>
+						</div>
+					{/if}
+					{#if inv.actual_return != null}
 						<div class="flex items-center justify-between px-4 py-3 text-sm">
 							<span class="text-muted-foreground">Retorno generado</span>
-							<span class="font-medium text-emerald-700">
-								+${formatAmount(detailState.actualReturn)}
+							<span
+								class="font-medium {detailState.actualReturn >= 0
+									? 'text-emerald-700 dark:text-emerald-300'
+									: 'text-rose-700 dark:text-rose-300'}"
+							>
+								{detailState.actualReturn >= 0 ? '+' : ''}${formatAmount(detailState.actualReturn)}
 								{currency}
 							</span>
 						</div>

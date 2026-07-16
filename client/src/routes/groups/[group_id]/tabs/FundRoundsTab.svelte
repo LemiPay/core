@@ -123,11 +123,13 @@
 				{/each}
 			{:else}
 				<div
-					class="flex flex-col items-center gap-1 rounded-xl border border-dashed border-gray-300 p-6 text-center"
+					class="flex flex-col items-center gap-1 rounded-xl border border-dashed border-border p-6 text-center"
 				>
-					<HandCoins class="h-6 w-6 text-gray-400" />
-					<p class="text-sm font-medium text-black">No hay rondas activas</p>
-					<p class="text-xs text-gray-500">Todas las rondas están finalizadas o canceladas.</p>
+					<HandCoins class="h-6 w-6 text-muted-foreground" />
+					<p class="text-sm font-medium text-foreground">No hay rondas activas</p>
+					<p class="text-xs text-muted-foreground">
+						Todas las rondas están finalizadas o canceladas.
+					</p>
 				</div>
 			{/if}
 

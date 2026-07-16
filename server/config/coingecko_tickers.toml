@@ -1,0 +1,38 @@
+# =============================================================================
+# CoinGecko ticker map — LemiPay investments
+# =============================================================================
+#
+# Sections = URL tag on CoinGecko:
+#   [coins]        → https://www.coingecko.com/en/coins/{id}
+#   [stocks]       → https://www.coingecko.com/en/stocks/{id}
+#   [commodities]  → https://www.coingecko.com/en/commodities/{id}
+#
+# Format inside each section:
+#   TICKER = "coingecko-id"
+#
+# Used for:
+#   1) Live prices:  GET /api/v3/simple/price?ids={id}&vs_currencies=usd
+#   2) UI link ↗:    https://www.coingecko.com/en/{section}/{id}
+#
+# How to find an id: open the asset page; last path segment is the id.
+# Restart the server after editing this file.
+#
+# Optional path override:
+#   COINGECKO_TICKERS_FILE=/path/to/coingecko_tickers.toml
+# =============================================================================
+
+[coins]
+BTC = "bitcoin"
+ETH = "ethereum"
+SOL = "solana"
+DOGE = "dogecoin"
+
+[stocks]
+AAPL = "apple"
+MSFT = "microsoft"
+NVDA = "nvidia"
+GOOGL = "alphabet-class-a"
+SPCX = "spacex"
+
+[commodities]
+GOLD = "gold"

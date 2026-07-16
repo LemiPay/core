@@ -19,6 +19,7 @@ impl InvestmentPolicy {
             .ensure_can_transition_to(InvestmentStatus::Matured)
     }
 
+    /// Withdraw after maturity (no fee).
     pub fn ensure_can_withdraw(investment: &Investment) -> Result<(), InvestmentError> {
         if investment.status != InvestmentStatus::Matured {
             return Err(InvestmentError::NotMatured);
@@ -26,6 +27,24 @@ impl InvestmentPolicy {
         investment
             .status
             .ensure_can_transition_to(InvestmentStatus::Withdrawn)
+    }
+
+    /// Early exit (ragequit) while still active.
+    pub fn ensure_can_ragequit(investment: &Investment) -> Result<(), InvestmentError> {
+        if investment.status != InvestmentStatus::Active {
+            return Err(InvestmentError::InvalidStatusTransition);
+        }
+        investment
+            .status
+            .ensure_can_transition_to(InvestmentStatus::Withdrawn)
+    }
+
+    /// fee = nav * fee_bps / 10000, payout = nav - fee
+    pub fn ragequit_payout(nav: &BigDecimal, fee_bps: i32) -> (BigDecimal, BigDecimal) {
+        let ten_thousand = BigDecimal::from(10_000);
+        let fee = nav * BigDecimal::from(fee_bps) / ten_thousand;
+        let payout = nav - &fee;
+        (payout, fee)
     }
 }
 
@@ -85,6 +104,23 @@ mod tests {
 
         let matured = make_investment(InvestmentStatus::Matured);
         assert!(InvestmentPolicy::ensure_can_withdraw(&matured).is_ok());
+    }
+
+    #[test]
+    fn can_ragequit_when_active() {
+        let active = make_investment(InvestmentStatus::Active);
+        assert!(InvestmentPolicy::ensure_can_ragequit(&active).is_ok());
+
+        let matured = make_investment(InvestmentStatus::Matured);
+        assert!(InvestmentPolicy::ensure_can_ragequit(&matured).is_err());
+    }
+
+    #[test]
+    fn ragequit_fee_math() {
+        let nav = BigDecimal::from(1000);
+        let (payout, fee) = InvestmentPolicy::ragequit_payout(&nav, 200);
+        assert_eq!(fee, BigDecimal::from(20));
+        assert_eq!(payout, BigDecimal::from(980));
     }
 
     #[test]

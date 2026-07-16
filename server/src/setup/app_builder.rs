@@ -194,8 +194,8 @@ pub fn build_app() -> Router {
             let svc = pulse_svc.clone();
             let notifier = pulse_notifier.clone();
 
-            match tokio::task::spawn_blocking(move || svc.process_pulse()).await {
-                Ok(Ok(res)) => {
+            match svc.process_pulse().await {
+                Ok(res) => {
                     if res.updated > 0 || res.matured > 0 {
                         println!("Pulse: {} updated, {} matured", res.updated, res.matured)
                     }
@@ -206,8 +206,7 @@ pub fn build_app() -> Router {
                             .await;
                     }
                 }
-                Ok(Err(e)) => eprintln!("Pulse error: {}", e),
-                Err(e) => eprintln!("Pulse task panicked: {}", e),
+                Err(e) => eprintln!("Pulse error: {}", e),
             }
         }
     });
