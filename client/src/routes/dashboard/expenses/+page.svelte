@@ -5,29 +5,21 @@
 		getFriends,
 		getReceivedRequests,
 		getSentRequests,
-		sendFriendRequest,
 		respondToFriendRequest,
 		unfriend
 	} from '$lib/api/endpoints/friends';
 	import { isSuccess } from '$lib/types/client.types';
 	import type { FriendResponse } from '$lib/types/endpoints/friends.types';
-	import {
-		UserPlus,
-		UserCheck,
-		Clock,
-		MessageCircle,
-		Trash2,
-		Check,
-		X,
-		Users,
-		Search
-	} from 'lucide-svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import AddFriendModal from '$lib/components/modals/user/AddFriendModal.svelte';
+	import { UserPlus, UserCheck, Clock, Trash2, Check, X, Users } from 'lucide-svelte';
 
 	let friends = $state<FriendResponse[]>([]);
 	let received = $state<FriendResponse[]>([]);
 	let sent = $state<FriendResponse[]>([]);
 	let loading = $state(true);
 	let activeTab = $state<'friends' | 'received' | 'sent'>('friends');
+	let showAddFriend = $state(false);
 
 	async function loadAll() {
 		loading = true;
@@ -65,10 +57,17 @@
 	onMount(loadAll);
 </script>
 
+<AddFriendModal open={showAddFriend} onclose={() => (showAddFriend = false)} onsuccess={loadAll} />
+
 <DashboardLayout>
 	<div class="space-y-6">
-		<div class="flex items-center justify-between">
+		<div class="flex items-center justify-between gap-3">
 			<h1 class="text-2xl font-bold tracking-tight">Amigos</h1>
+			<Button label="Agregar amigos" size="sm" onclick={() => (showAddFriend = true)}>
+				{#snippet icon()}
+					<UserPlus class="size-4" />
+				{/snippet}
+			</Button>
 		</div>
 
 		<div class="flex w-fit gap-1 rounded-xl bg-muted p-1">
@@ -126,8 +125,13 @@
 					<Users class="size-10 text-muted-foreground/50" />
 					<p class="text-sm text-muted-foreground">Todavía no tenés amigos.</p>
 					<p class="text-xs text-muted-foreground/70">
-						Buscá usuarios desde el perfil o al invitar a un grupo.
+						Agregá amigos por email o buscalos por nombre.
 					</p>
+					<Button label="Agregar amigos" size="sm" onclick={() => (showAddFriend = true)}>
+						{#snippet icon()}
+							<UserPlus class="size-4" />
+						{/snippet}
+					</Button>
 				</div>
 			{:else}
 				<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
