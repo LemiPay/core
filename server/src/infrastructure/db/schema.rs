@@ -108,6 +108,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    friend (requester_id, addressee_id) {
+        requester_id -> Uuid,
+        addressee_id -> Uuid,
+        status -> Text,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     fund_round_contribution (fund_round_proposal_id, user_id) {
         fund_round_proposal_id -> Uuid,
         user_id -> Uuid,
@@ -390,11 +400,11 @@ diesel::joinable!(fund_round_contribution -> transaction (transaction_id));
 diesel::joinable!(fund_round_contribution -> user (user_id));
 diesel::joinable!(fund_round_proposal -> currency (currency_id));
 diesel::joinable!(fund_round_proposal -> proposal (proposal_id));
-diesel::joinable!(group_permission -> group (group_id));
 diesel::joinable!(group_notification_preference -> group (group_id));
 diesel::joinable!(group_notification_preference -> notification_channel (channel_id));
 diesel::joinable!(group_notification_preference -> notification_event (event_id));
 diesel::joinable!(group_notification_preference -> user (user_id));
+diesel::joinable!(group_permission -> group (group_id));
 diesel::joinable!(group_wallet -> currency (currency_id));
 diesel::joinable!(group_wallet -> group (group_id));
 diesel::joinable!(investment -> investment_proposal (proposal_id));
@@ -433,6 +443,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     currency,
     expense,
     expense_participant,
+    friend,
     fund_round_contribution,
     fund_round_proposal,
     group,

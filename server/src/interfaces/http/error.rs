@@ -18,6 +18,7 @@ use crate::{
         auth::error::AuthError,
         balances::BalancesError,
         expense::ExpenseError,
+        friend::FriendError,
         governance::GovernanceError,
         group::{
             create_group::CreateGroupError, delete_group::DeleteGroupError,
@@ -535,6 +536,29 @@ impl From<ExpenseError> for AppError {
             }
             ExpenseError::GroupMismatch => AppError::NotFound,
             ExpenseError::GroupNotActive => AppError::Forbidden("El grupo no esta activo".into()),
+        }
+    }
+}
+
+impl From<FriendError> for AppError {
+    fn from(err: FriendError) -> Self {
+        match err {
+            FriendError::AlreadyExists => {
+                AppError::BadRequest("La solicitud de amistad ya existe".into())
+            }
+            FriendError::NotFound => AppError::NotFound,
+            FriendError::SameUser => AppError::BadRequest("No puedes ser amigo de ti mismo".into()),
+            FriendError::AlreadyFriends => AppError::BadRequest("Ya son amigos".into()),
+            FriendError::Internal => AppError::Internal,
+            FriendError::InvalidAction => {
+                AppError::BadRequest("Acción inválida. Usa 'accept' o 'reject'".into())
+            }
+            FriendError::PendingRequestExists => {
+                AppError::BadRequest("Ya hay una solicitud de amistad pendiente".into())
+            }
+            FriendError::CannotRequestBlocked => {
+                AppError::BadRequest("No puedes enviar solicitud a un usuario bloqueado".into())
+            }
         }
     }
 }
