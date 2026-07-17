@@ -20,6 +20,8 @@ pub struct StrategyDefinition {
     pub category: String,
     pub ragequit_fee_bps: i32,
     pub expected_return_percentage: BigDecimal,
+    /// Leverage multiplier (1 = no leverage)
+    pub leverage: i32,
     /// symbol (uppercase) → weight_bps
     pub allocation: HashMap<String, i32>,
 }
@@ -44,6 +46,8 @@ struct StrategyToml {
     ragequit_fee_bps: i32,
     #[serde(default)]
     expected_return_percentage: f64,
+    #[serde(default = "default_leverage")]
+    leverage: i32,
     /// Inline table: BTC = 5000, ETH = 3000, ...
     #[serde(default)]
     allocation: HashMap<String, i32>,
@@ -57,6 +61,9 @@ fn default_category() -> String {
 }
 fn default_ragequit() -> i32 {
     200
+}
+fn default_leverage() -> i32 {
+    1
 }
 
 impl StrategyDefinition {
@@ -80,6 +87,12 @@ impl StrategyDefinition {
             return Err(format!(
                 "strategy '{}': valuation_mode must be simulated|mark_to_market",
                 self.name
+            ));
+        }
+        if self.leverage < 1 {
+            return Err(format!(
+                "strategy '{}': leverage must be >= 1 (got {})",
+                self.name, self.leverage
             ));
         }
         if self.valuation_mode == "mark_to_market" {
@@ -148,12 +161,21 @@ pub fn load_strategy_definitions() -> Result<(Vec<StrategyDefinition>, Option<Pa
 
         let tickers = TickerMap::global();
         let mut out = Vec::with_capacity(file.strategies.len());
+        let mut skipped = 0usize;
         for s in file.strategies {
+            let name_for_err = s.name.clone();
             let id = match s.id.as_deref() {
-                Some(raw_id) if !raw_id.trim().is_empty() => Some(
-                    Uuid::parse_str(raw_id.trim())
-                        .map_err(|e| format!("strategy '{}': invalid id: {e}", s.name))?,
-                ),
+                Some(raw_id) if !raw_id.trim().is_empty() => match Uuid::parse_str(raw_id.trim()) {
+                    Ok(u) => Some(u),
+                    Err(e) => {
+                        eprintln!(
+                            "Investment strategies: skip '{}': invalid id: {e}",
+                            name_for_err
+                        );
+                        skipped += 1;
+                        continue;
+                    }
+                },
                 _ => None,
             };
             let mut allocation = HashMap::new();
@@ -172,15 +194,21 @@ pub fn load_strategy_definitions() -> Result<(Vec<StrategyDefinition>, Option<Pa
                 category: s.category,
                 ragequit_fee_bps: s.ragequit_fee_bps,
                 expected_return_percentage: pct,
+                leverage: s.leverage,
                 allocation,
             };
-            def.validate(tickers)?;
+            if let Err(e) = def.validate(tickers) {
+                eprintln!("Investment strategies: skip '{}': {e}", def.name);
+                skipped += 1;
+                continue;
+            }
             out.push(def);
         }
         println!(
-            "Investment strategies: loaded {} from {}",
+            "Investment strategies: loaded {} from {} ({} skipped)",
             out.len(),
-            path.display()
+            path.display(),
+            skipped
         );
         return Ok((out, Some(path)));
     }

@@ -43,6 +43,7 @@ pub trait InvestmentRepository: Send + Sync {
         group_id: Uuid,
         user_id: Uuid,
         amount: BigDecimal,
+        entry_exposure: BigDecimal,
         strategy_id: Uuid,
         currency_id: Uuid,
         matures_at: chrono::NaiveDateTime,
@@ -83,6 +84,13 @@ pub trait InvestmentRepository: Send + Sync {
         investment_id: Uuid,
         final_value: BigDecimal,
         actual_return: BigDecimal,
+        now: NaiveDateTime,
+    ) -> Result<(), RepoError>;
+    /// Burn margin: status liquidated, current_value=0, no wallet credit.
+    fn liquidate_investment(
+        &self,
+        investment_id: Uuid,
+        margin: BigDecimal,
         now: NaiveDateTime,
     ) -> Result<(), RepoError>;
     fn insert_snapshot(

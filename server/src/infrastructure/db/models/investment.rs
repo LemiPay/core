@@ -14,6 +14,7 @@ pub enum InvestmentStatusModel {
     Active,
     Matured,
     Withdrawn,
+    Liquidated,
 }
 
 impl From<InvestmentStatusModel> for InvestmentStatus {
@@ -22,6 +23,7 @@ impl From<InvestmentStatusModel> for InvestmentStatus {
             InvestmentStatusModel::Active => InvestmentStatus::Active,
             InvestmentStatusModel::Matured => InvestmentStatus::Matured,
             InvestmentStatusModel::Withdrawn => InvestmentStatus::Withdrawn,
+            InvestmentStatusModel::Liquidated => InvestmentStatus::Liquidated,
         }
     }
 }
@@ -32,6 +34,7 @@ impl From<InvestmentStatus> for InvestmentStatusModel {
             InvestmentStatus::Active => InvestmentStatusModel::Active,
             InvestmentStatus::Matured => InvestmentStatusModel::Matured,
             InvestmentStatus::Withdrawn => InvestmentStatusModel::Withdrawn,
+            InvestmentStatus::Liquidated => InvestmentStatusModel::Liquidated,
         }
     }
 }
@@ -52,6 +55,7 @@ pub struct InvestmentStrategyModel {
     pub valuation_mode: String,
     pub category: String,
     pub ragequit_fee_bps: i32,
+    pub leverage: i32,
 }
 
 // Asset
@@ -146,6 +150,7 @@ pub struct InvestmentModel {
     pub updated_at: NaiveDateTime,
     pub exit_kind: Option<String>,
     pub fee_amount: Option<BigDecimal>,
+    pub entry_exposure: BigDecimal,
 }
 
 #[derive(Insertable)]
@@ -158,6 +163,7 @@ pub struct NewInvestmentModel {
     pub status: InvestmentStatusModel,
     pub started_at: NaiveDateTime,
     pub matures_at: NaiveDateTime,
+    pub entry_exposure: BigDecimal,
 }
 
 // Investment Member

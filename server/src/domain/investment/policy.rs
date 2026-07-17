@@ -31,12 +31,24 @@ impl InvestmentPolicy {
 
     /// Early exit (ragequit) while still active.
     pub fn ensure_can_ragequit(investment: &Investment) -> Result<(), InvestmentError> {
+        if investment.status == InvestmentStatus::Liquidated {
+            return Err(InvestmentError::AlreadyWithdrawn);
+        }
         if investment.status != InvestmentStatus::Active {
             return Err(InvestmentError::InvalidStatusTransition);
         }
         investment
             .status
             .ensure_can_transition_to(InvestmentStatus::Withdrawn)
+    }
+
+    pub fn ensure_can_liquidate(investment: &Investment) -> Result<(), InvestmentError> {
+        if investment.status != InvestmentStatus::Active {
+            return Err(InvestmentError::InvalidStatusTransition);
+        }
+        investment
+            .status
+            .ensure_can_transition_to(InvestmentStatus::Liquidated)
     }
 
     /// fee = nav * fee_bps / 10000, payout = nav - fee

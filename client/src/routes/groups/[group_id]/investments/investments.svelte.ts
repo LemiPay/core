@@ -65,6 +65,10 @@ export class InvestmentsState {
 		return this.investments.filter((i) => i.status === 'withdrawn');
 	}
 
+	get liquidatedInvestments() {
+		return this.investments.filter((i) => i.status === 'liquidated');
+	}
+
 	getTicker(currencyId: string): string {
 		return this.tickerMap[currencyId] ?? 'USDC';
 	}

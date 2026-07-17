@@ -117,8 +117,19 @@
 			</div>
 			{#if isMtm}
 				<p class="mt-2 text-sm text-muted-foreground">
-					Portfolio paper mark-to-market. Precios de mercado; no se adquieren tokens Ondo ni crypto
-					on-chain.
+					Portfolio paper mark-to-market
+					{#if (inv.leverage ?? 1) > 1}
+						· <span class="font-semibold text-rose-700 dark:text-rose-300"
+							>leverage x{inv.leverage}</span
+						>
+					{/if}
+				</p>
+			{/if}
+			{#if inv.status === 'liquidated'}
+				<p
+					class="mt-2 rounded-lg border border-rose-200 bg-rose-50/60 px-3 py-2 text-sm text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
+				>
+					Posición liquidada: el margen fue quemado y no se puede retirar.
 				</p>
 			{/if}
 		</div>
@@ -127,17 +138,22 @@
 			<div class="grid gap-4 sm:grid-cols-3">
 				<div class="rounded-xl border border-border bg-card p-5">
 					<p class="mb-1 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
-						Invertido
+						Margen
 					</p>
 					<p class="text-2xl font-bold text-foreground">
 						${formatAmount(detailState.investedAmount)}
 						{currency}
 					</p>
+					{#if (inv.leverage ?? 1) > 1 && inv.entry_exposure}
+						<p class="mt-1 text-xs text-muted-foreground">
+							Exposición entry: ${formatAmount(Number(inv.entry_exposure))} (x{inv.leverage})
+						</p>
+					{/if}
 				</div>
 
 				<div class="rounded-xl border border-border bg-card p-5">
 					<p class="mb-1 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
-						Valor actual
+						Equity actual
 					</p>
 					<p
 						class="flex items-center gap-1.5 text-2xl font-bold {detailState.isUp
@@ -170,6 +186,8 @@
 							<span class="text-base font-medium text-emerald-700 dark:text-emerald-300"
 								>Finalizada</span
 							>
+						{:else if inv.status === 'liquidated'}
+							<span class="text-base font-medium text-rose-700 dark:text-rose-300">Liquidada</span>
 						{:else}
 							<Clock class="h-5 w-5 text-muted-foreground" />
 							<span class="text-base font-medium text-muted-foreground">Retirada</span>
@@ -211,10 +229,6 @@
 							<BarChart3 class="h-4 w-4 text-muted-foreground" />
 							Holdings
 						</h2>
-						<p class="text-[11px] text-muted-foreground">
-							↗ CoinGecko: en/coins|stocks|commodities/id (config en
-							server/config/coingecko_tickers.toml)
-						</p>
 					</div>
 					<div class="overflow-hidden overflow-x-auto rounded-xl border border-border bg-card">
 						<table class="w-full min-w-[640px] text-sm">

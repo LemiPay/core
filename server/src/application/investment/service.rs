@@ -25,7 +25,7 @@ use crate::domain::investment::member::NewInvestmentMember;
 use crate::domain::user::UserId;
 use crate::domain::{
     group::GroupId,
-    investment::{Investment, InvestmentPolicy, ValuationMode},
+    investment::{Investment, InvestmentPolicy, LeverageMath, ValuationMode},
     treasury::{CurrencyId, Money, TreasuryError, TreasuryPolicy},
 };
 use crate::infrastructure::market_data::{AssetPriceRef, PriceOracle};
@@ -225,7 +225,14 @@ impl InvestmentService {
                 InvestmentError::PriceUnavailable
             })?;
 
+            let leverage = if strategy.leverage < 1 {
+                1
+            } else {
+                strategy.leverage
+            };
+            let entry_exposure = LeverageMath::entry_exposure(&proposal.amount, leverage);
             let ten_thousand = BigDecimal::from(10_000);
+            // Size units against leveraged exposure, not just margin
             for alloc in &strategy.allocations {
                 let price = prices.get(&alloc.asset_id).ok_or_else(|| {
                     eprintln!(
@@ -241,8 +248,7 @@ impl InvestmentService {
                     );
                     return Err(InvestmentError::PriceUnavailable);
                 }
-                let notional =
-                    &proposal.amount * BigDecimal::from(alloc.weight_bps) / &ten_thousand;
+                let notional = &entry_exposure * BigDecimal::from(alloc.weight_bps) / &ten_thousand;
                 let units = &notional / price;
                 holdings.push(NewHolding {
                     asset_id: alloc.asset_id,
@@ -251,12 +257,30 @@ impl InvestmentService {
                     cost_basis_usd: notional,
                 });
             }
+
+            let mut details = Self::map_repo(self.investment_repo.execute_investment(
+                proposal_id,
+                group_id,
+                user_id,
+                proposal.amount.clone(),
+                entry_exposure,
+                proposal.strategy_id,
+                proposal.currency_id,
+                matures_at,
+                participants,
+                holdings,
+            ))?;
+            self.enrich_holdings_with_current_prices(&mut details.holdings)
+                .await;
+            return Ok(details);
         }
 
+        // Simulated: entry_exposure = margin; leverage applied on pulse returns
         let mut details = Self::map_repo(self.investment_repo.execute_investment(
             proposal_id,
             group_id,
             user_id,
+            proposal.amount.clone(),
             proposal.amount,
             proposal.strategy_id,
             proposal.currency_id,
@@ -307,12 +331,8 @@ impl InvestmentService {
         match stored.status {
             crate::domain::investment::InvestmentStatus::Matured => {
                 InvestmentPolicy::ensure_can_withdraw(&domain)?;
-                // Prefer actual_return + amount if set; else current_value
-                let payout = if let Some(ret) = &stored.actual_return {
-                    &stored.amount + ret
-                } else {
-                    stored.current_value.clone()
-                };
+                // current_value is equity
+                let payout = stored.current_value.clone();
                 let actual_return = &payout - &stored.amount;
                 Self::map_repo(self.investment_repo.withdraw_investment(
                     investment_id,
@@ -326,13 +346,15 @@ impl InvestmentService {
             }
             crate::domain::investment::InvestmentStatus::Active => {
                 InvestmentPolicy::ensure_can_ragequit(&domain)?;
-                // Re-price MTM if possible before exit
-                let nav = self
-                    .reprice_nav(investment_id, &stored.valuation_mode)
+                let equity = self
+                    .compute_equity_for_investment(&stored)
                     .await
                     .unwrap_or(stored.current_value.clone());
+                if LeverageMath::is_liquidatable(&equity) {
+                    return Err(InvestmentError::InvalidStatusTransition);
+                }
                 let (payout, fee) =
-                    InvestmentPolicy::ragequit_payout(&nav, stored.ragequit_fee_bps);
+                    InvestmentPolicy::ragequit_payout(&equity, stored.ragequit_fee_bps);
                 let actual_return = &payout - &stored.amount;
                 Self::map_repo(self.investment_repo.withdraw_investment(
                     investment_id,
@@ -344,53 +366,30 @@ impl InvestmentService {
                     fee,
                 ))
             }
-            crate::domain::investment::InvestmentStatus::Withdrawn => {
+            crate::domain::investment::InvestmentStatus::Withdrawn
+            | crate::domain::investment::InvestmentStatus::Liquidated => {
                 Err(InvestmentError::AlreadyWithdrawn)
             }
         }
     }
 
-    async fn reprice_nav(
+    async fn compute_equity_for_investment(
         &self,
-        investment_id: Uuid,
-        valuation_mode: &str,
+        inv: &InvestmentDetails,
     ) -> Result<BigDecimal, InvestmentError> {
-        if ValuationMode::parse(valuation_mode) != ValuationMode::MarkToMarket {
-            let inv = Self::map_repo(self.investment_repo.find_investment(investment_id))?
-                .ok_or(InvestmentError::NotFound)?;
-            return Ok(inv.current_value);
+        if ValuationMode::parse(&inv.valuation_mode) == ValuationMode::MarkToMarket {
+            let exposure = self
+                .compute_mtm_nav(inv.id)
+                .await
+                .map_err(|_| InvestmentError::PriceUnavailable)?;
+            Ok(LeverageMath::equity(
+                &inv.amount,
+                &inv.entry_exposure,
+                &exposure,
+            ))
+        } else {
+            Ok(inv.current_value.clone())
         }
-        let holdings = Self::map_repo(
-            self.investment_repo
-                .list_holdings_for_pricing(investment_id),
-        )?;
-        if holdings.is_empty() {
-            let inv = Self::map_repo(self.investment_repo.find_investment(investment_id))?
-                .ok_or(InvestmentError::NotFound)?;
-            return Ok(inv.current_value);
-        }
-        let refs: Vec<AssetPriceRef> = holdings
-            .iter()
-            .map(|(a, _)| AssetPriceRef {
-                id: a.id,
-                symbol: a.symbol.clone(),
-                price_provider: a.price_provider.clone(),
-                external_id: a.external_id.clone(),
-            })
-            .collect();
-        let prices = self
-            .price_oracle
-            .get_usd_prices(&refs)
-            .await
-            .map_err(|_| InvestmentError::PriceUnavailable)?;
-        let mut nav = BigDecimal::zero();
-        for (asset, units) in &holdings {
-            let price = prices
-                .get(&asset.id)
-                .ok_or(InvestmentError::PriceUnavailable)?;
-            nav += units * price;
-        }
-        Ok(nav)
     }
 
     // ── List ──
@@ -487,7 +486,9 @@ impl InvestmentService {
             return Ok(PulseResult {
                 updated: 0,
                 matured: 0,
+                liquidated: 0,
                 matured_group_ids: Vec::new(),
+                liquidated_group_ids: Vec::new(),
             });
         }
 
@@ -495,7 +496,9 @@ impl InvestmentService {
         let now = Utc::now().naive_utc();
         let mut updated = 0;
         let mut matured = 0;
+        let mut liquidated = 0;
         let mut matured_group_ids = Vec::new();
+        let mut liquidated_group_ids = Vec::new();
 
         for inv in &active {
             let snapshot_count = self
@@ -505,49 +508,57 @@ impl InvestmentService {
 
             let accrued_days = snapshot_count + 1;
             let is_last_day = accrued_days >= inv.duration_days as i64;
+            let leverage = inv.leverage.max(1);
 
-            let current_value =
-                if ValuationMode::parse(&inv.valuation_mode) == ValuationMode::MarkToMarket {
-                    match self.compute_mtm_nav(inv.id).await {
-                        Ok(nav) => nav,
-                        Err(e) => {
-                            eprintln!("MTM pulse skip for {}: {}", inv.id, e);
-                            continue;
-                        }
+            let equity = if ValuationMode::parse(&inv.valuation_mode) == ValuationMode::MarkToMarket
+            {
+                match self.compute_mtm_nav(inv.id).await {
+                    Ok(exposure) => {
+                        LeverageMath::equity(&inv.amount, &inv.entry_exposure, &exposure)
                     }
-                } else {
-                    self.compute_simulated_value(inv, accrued_days, &mut rng, is_last_day)
-                };
+                    Err(e) => {
+                        eprintln!("MTM pulse skip for {}: {}", inv.id, e);
+                        continue;
+                    }
+                }
+            } else {
+                // 1x simulated path, then amplify PnL by leverage
+                let base = self.compute_simulated_value(inv, accrued_days, &mut rng, is_last_day);
+                let pnl = &base - &inv.amount;
+                &inv.amount + BigDecimal::from(leverage) * pnl
+            };
+
+            if LeverageMath::is_liquidatable(&equity) {
+                self.investment_repo
+                    .liquidate_investment(inv.id, inv.amount.clone(), now)
+                    .map_err(|e| format!("Failed to liquidate {}: {:?}", inv.id, e))?;
+                self.investment_repo
+                    .insert_snapshot(inv.id, bigdecimal::BigDecimal::from(0), now)
+                    .map_err(|e| format!("Failed to insert snapshot: {:?}", e))?;
+                liquidated += 1;
+                liquidated_group_ids.push(inv.group_id);
+                updated += 1;
+                continue;
+            }
 
             if is_last_day {
-                let final_value =
-                    if ValuationMode::parse(&inv.valuation_mode) == ValuationMode::MarkToMarket {
-                        current_value.clone()
-                    } else {
-                        // apply final variation already baked into compute for last day
-                        current_value.clone()
-                    };
-                let varied_return = &final_value - &inv.amount;
-
+                let varied_return = &equity - &inv.amount;
                 self.investment_repo
-                    .mature_investment(inv.id, final_value.clone(), varied_return.clone(), now)
+                    .mature_investment(inv.id, equity.clone(), varied_return, now)
                     .map_err(|e| format!("Failed to mature investment {}: {:?}", inv.id, e))?;
-
                 self.investment_repo
-                    .insert_snapshot(inv.id, final_value, now)
+                    .insert_snapshot(inv.id, equity, now)
                     .map_err(|e| format!("Failed to insert snapshot: {:?}", e))?;
-
                 matured += 1;
                 matured_group_ids.push(inv.group_id);
             } else {
                 self.investment_repo
-                    .update_current_value(inv.id, current_value.clone(), now)
+                    .update_current_value(inv.id, equity.clone(), now)
                     .map_err(|e| {
                         format!("Failed to update current_value for {}: {:?}", inv.id, e)
                     })?;
-
                 self.investment_repo
-                    .insert_snapshot(inv.id, current_value, now)
+                    .insert_snapshot(inv.id, equity, now)
                     .map_err(|e| format!("Failed to insert snapshot: {:?}", e))?;
             }
 
@@ -556,11 +567,15 @@ impl InvestmentService {
 
         matured_group_ids.sort_unstable();
         matured_group_ids.dedup();
+        liquidated_group_ids.sort_unstable();
+        liquidated_group_ids.dedup();
 
         Ok(PulseResult {
             updated,
             matured,
+            liquidated,
             matured_group_ids,
+            liquidated_group_ids,
         })
     }
 

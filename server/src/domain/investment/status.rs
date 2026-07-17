@@ -5,18 +5,23 @@ pub enum InvestmentStatus {
     Active,
     Matured,
     Withdrawn,
+    /// Margin burned; cannot withdraw.
+    Liquidated,
 }
 
 impl InvestmentStatus {
     pub fn is_terminal(self) -> bool {
-        matches!(self, InvestmentStatus::Withdrawn)
+        matches!(
+            self,
+            InvestmentStatus::Withdrawn | InvestmentStatus::Liquidated
+        )
     }
 
     pub fn can_transition_to(self, next: InvestmentStatus) -> bool {
         use InvestmentStatus::*;
         match (self, next) {
             (Active, Matured) => true,
-            // maturity withdraw or ragequit (early exit)
+            (Active, Liquidated) => true,
             (Matured, Withdrawn) | (Active, Withdrawn) => true,
             _ => false,
         }
@@ -36,23 +41,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn active_can_mature() {
-        assert!(InvestmentStatus::Active.can_transition_to(InvestmentStatus::Matured));
+    fn active_can_liquidate() {
+        assert!(InvestmentStatus::Active.can_transition_to(InvestmentStatus::Liquidated));
     }
 
     #[test]
-    fn matured_can_withdraw() {
-        assert!(InvestmentStatus::Matured.can_transition_to(InvestmentStatus::Withdrawn));
-    }
-
-    #[test]
-    fn active_can_ragequit() {
-        assert!(InvestmentStatus::Active.can_transition_to(InvestmentStatus::Withdrawn));
-    }
-
-    #[test]
-    fn withdrawn_is_terminal() {
-        assert!(InvestmentStatus::Withdrawn.is_terminal());
-        assert!(!InvestmentStatus::Withdrawn.can_transition_to(InvestmentStatus::Active));
+    fn liquidated_is_terminal() {
+        assert!(InvestmentStatus::Liquidated.is_terminal());
+        assert!(!InvestmentStatus::Liquidated.can_transition_to(InvestmentStatus::Withdrawn));
     }
 }

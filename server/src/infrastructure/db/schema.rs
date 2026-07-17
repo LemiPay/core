@@ -215,6 +215,7 @@ diesel::table! {
         updated_at -> Timestamp,
         exit_kind -> Nullable<Text>,
         fee_amount -> Nullable<Numeric>,
+        entry_exposure -> Numeric,
     }
 }
 
@@ -265,6 +266,7 @@ diesel::table! {
         valuation_mode -> Text,
         category -> Text,
         ragequit_fee_bps -> Int4,
+        leverage -> Int4,
     }
 }
 

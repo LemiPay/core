@@ -150,6 +150,7 @@ impl DieselInvestmentRepository {
             valuation_mode: s.valuation_mode,
             category: s.category,
             ragequit_fee_bps: s.ragequit_fee_bps,
+            leverage: s.leverage,
             allocations,
         }
     }
@@ -182,6 +183,8 @@ impl DieselInvestmentRepository {
             valuation_mode: strategy.valuation_mode.clone(),
             category: strategy.category.clone(),
             ragequit_fee_bps: strategy.ragequit_fee_bps,
+            leverage: strategy.leverage,
+            entry_exposure: inv.entry_exposure,
             exit_kind: inv.exit_kind,
             fee_amount: inv.fee_amount,
             holdings,
@@ -391,6 +394,7 @@ impl InvestmentRepository for DieselInvestmentRepository {
         group_id: Uuid,
         _user_id: Uuid,
         amount: BigDecimal,
+        entry_exposure: BigDecimal,
         strategy_id: Uuid,
         currency_id: Uuid,
         matures_at: NaiveDateTime,
@@ -432,10 +436,11 @@ impl InvestmentRepository for DieselInvestmentRepository {
                     id: Uuid::new_v4(),
                     proposal_id,
                     amount: amount.clone(),
-                    current_value: amount.clone(),
+                    current_value: amount.clone(), // equity starts at margin
                     status: InvestmentStatusModel::Active,
                     started_at: now,
                     matures_at,
+                    entry_exposure: entry_exposure.clone(),
                 })
                 .returning(InvestmentModel::as_returning())
                 .get_result::<InvestmentModel>(tx)?;
@@ -747,35 +752,52 @@ impl InvestmentRepository for DieselInvestmentRepository {
                     schema::investment::id,
                     schema::proposal::group_id,
                     schema::investment::amount,
+                    schema::investment::entry_exposure,
                     schema::investment_strategy::expected_return_percentage,
                     schema::investment_strategy::risk_level,
                     schema::investment_strategy::duration_days,
                     schema::investment_strategy::valuation_mode,
                     schema::investment_strategy::id,
+                    schema::investment_strategy::leverage,
                 ))
                 .load::<(
                     Uuid,
                     Uuid,
                     BigDecimal,
                     BigDecimal,
+                    BigDecimal,
                     String,
                     i32,
                     String,
                     Uuid,
+                    i32,
                 )>(&mut conn)
                 .map_err(|_| RepoError::Query)?;
         Ok(rows
             .into_iter()
             .map(
-                |(id, group_id, amount, pct, risk, days, mode, strategy_id)| ActiveInvestmentDto {
+                |(
                     id,
                     group_id,
                     amount,
+                    entry_exposure,
+                    pct,
+                    risk,
+                    days,
+                    mode,
+                    strategy_id,
+                    leverage,
+                )| ActiveInvestmentDto {
+                    id,
+                    group_id,
+                    amount,
+                    entry_exposure,
                     expected_return_percentage: pct,
                     risk_level: risk,
                     duration_days: days,
                     valuation_mode: mode,
                     strategy_id,
+                    leverage,
                 },
             )
             .collect())
@@ -849,6 +871,29 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 schema::investment::status.eq(InvestmentStatusModel::Matured),
                 schema::investment::actual_return.eq(&actual_return),
                 schema::investment::current_value.eq(&final_value),
+                schema::investment::updated_at.eq(now),
+            ))
+            .execute(&mut conn)
+            .map_err(|_| RepoError::Query)?;
+        Ok(())
+    }
+
+    fn liquidate_investment(
+        &self,
+        investment_id: Uuid,
+        margin: BigDecimal,
+        now: NaiveDateTime,
+    ) -> Result<(), RepoError> {
+        use bigdecimal::Zero;
+        let mut conn = self.get_conn()?;
+        let loss = BigDecimal::zero() - margin;
+        diesel::update(schema::investment::table.filter(schema::investment::id.eq(investment_id)))
+            .set((
+                schema::investment::status.eq(InvestmentStatusModel::Liquidated),
+                schema::investment::current_value.eq(BigDecimal::zero()),
+                schema::investment::actual_return.eq(&loss),
+                schema::investment::exit_kind.eq("liquidation"),
+                schema::investment::fee_amount.eq(BigDecimal::zero()),
                 schema::investment::updated_at.eq(now),
             ))
             .execute(&mut conn)
@@ -976,6 +1021,7 @@ pub fn sync_strategies_from_config(pool: &DbPool) -> Result<usize, String> {
                         schema::investment_strategy::valuation_mode.eq(&def.valuation_mode),
                         schema::investment_strategy::category.eq(&def.category),
                         schema::investment_strategy::ragequit_fee_bps.eq(def.ragequit_fee_bps),
+                        schema::investment_strategy::leverage.eq(def.leverage),
                     ))
                     .execute(tx)?;
                     id
@@ -993,6 +1039,7 @@ pub fn sync_strategies_from_config(pool: &DbPool) -> Result<usize, String> {
                             schema::investment_strategy::valuation_mode.eq(&def.valuation_mode),
                             schema::investment_strategy::category.eq(&def.category),
                             schema::investment_strategy::ragequit_fee_bps.eq(def.ragequit_fee_bps),
+                            schema::investment_strategy::leverage.eq(def.leverage),
                         ))
                         .execute(tx)?;
                     id

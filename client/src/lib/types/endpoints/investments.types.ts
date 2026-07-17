@@ -1,7 +1,7 @@
 type Uuid = string;
 type DateTime = string;
 
-export type InvestmentStatus = 'active' | 'matured' | 'withdrawn';
+export type InvestmentStatus = 'active' | 'matured' | 'withdrawn' | 'liquidated';
 
 export type ValuationMode = 'simulated' | 'mark_to_market';
 
@@ -50,6 +50,8 @@ export type InvestmentStrategy = {
 	valuation_mode: ValuationMode;
 	category: StrategyCategory;
 	ragequit_fee_bps: number;
+	/** 1 = no leverage; equity multiplies basket moves by this factor */
+	leverage?: number;
 	allocations: Allocation[];
 };
 
@@ -100,6 +102,9 @@ export type Investment = {
 	valuation_mode?: ValuationMode;
 	category?: StrategyCategory;
 	ragequit_fee_bps?: number;
+	leverage?: number;
+	/** Exposure notional at open (margin × leverage) */
+	entry_exposure?: string;
 	exit_kind?: string | null;
 	fee_amount?: string | null;
 	holdings?: Holding[];

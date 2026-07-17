@@ -13,6 +13,7 @@
 #   - valuation_mode: "mark_to_market" | "simulated"
 #   - category: simulated | crypto | stocks | mixed | rwa
 #   - risk_level: low | medium | high
+#   - leverage: integer >= 1 (default 1). Equity = M + (E_t - M*L). Liquidates if equity <= 0.
 #
 # Path override (optional):
 #   INVESTMENT_STRATEGIES_FILE=/path/to/investment_strategies.toml
@@ -58,7 +59,7 @@ expected_return_percentage = 15.0
 [[strategies]]
 id = "b0000001-0000-4000-8000-000000000001"
 name = "Crypto Bluechips"
-description = "Bluechips crypto: BTC, ETH, SOL (precios CoinGecko)."
+description = "Bluechips crypto: BTC, ETH, SOL."
 risk_level = "medium"
 duration_days = 30
 valuation_mode = "mark_to_market"
@@ -81,8 +82,8 @@ allocation = { SOL = 4000, ETH = 3000, BTC = 2000, DOGE = 1000 }
 
 [[strategies]]
 id = "b0000001-0000-4000-8000-000000000003"
-name = "Tech Equity + SpaceX"
-description = "Stocks (paper): AAPL, MSFT, NVDA, GOOGL y SPCX (SpaceX). Precios vía CoinGecko."
+name = "Tech Equity"
+description = "Stocks (paper): AAPL, MSFT, NVDA, GOOGL y SPCX."
 risk_level = "medium"
 duration_days = 60
 valuation_mode = "mark_to_market"
@@ -108,9 +109,64 @@ id = "b0000001-0000-4000-8000-000000000005"
 name = "Balanced Mix"
 description = "Mix crypto + stocks + gold: BTC, ETH, AAPL, SPCX, GOLD."
 risk_level = "medium"
-duration_days = 300
+duration_days = 45
 valuation_mode = "mark_to_market"
 category = "mixed"
 ragequit_fee_bps = 200
 expected_return_percentage = 0
+leverage = 1
 allocation = { BTC = 3000, ETH = 1500, AAPL = 2000, SPCX = 1500, GOLD = 2000 }
+
+# ── Leveraged (liquidación si equity ≤ 0 ⇔ caída basket ≥ 1/L) ─────────────
+
+[[strategies]]
+id = "b0000001-0000-4000-8000-000000000010"
+name = "Crypto Bluechips 2x"
+description = "Misma basket BTC/ETH/SOL con leverage 2x. Liquidación si el basket cae ≥ 50%."
+risk_level = "high"
+duration_days = 30
+valuation_mode = "mark_to_market"
+category = "crypto"
+ragequit_fee_bps = 200
+expected_return_percentage = 0
+leverage = 2
+allocation = { BTC = 5000, ETH = 3000, SOL = 2000 }
+
+[[strategies]]
+id = "b0000001-0000-4000-8000-000000000011"
+name = "Crypto Aggressive 5x"
+description = "Basket agresiva con leverage 5x. Liquidación si el basket cae ≥ 20%."
+risk_level = "high"
+duration_days = 30
+valuation_mode = "mark_to_market"
+category = "crypto"
+ragequit_fee_bps = 300
+expected_return_percentage = 0
+leverage = 5
+allocation = { SOL = 2000, ETH = 3000, BTC = 4000, DOGE = 1000 }
+
+[[strategies]]
+id = "b0000001-0000-4000-8000-000000000012"
+name = "Tech Equity 3x"
+description = "Stocks tokenizadas con leverage 3x. Liquidación si el basket cae ≥ ~33%."
+risk_level = "high"
+duration_days = 45
+valuation_mode = "mark_to_market"
+category = "stocks"
+ragequit_fee_bps = 250
+expected_return_percentage = 0
+leverage = 3
+allocation = { AAPL = 3000, MSFT = 2500, NVDA = 2000, GOOGL = 1500, SPCX = 1000 }
+
+[[strategies]]
+id = "b0000001-0000-4000-8000-000000000013"
+name = "Crazy Mix 50x"
+description = "Mix crypto + stocks con leverage 50x. Liquidación si el basket cae ≥ 2%."
+risk_level = "high"
+duration_days = 30
+valuation_mode = "mark_to_market"
+category = "mixed"
+ragequit_fee_bps = 250
+expected_return_percentage = 0
+leverage = 50
+allocation = { AAPL = 3000, MSFT = 2500, BTC = 2000, ETH = 1000, SPCX = 1500 }

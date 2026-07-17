@@ -205,8 +205,11 @@ pub fn build_app() -> Router {
 
             match svc.process_pulse().await {
                 Ok(res) => {
-                    if res.updated > 0 || res.matured > 0 {
-                        println!("Pulse: {} updated, {} matured", res.updated, res.matured)
+                    if res.updated > 0 || res.matured > 0 || res.liquidated > 0 {
+                        println!(
+                            "Pulse: {} updated, {} matured, {} liquidated",
+                            res.updated, res.matured, res.liquidated
+                        )
                     }
 
                     for group_id in res.matured_group_ids {

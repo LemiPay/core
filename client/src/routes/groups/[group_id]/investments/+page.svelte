@@ -15,7 +15,8 @@
 		BarChart3,
 		Calendar,
 		AlertTriangle,
-		RefreshCw
+		RefreshCw,
+		ArrowLeft
 	} from 'lucide-svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import PriceSourceLink from '$lib/components/investments/PriceSourceLink.svelte';
@@ -37,6 +38,70 @@
 	let showPastInvestments = $state(false);
 	let executingProposal = $state<string | null>(null);
 	let ragequitConfirmId = $state<string | null>(null);
+
+	/** null = sin filtro (todas) */
+	let filterCategory = $state<string | null>(null);
+	let filterRisk = $state<string | null>(null);
+	/** null = todas; '1' = solo 1x; 'levered' = x2+; number = exacto */
+	let filterLeverage = $state<null | '1' | 'levered' | number>(null);
+
+	const categoryFilters: { value: string | null; label: string }[] = [
+		{ value: null, label: 'Todas' },
+		{ value: 'simulated', label: 'Simulado' },
+		{ value: 'crypto', label: 'Crypto' },
+		{ value: 'stocks', label: 'Stocks' },
+		{ value: 'mixed', label: 'Mix' },
+		{ value: 'rwa', label: 'RWA' }
+	];
+
+	const riskFilters: { value: string | null; label: string }[] = [
+		{ value: null, label: 'Todos' },
+		{ value: 'low', label: 'Bajo' },
+		{ value: 'medium', label: 'Medio' },
+		{ value: 'high', label: 'Alto' }
+	];
+
+	let leverageOptions = $derived.by(() => {
+		const set = new Set<number>();
+		for (const s of investState.strategies) {
+			set.add(s.leverage ?? 1);
+		}
+		return [...set].sort((a, b) => a - b);
+	});
+
+	let filteredStrategies = $derived(
+		investState.strategies.filter((s) => {
+			const cat = s.category ?? 'simulated';
+			if (filterCategory !== null && cat !== filterCategory) return false;
+			if (filterRisk !== null && s.risk_level !== filterRisk) return false;
+			const lev = s.leverage ?? 1;
+			if (filterLeverage === '1' && lev !== 1) return false;
+			if (filterLeverage === 'levered' && lev <= 1) return false;
+			if (typeof filterLeverage === 'number' && lev !== filterLeverage) return false;
+			return true;
+		})
+	);
+
+	let hasActiveFilters = $derived(
+		filterCategory !== null || filterRisk !== null || filterLeverage !== null
+	);
+
+	function clearFilters() {
+		filterCategory = null;
+		filterRisk = null;
+		filterLeverage = null;
+	}
+
+	function chipClass(active: boolean) {
+		return active
+			? 'border-foreground bg-foreground text-background'
+			: 'border-border bg-card text-muted-foreground hover:border-input hover:text-foreground';
+	}
+
+	/** 1 card = full width; max 2 per row when there are more */
+	function cardsGridClass(count: number) {
+		return count <= 1 ? 'grid grid-cols-1 gap-3' : 'grid grid-cols-1 gap-3 sm:grid-cols-2';
+	}
 
 	const categoryBadge: Record<string, string> = {
 		simulated:
@@ -128,14 +193,23 @@
 		></div>
 	{:else}
 		<div class="w-full max-w-4xl pt-8 pb-6">
+			<a
+				href={`/groups/${groupId}`}
+				class="mb-4 inline-flex items-center gap-1.5 rounded-md px-1 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+			>
+				<ArrowLeft class="h-4 w-4 shrink-0" aria-hidden="true" />
+				Volver al grupo
+			</a>
 			<div class="flex items-center gap-3">
 				<h1 class="text-2xl font-bold tracking-tight text-foreground">Inversiones</h1>
 				<button
+					type="button"
 					onclick={() => investState.loadAll()}
-					class="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+					class="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 					title="Recargar"
+					aria-label="Recargar inversiones"
 				>
-					<RefreshCw class="h-4 w-4" />
+					<RefreshCw class="h-4 w-4" aria-hidden="true" />
 				</button>
 			</div>
 			<p class="mt-2 max-w-2xl text-sm text-muted-foreground">
@@ -145,6 +219,202 @@
 		</div>
 
 		<div class="w-full max-w-4xl space-y-10 pb-16">
+			{#if investState.maturedInvestments.length > 0}
+				<section class="space-y-4">
+					<h2 class="flex items-center gap-2 text-sm font-medium text-foreground">
+						<Check class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+						Inversiones finalizadas
+					</h2>
+
+					<div class={cardsGridClass(investState.maturedInvestments.length)}>
+						{#each investState.maturedInvestments as inv}
+							{@const risk = riskConfig[inv.risk_level] ?? riskConfig.low}
+							{@const invested = Number(inv.amount)}
+							{@const actualReturn = Number(inv.actual_return ?? '0')}
+							{@const totalReturn = invested + actualReturn}
+							{@const pctReturn = invested > 0 ? ((actualReturn / invested) * 100).toFixed(2) : '0'}
+							{@const returnPositive = actualReturn >= 0}
+							<div
+								class="rounded-xl border border-emerald-200 bg-card p-5 transition hover:shadow-sm dark:border-emerald-400/20"
+							>
+								<div class="mb-3 flex items-start justify-between gap-2">
+									<div class="min-w-0 space-y-0.5">
+										<a href={`/groups/${groupId}/investments/${inv.id}`} class="block">
+											<p class="truncate text-sm font-medium text-foreground hover:underline">
+												{inv.strategy_name}
+											</p>
+											<p class="text-xs text-muted-foreground">
+												Vencida {formatDate(inv.updated_at)}
+											</p>
+										</a>
+									</div>
+									<span
+										class="shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium {risk.bg} {risk.color}"
+									>
+										{risk.label}
+									</span>
+								</div>
+
+								<div class="mb-1 grid grid-cols-2 gap-3">
+									<div>
+										<p
+											class="text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
+										>
+											Invertido
+										</p>
+										<p class="text-sm font-semibold text-foreground">
+											${formatAmount(invested)}
+											{investState.getTicker(inv.currency_id)}
+										</p>
+									</div>
+									<div>
+										<p
+											class="text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
+										>
+											Retorno
+										</p>
+										<p
+											class="text-sm font-semibold {returnPositive
+												? 'text-emerald-700 dark:text-emerald-300'
+												: 'text-rose-700 dark:text-rose-300'}"
+										>
+											{returnPositive ? '+' : ''}${formatAmount(actualReturn)}
+											{investState.getTicker(inv.currency_id)}
+										</p>
+									</div>
+								</div>
+
+								<div class="mb-4 flex items-center justify-between rounded-lg bg-muted px-3 py-2">
+									<span class="text-xs text-muted-foreground">Total a retirar</span>
+									<span class="text-sm font-bold text-foreground">
+										${formatAmount(totalReturn)}
+										{investState.getTicker(inv.currency_id)}
+										<span
+											class="text-xs font-medium {returnPositive
+												? 'text-emerald-600 dark:text-emerald-300'
+												: 'text-rose-600 dark:text-rose-300'}"
+										>
+											({returnPositive ? '+' : ''}{pctReturn}%)
+										</span>
+									</span>
+								</div>
+
+								{#if investState.withdrawError}
+									<div
+										class="mb-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
+									>
+										<AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+										<span>{investState.withdrawError}</span>
+									</div>
+								{/if}
+
+								{#if !readonly}
+									<Button
+										label={investState.withdrawing ? 'Retirando...' : 'Retirar al grupo'}
+										onclick={() => handleWithdraw(inv.id)}
+										disabled={investState.withdrawing}
+										loading={investState.withdrawing}
+										fullWidth={true}
+									>
+										{#snippet icon()}<ArrowUpRight class="h-4 w-4" />{/snippet}
+									</Button>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</section>
+			{/if}
+
+			{#if investState.liquidatedInvestments.length > 0}
+				<section class="space-y-4">
+					<h2 class="flex items-center gap-2 text-sm font-medium text-rose-700 dark:text-rose-300">
+						<AlertTriangle class="h-4 w-4" />
+						Liquidadas ({investState.liquidatedInvestments.length})
+					</h2>
+					<div class="space-y-2">
+						{#each investState.liquidatedInvestments as inv}
+							<a
+								href={`/groups/${groupId}/investments/${inv.id}`}
+								class="group flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50/40 px-4 py-3 dark:border-rose-400/20 dark:bg-rose-400/10"
+							>
+								<div class="space-y-0.5">
+									<p class="text-sm font-medium text-foreground group-hover:underline">
+										{inv.strategy_name}
+									</p>
+									<p class="text-xs text-rose-700 dark:text-rose-300">
+										Margen quemado · ${formatAmount(Number(inv.amount))}
+										{investState.getTicker(inv.currency_id)}
+										{#if (inv.leverage ?? 1) > 1}
+											· x{inv.leverage}
+										{/if}
+										· {formatDate(inv.updated_at)}
+									</p>
+								</div>
+								<span
+									class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
+								>
+									Liquidada
+								</span>
+							</a>
+						{/each}
+					</div>
+				</section>
+			{/if}
+
+			{#if investState.withdrawnInvestments.length > 0}
+				<section class="space-y-4">
+					<button
+						onclick={() => (showPastInvestments = !showPastInvestments)}
+						class="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+					>
+						<Clock class="h-4 w-4" />
+						Retiradas ({investState.withdrawnInvestments.length})
+						<ChevronDown class="h-3.5 w-3.5 transition {showPastInvestments ? 'rotate-180' : ''}" />
+					</button>
+
+					{#if showPastInvestments}
+						<div class="space-y-2">
+							{#each investState.withdrawnInvestments as inv}
+								{@const risk = riskConfig[inv.risk_level] ?? riskConfig.low}
+								{@const exitLabel =
+									inv.exit_kind === 'ragequit' ? 'Ragequit' : 'Retirada al madurar'}
+								<a
+									href={`/groups/${groupId}/investments/${inv.id}`}
+									class="group flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 transition hover:border-border hover:shadow-sm"
+								>
+									<div class="flex items-center gap-3">
+										<div
+											class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground"
+										>
+											<Minus class="h-4 w-4" />
+										</div>
+										<div class="space-y-0.5">
+											<p class="text-sm font-medium text-foreground group-hover:underline">
+												{inv.strategy_name}
+											</p>
+											<p class="text-xs text-muted-foreground">
+												${formatAmount(Number(inv.amount))}
+												{investState.getTicker(inv.currency_id)}
+												· {exitLabel}
+												{formatDate(inv.updated_at)}
+												{#if inv.exit_kind === 'ragequit' && inv.fee_amount}
+													· fee ${formatAmount(Number(inv.fee_amount))}
+												{/if}
+											</p>
+										</div>
+									</div>
+									<span
+										class="rounded-full border px-2 py-0.5 text-[10px] font-medium {risk.bg} {risk.color}"
+									>
+										{risk.label}
+									</span>
+								</a>
+							{/each}
+						</div>
+					{/if}
+				</section>
+			{/if}
+
 			{#if investState.activeInvestments.length > 0}
 				<section class="space-y-4">
 					<h2 class="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -156,7 +426,7 @@
 							{investState.activeInvestments.length}
 						</span>
 					</h2>
-					<div class="grid gap-3 sm:grid-cols-2">
+					<div class={cardsGridClass(investState.activeInvestments.length)}>
 						{#each investState.activeInvestments as inv}
 							{@const risk = riskConfig[inv.risk_level] ?? riskConfig.low}
 							{@const invested = Number(inv.amount)}
@@ -301,51 +571,155 @@
 							{investState.proposals.length}
 						</span>
 					</h2>
-					{#each investState.proposals as proposal}
-						<div
-							class="rounded-xl border border-amber-200 bg-amber-50/60 p-5 transition hover:shadow-sm dark:border-amber-400/20 dark:bg-amber-400/10"
-						>
-							<div class="mb-4 flex items-start justify-between gap-3">
-								<div class="space-y-1">
-									<p class="text-sm font-medium text-foreground">{proposal.strategy_name}</p>
-									<p class="text-xs text-muted-foreground">
-										Monto: ${formatAmount(Number(proposal.amount))}
-										{investState.getTicker(proposal.currency_id)}
-									</p>
+					<div class={cardsGridClass(investState.proposals.length)}>
+						{#each investState.proposals as proposal}
+							<div
+								class="rounded-xl border border-amber-200 bg-amber-50/60 p-5 transition hover:shadow-sm dark:border-amber-400/20 dark:bg-amber-400/10"
+							>
+								<div class="mb-4 flex items-start justify-between gap-3">
+									<div class="space-y-1">
+										<p class="text-sm font-medium text-foreground">{proposal.strategy_name}</p>
+										<p class="text-xs text-muted-foreground">
+											Monto: ${formatAmount(Number(proposal.amount))}
+											{investState.getTicker(proposal.currency_id)}
+										</p>
+									</div>
 								</div>
+
+								{#if investState.executeError}
+									<div
+										class="mb-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
+									>
+										<AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+										<span>{investState.executeError}</span>
+									</div>
+								{/if}
+
+								{#if !readonly}
+									<Button
+										label={executingProposal === proposal.proposal_id
+											? 'Ejecutando...'
+											: 'Ejecutar inversión'}
+										onclick={() => handleExecute(proposal.proposal_id)}
+										disabled={executingProposal === proposal.proposal_id}
+										loading={executingProposal === proposal.proposal_id}
+									>
+										{#snippet icon()}<Rocket class="h-4 w-4" />{/snippet}
+									</Button>
+								{/if}
 							</div>
-
-							{#if investState.executeError}
-								<div
-									class="mb-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
-								>
-									<AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-									<span>{investState.executeError}</span>
-								</div>
-							{/if}
-
-							{#if !readonly}
-								<Button
-									label={executingProposal === proposal.proposal_id
-										? 'Ejecutando...'
-										: 'Ejecutar inversión'}
-									onclick={() => handleExecute(proposal.proposal_id)}
-									disabled={executingProposal === proposal.proposal_id}
-									loading={executingProposal === proposal.proposal_id}
-								>
-									{#snippet icon()}<Rocket class="h-4 w-4" />{/snippet}
-								</Button>
-							{/if}
-						</div>
-					{/each}
+						{/each}
+					</div>
 				</section>
 			{/if}
 
 			<section class="space-y-4">
-				<h2 class="flex items-center gap-2 text-sm font-medium text-foreground">
-					<CircleDollarSign class="h-4 w-4 text-muted-foreground" />
-					Estrategias disponibles
-				</h2>
+				<div class="flex flex-wrap items-center justify-between gap-2">
+					<h2 class="flex items-center gap-2 text-sm font-medium text-foreground">
+						<CircleDollarSign class="h-4 w-4 text-muted-foreground" />
+						Estrategias disponibles
+						<span
+							class="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
+						>
+							{filteredStrategies.length}
+						</span>
+					</h2>
+					{#if hasActiveFilters}
+						<button
+							type="button"
+							onclick={clearFilters}
+							class="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+						>
+							Limpiar filtros
+						</button>
+					{/if}
+				</div>
+
+				<div class="space-y-3 rounded-xl border border-border bg-card/50 p-4">
+					<div class="space-y-1.5">
+						<p class="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+							Tipo
+						</p>
+						<div class="flex flex-wrap gap-1.5">
+							{#each categoryFilters as f}
+								<button
+									type="button"
+									onclick={() => (filterCategory = f.value)}
+									class="rounded-full border px-2.5 py-1 text-xs font-medium transition {chipClass(
+										filterCategory === f.value
+									)}"
+								>
+									{f.label}
+								</button>
+							{/each}
+						</div>
+					</div>
+
+					<div class="space-y-1.5">
+						<p class="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+							Riesgo
+						</p>
+						<div class="flex flex-wrap gap-1.5">
+							{#each riskFilters as f}
+								<button
+									type="button"
+									onclick={() => (filterRisk = f.value)}
+									class="rounded-full border px-2.5 py-1 text-xs font-medium transition {chipClass(
+										filterRisk === f.value
+									)}"
+								>
+									{f.label}
+								</button>
+							{/each}
+						</div>
+					</div>
+
+					<div class="space-y-1.5">
+						<p class="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+							Leverage
+						</p>
+						<div class="flex flex-wrap gap-1.5">
+							<button
+								type="button"
+								onclick={() => (filterLeverage = null)}
+								class="rounded-full border px-2.5 py-1 text-xs font-medium transition {chipClass(
+									filterLeverage === null
+								)}"
+							>
+								Todos
+							</button>
+							<button
+								type="button"
+								onclick={() => (filterLeverage = '1')}
+								class="rounded-full border px-2.5 py-1 text-xs font-medium transition {chipClass(
+									filterLeverage === '1'
+								)}"
+							>
+								1x
+							</button>
+							<button
+								type="button"
+								onclick={() => (filterLeverage = 'levered')}
+								class="rounded-full border px-2.5 py-1 text-xs font-medium transition {chipClass(
+									filterLeverage === 'levered'
+								)}"
+							>
+								Con leverage
+							</button>
+							{#each leverageOptions.filter((l) => l > 1) as lev}
+								<button
+									type="button"
+									onclick={() => (filterLeverage = lev)}
+									class="rounded-full border px-2.5 py-1 text-xs font-medium transition {chipClass(
+										filterLeverage === lev
+									)}"
+								>
+									x{lev}
+								</button>
+							{/each}
+						</div>
+					</div>
+				</div>
 
 				{#if investState.strategyError}
 					<div
@@ -356,12 +730,28 @@
 					</div>
 				{/if}
 
+				{#if filteredStrategies.length === 0 && !investState.strategyError}
+					<div class="rounded-xl border border-dashed border-border p-6 text-center">
+						<p class="text-sm text-muted-foreground">No hay estrategias con estos filtros.</p>
+						{#if hasActiveFilters}
+							<button
+								type="button"
+								onclick={clearFilters}
+								class="mt-2 text-xs font-medium text-foreground underline-offset-2 hover:underline"
+							>
+								Limpiar filtros
+							</button>
+						{/if}
+					</div>
+				{/if}
+
 				<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					{#each investState.strategies as strategy}
+					{#each filteredStrategies as strategy}
 						{@const risk = riskConfig[strategy.risk_level] ?? riskConfig.low}
 						{@const isFormOpen = showStrategyForm === strategy.id}
 						{@const cat = strategy.category ?? 'simulated'}
 						{@const isMtm = strategy.valuation_mode === 'mark_to_market'}
+						{@const lev = strategy.leverage ?? 1}
 						<div class="rounded-xl border border-border bg-card p-5 transition hover:shadow-sm">
 							<div class="mb-3 flex items-start justify-between gap-2">
 								<div class="min-w-0 space-y-1">
@@ -376,6 +766,13 @@
 									>
 										{risk.label}
 									</span>
+									{#if lev > 1}
+										<span
+											class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
+										>
+											x{lev}
+										</span>
+									{/if}
 									<span
 										class="rounded-full border px-2 py-0.5 text-[10px] font-medium {categoryBadge[
 											cat
@@ -412,6 +809,12 @@
 										<span class="text-muted-foreground">Valuación</span>
 										<span class="font-semibold text-foreground">Mark-to-market</span>
 									</div>
+									{#if lev > 1}
+										<div class="flex items-center justify-between text-xs">
+											<span class="text-muted-foreground">Leverage</span>
+											<span class="font-semibold text-rose-700 dark:text-rose-300">x{lev}</span>
+										</div>
+									{/if}
 									<div class="flex items-center justify-between text-xs">
 										<span class="text-muted-foreground">Ragequit fee</span>
 										<span class="font-medium text-foreground"
@@ -525,173 +928,13 @@
 				</div>
 			</section>
 
-			{#if investState.maturedInvestments.length > 0}
-				<section class="space-y-4">
-					<h2 class="flex items-center gap-2 text-sm font-medium text-foreground">
-						<Check class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-						Inversiones finalizadas
-					</h2>
-
-					<div class="grid gap-3 sm:grid-cols-2">
-						{#each investState.maturedInvestments as inv}
-							{@const risk = riskConfig[inv.risk_level] ?? riskConfig.low}
-							{@const invested = Number(inv.amount)}
-							{@const actualReturn = Number(inv.actual_return ?? '0')}
-							{@const totalReturn = invested + actualReturn}
-							{@const pctReturn = invested > 0 ? ((actualReturn / invested) * 100).toFixed(2) : '0'}
-							{@const returnPositive = actualReturn >= 0}
-							<div
-								class="rounded-xl border border-emerald-200 bg-card p-5 transition hover:shadow-sm dark:border-emerald-400/20"
-							>
-								<div class="mb-3 flex items-start justify-between gap-2">
-									<div class="min-w-0 space-y-0.5">
-										<a href={`/groups/${groupId}/investments/${inv.id}`} class="block">
-											<p class="truncate text-sm font-medium text-foreground hover:underline">
-												{inv.strategy_name}
-											</p>
-											<p class="text-xs text-muted-foreground">
-												Vencida {formatDate(inv.updated_at)}
-											</p>
-										</a>
-									</div>
-									<span
-										class="shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium {risk.bg} {risk.color}"
-									>
-										{risk.label}
-									</span>
-								</div>
-
-								<div class="mb-1 grid grid-cols-2 gap-3">
-									<div>
-										<p
-											class="text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
-										>
-											Invertido
-										</p>
-										<p class="text-sm font-semibold text-foreground">
-											${formatAmount(invested)}
-											{investState.getTicker(inv.currency_id)}
-										</p>
-									</div>
-									<div>
-										<p
-											class="text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
-										>
-											Retorno
-										</p>
-										<p
-											class="text-sm font-semibold {returnPositive
-												? 'text-emerald-700 dark:text-emerald-300'
-												: 'text-rose-700 dark:text-rose-300'}"
-										>
-											{returnPositive ? '+' : ''}${formatAmount(actualReturn)}
-											{investState.getTicker(inv.currency_id)}
-										</p>
-									</div>
-								</div>
-
-								<div class="mb-4 flex items-center justify-between rounded-lg bg-muted px-3 py-2">
-									<span class="text-xs text-muted-foreground">Total a retirar</span>
-									<span class="text-sm font-bold text-foreground">
-										${formatAmount(totalReturn)}
-										{investState.getTicker(inv.currency_id)}
-										<span
-											class="text-xs font-medium {returnPositive
-												? 'text-emerald-600 dark:text-emerald-300'
-												: 'text-rose-600 dark:text-rose-300'}"
-										>
-											({returnPositive ? '+' : ''}{pctReturn}%)
-										</span>
-									</span>
-								</div>
-
-								{#if investState.withdrawError}
-									<div
-										class="mb-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
-									>
-										<AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-										<span>{investState.withdrawError}</span>
-									</div>
-								{/if}
-
-								{#if !readonly}
-									<Button
-										label={investState.withdrawing ? 'Retirando...' : 'Retirar al grupo'}
-										onclick={() => handleWithdraw(inv.id)}
-										disabled={investState.withdrawing}
-										loading={investState.withdrawing}
-										fullWidth={true}
-									>
-										{#snippet icon()}<ArrowUpRight class="h-4 w-4" />{/snippet}
-									</Button>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</section>
-			{/if}
-
-			{#if investState.withdrawnInvestments.length > 0}
-				<section class="space-y-4">
-					<button
-						onclick={() => (showPastInvestments = !showPastInvestments)}
-						class="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-					>
-						<Clock class="h-4 w-4" />
-						Retiradas ({investState.withdrawnInvestments.length})
-						<ChevronDown class="h-3.5 w-3.5 transition {showPastInvestments ? 'rotate-180' : ''}" />
-					</button>
-
-					{#if showPastInvestments}
-						<div class="space-y-2">
-							{#each investState.withdrawnInvestments as inv}
-								{@const risk = riskConfig[inv.risk_level] ?? riskConfig.low}
-								{@const exitLabel =
-									inv.exit_kind === 'ragequit' ? 'Ragequit' : 'Retirada al madurar'}
-								<a
-									href={`/groups/${groupId}/investments/${inv.id}`}
-									class="group flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 transition hover:border-border hover:shadow-sm"
-								>
-									<div class="flex items-center gap-3">
-										<div
-											class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground"
-										>
-											<Minus class="h-4 w-4" />
-										</div>
-										<div class="space-y-0.5">
-											<p class="text-sm font-medium text-foreground group-hover:underline">
-												{inv.strategy_name}
-											</p>
-											<p class="text-xs text-muted-foreground">
-												${formatAmount(Number(inv.amount))}
-												{investState.getTicker(inv.currency_id)}
-												· {exitLabel}
-												{formatDate(inv.updated_at)}
-												{#if inv.exit_kind === 'ragequit' && inv.fee_amount}
-													· fee ${formatAmount(Number(inv.fee_amount))}
-												{/if}
-											</p>
-										</div>
-									</div>
-									<span
-										class="rounded-full border px-2 py-0.5 text-[10px] font-medium {risk.bg} {risk.color}"
-									>
-										{risk.label}
-									</span>
-								</a>
-							{/each}
-						</div>
-					{/if}
-				</section>
-			{/if}
-
-			{#if investState.activeInvestments.length === 0 && investState.maturedInvestments.length === 0 && investState.withdrawnInvestments.length === 0 && !investState.investmentError}
+			{#if investState.activeInvestments.length === 0 && investState.maturedInvestments.length === 0 && investState.withdrawnInvestments.length === 0 && investState.liquidatedInvestments.length === 0 && !investState.investmentError}
 				<section class="space-y-4">
 					<div class="rounded-xl border border-dashed border-border p-8 text-center">
 						<TrendingUp class="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
 						<p class="text-sm font-medium text-foreground">Sin inversiones aún</p>
 						<p class="text-sm text-muted-foreground">
-							Elegí una estrategia de arriba para empezar a invertir.
+							Elegí una estrategia más abajo para empezar a invertir.
 						</p>
 					</div>
 				</section>

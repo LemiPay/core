@@ -8,11 +8,13 @@ pub struct ActiveInvestmentDto {
     pub id: Uuid,
     pub group_id: Uuid,
     pub amount: BigDecimal,
+    pub entry_exposure: BigDecimal,
     pub expected_return_percentage: BigDecimal,
     pub risk_level: String,
     pub duration_days: i32,
     pub valuation_mode: String,
     pub strategy_id: Uuid,
+    pub leverage: i32,
 }
 
 pub struct AllocationDto {
@@ -21,11 +23,8 @@ pub struct AllocationDto {
     pub name: String,
     pub kind: String,
     pub weight_bps: i32,
-    /// coingecko | stooq | mock — where live prices are fetched from
     pub price_provider: String,
-    /// Provider-specific id (e.g. "bitcoin", "aapl.us")
     pub external_id: String,
-    /// Human-browsable page for the underlying market instrument
     pub price_source_url: String,
 }
 
@@ -40,6 +39,7 @@ pub struct InvestmentStrategyDto {
     pub valuation_mode: String,
     pub category: String,
     pub ragequit_fee_bps: i32,
+    pub leverage: i32,
     pub allocations: Vec<AllocationDto>,
 }
 
@@ -54,11 +54,8 @@ pub struct HoldingDto {
     pub price_provider: String,
     pub external_id: String,
     pub price_source_url: String,
-    /// cost_basis / units at entry (always computable)
     pub entry_price_usd: Option<BigDecimal>,
-    /// Latest oracle mark (mock or live)
     pub current_price_usd: Option<BigDecimal>,
-    /// units * current_price
     pub current_value_usd: Option<BigDecimal>,
 }
 
@@ -80,7 +77,9 @@ pub struct AssetPriceDto {
 pub struct PulseResult {
     pub updated: usize,
     pub matured: usize,
+    pub liquidated: usize,
     pub matured_group_ids: Vec<Uuid>,
+    pub liquidated_group_ids: Vec<Uuid>,
 }
 
 pub struct InvestmentProposalDetails {
@@ -123,6 +122,8 @@ pub struct InvestmentDetails {
     pub valuation_mode: String,
     pub category: String,
     pub ragequit_fee_bps: i32,
+    pub leverage: i32,
+    pub entry_exposure: BigDecimal,
     pub exit_kind: Option<String>,
     pub fee_amount: Option<BigDecimal>,
     pub holdings: Vec<HoldingDto>,

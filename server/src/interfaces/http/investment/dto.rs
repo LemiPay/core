@@ -32,6 +32,7 @@ pub enum InvestmentStatusResponse {
     Active,
     Matured,
     Withdrawn,
+    Liquidated,
 }
 
 impl From<InvestmentStatus> for InvestmentStatusResponse {
@@ -40,6 +41,7 @@ impl From<InvestmentStatus> for InvestmentStatusResponse {
             InvestmentStatus::Active => Self::Active,
             InvestmentStatus::Matured => Self::Matured,
             InvestmentStatus::Withdrawn => Self::Withdrawn,
+            InvestmentStatus::Liquidated => Self::Liquidated,
         }
     }
 }
@@ -125,6 +127,7 @@ pub struct InvestmentStrategyResponse {
     pub valuation_mode: String,
     pub category: String,
     pub ragequit_fee_bps: i32,
+    pub leverage: i32,
     pub allocations: Vec<AllocationResponse>,
 }
 
@@ -141,6 +144,7 @@ impl From<InvestmentStrategyDto> for InvestmentStrategyResponse {
             valuation_mode: value.valuation_mode,
             category: value.category,
             ragequit_fee_bps: value.ragequit_fee_bps,
+            leverage: value.leverage,
             allocations: value.allocations.into_iter().map(Into::into).collect(),
         }
     }
@@ -198,6 +202,8 @@ pub struct InvestmentResponse {
     pub valuation_mode: String,
     pub category: String,
     pub ragequit_fee_bps: i32,
+    pub leverage: i32,
+    pub entry_exposure: BigDecimal,
     pub exit_kind: Option<String>,
     pub fee_amount: Option<BigDecimal>,
     pub holdings: Vec<HoldingResponse>,
@@ -225,6 +231,8 @@ impl From<InvestmentDetails> for InvestmentResponse {
             valuation_mode: value.valuation_mode,
             category: value.category,
             ragequit_fee_bps: value.ragequit_fee_bps,
+            leverage: value.leverage,
+            entry_exposure: value.entry_exposure,
             exit_kind: value.exit_kind,
             fee_amount: value.fee_amount,
             holdings: value.holdings.into_iter().map(Into::into).collect(),
