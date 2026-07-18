@@ -16,36 +16,67 @@ pub fn format_user_groups(
     balances: &[(&GroupBalancesDetails, &str)],
 ) -> String {
     let mut out = String::from("USER GROUPS:\n");
+    let mut total_treasury = BigDecimal::from(0);
+    let mut total_own_balance = BigDecimal::from(0);
 
     for group in groups {
-        let own_balance = balances
+        let group_balances = balances
             .iter()
             .find(|(_, id)| *id == group.group_id.to_string())
-            .and_then(|(b, _)| {
-                b.balances
-                    .iter()
-                    .find(|u| u.user_id == group.user_id)
-                    .map(|u| &u.balance)
-            });
+            .map(|(b, _)| b);
+
+        let member_count = group_balances.map(|b| b.balances.len()).unwrap_or(0);
+
+        let zero = BigDecimal::from(0);
+        let treasury = group_balances.map(|b| &b.group_balance).unwrap_or(&zero);
+
+        let own_balance = group_balances.and_then(|b| {
+            b.balances
+                .iter()
+                .find(|u| u.user_id == group.user_id)
+                .map(|u| &u.balance)
+        });
+
+        total_treasury += treasury;
 
         let balance_str = match own_balance {
             Some(b) if *b > BigDecimal::from(0) => {
-                format!(" - You are owed {}", b)
+                total_own_balance += b;
+                format!(" - Treasury: ${} | You are owed ${}", treasury, b)
             }
             Some(b) if *b < BigDecimal::from(0) => {
-                format!(" - You owe {}", b.abs())
+                total_own_balance += b;
+                format!(" - Treasury: ${} | You owe ${}", treasury, b.abs())
             }
-            _ => " - Settled".to_string(),
+            _ => format!(" - Treasury: ${} | Settled", treasury),
         };
 
         out.push_str(&format!(
-            "- \"{}\" [{}] ({}){} \n",
+            "- \"{}\" [{}] ({}) - {} members{}\n",
             group.group_name,
             fmt(&group.status),
             fmt(&group.role),
+            member_count,
             balance_str
         ));
     }
+
+    let total_str = match () {
+        _ if total_own_balance > BigDecimal::from(0) => {
+            format!(" | You are owed ${} overall", total_own_balance)
+        }
+        _ if total_own_balance < BigDecimal::from(0) => {
+            format!(" | You owe ${} overall", total_own_balance.abs())
+        }
+        _ => String::new(),
+    };
+
+    out.push_str(&format!(
+        "Total: Treasury ${} across {} groups{}\n",
+        total_treasury,
+        groups.len(),
+        total_str
+    ));
 
     out
 }
@@ -254,7 +285,10 @@ mod tests {
 
     #[test]
     fn test_format_user_groups_empty() {
-        assert_eq!(format_user_groups(&[], &[]), "USER GROUPS:\n");
+        assert_eq!(
+            format_user_groups(&[], &[]),
+            "USER GROUPS:\nTotal: Treasury $0 across 0 groups\n"
+        );
     }
 
     #[test]
@@ -279,7 +313,9 @@ mod tests {
         };
         let out = format_user_groups(&groups, &[(&balance, &gid.to_string())]);
         assert!(out.contains("Viaje"));
-        assert!(out.contains("owe 150"));
+        assert!(out.contains("owe $150"));
+        assert!(out.contains("Treasury: $500"));
+        assert!(out.contains("You owe $150 overall"));
     }
 
     #[test]
@@ -304,7 +340,9 @@ mod tests {
         };
         let out = format_user_groups(&groups, &[(&balance, &gid.to_string())]);
         assert!(out.contains("Casa"));
-        assert!(out.contains("owed 200"));
+        assert!(out.contains("owed $200"));
+        assert!(out.contains("Treasury: $300"));
+        assert!(out.contains("You are owed $200 overall"));
     }
 
     #[test]
@@ -329,6 +367,7 @@ mod tests {
         };
         let out = format_user_groups(&groups, &[(&balance, &gid.to_string())]);
         assert!(out.contains("Settled"));
+        assert!(out.contains("Treasury: $0"));
     }
 
     #[test]
@@ -376,8 +415,9 @@ mod tests {
         );
         assert!(out.contains("\"A\""));
         assert!(out.contains("\"B\""));
-        assert!(out.contains("owe 10"));
+        assert!(out.contains("owe $10"));
         assert!(out.contains("Settled"));
+        assert!(out.contains("Total: Treasury $100 across 2 groups | You owe $10 overall"));
     }
 
     // -------------------------------------------------------
