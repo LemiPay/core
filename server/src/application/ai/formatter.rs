@@ -13,7 +13,7 @@ const INDENT: &str = "  ";
 
 pub fn format_user_groups(
     groups: &[GroupFromUserDetails],
-    balances: &[(GroupBalancesDetails, &str)],
+    balances: &[(&GroupBalancesDetails, &str)],
 ) -> String {
     let mut out = String::from("USER GROUPS:\n");
 
@@ -277,7 +277,7 @@ mod tests {
                 balance: BigDecimal::from(-150),
             }],
         };
-        let out = format_user_groups(&groups, &[(balance, &gid.to_string())]);
+        let out = format_user_groups(&groups, &[(&balance, &gid.to_string())]);
         assert!(out.contains("Viaje"));
         assert!(out.contains("owe 150"));
     }
@@ -302,7 +302,7 @@ mod tests {
                 balance: BigDecimal::from(200),
             }],
         };
-        let out = format_user_groups(&groups, &[(balance, &gid.to_string())]);
+        let out = format_user_groups(&groups, &[(&balance, &gid.to_string())]);
         assert!(out.contains("Casa"));
         assert!(out.contains("owed 200"));
     }
@@ -327,7 +327,7 @@ mod tests {
                 balance: BigDecimal::from(0),
             }],
         };
-        let out = format_user_groups(&groups, &[(balance, &gid.to_string())]);
+        let out = format_user_groups(&groups, &[(&balance, &gid.to_string())]);
         assert!(out.contains("Settled"));
     }
 
@@ -372,7 +372,7 @@ mod tests {
         };
         let out = format_user_groups(
             &groups,
-            &[(bal1, &gid1.to_string()), (bal2, &gid2.to_string())],
+            &[(&bal1, &gid1.to_string()), (&bal2, &gid2.to_string())],
         );
         assert!(out.contains("\"A\""));
         assert!(out.contains("\"B\""));

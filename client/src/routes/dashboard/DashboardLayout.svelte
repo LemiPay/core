@@ -9,6 +9,7 @@
 
 <script lang="ts">
 	import AsideMenu from './AsideMenu.svelte';
+	import ChatAssistant from '$lib/components/ai/ChatAssistant.svelte';
 	import { page } from '$app/state';
 
 	import { Activity, LayoutDashboard, UserPlus, Settings, Users, Landmark } from 'lucide-svelte';
@@ -49,4 +50,6 @@
 
 		{@render children()}
 	</div>
+
+	<ChatAssistant />
 </div>

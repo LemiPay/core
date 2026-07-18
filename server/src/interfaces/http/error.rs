@@ -7,6 +7,7 @@ use axum::{
 use serde::Serialize;
 use thiserror::Error;
 
+use crate::application::ai::error::AiError;
 use crate::application::investment::InvestmentError;
 use crate::application::settlements::claim::error::ClaimError;
 use crate::application::settlements::get_settlements::error::GetSettlementError;
@@ -68,6 +69,12 @@ pub enum AppError {
 
     #[error("Invalid amount")]
     InvalidAmount(String),
+
+    #[error("AI provider error: {0}")]
+    AiProvider(String),
+
+    #[error("Too many requests to AI provider")]
+    AiRateLimited,
 }
 
 #[derive(Serialize)]
@@ -90,6 +97,8 @@ impl IntoResponse for AppError {
             AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
             AppError::Core => (StatusCode::CONFLICT, self.to_string()),
             AppError::InvalidAmount(msg) => (StatusCode::BAD_REQUEST, msg),
+            AppError::AiProvider(msg) => (StatusCode::BAD_GATEWAY, msg),
+            AppError::AiRateLimited => (StatusCode::TOO_MANY_REQUESTS, self.to_string()),
         };
 
         let body = Json(ErrorResponse { message });
@@ -636,6 +645,16 @@ impl From<BalancesError> for AppError {
             BalancesError::Internal => AppError::Internal,
             BalancesError::UserNotFound => AppError::Core,
             BalancesError::InsufficientFunds => AppError::Core,
+        }
+    }
+}
+
+impl From<AiError> for AppError {
+    fn from(err: AiError) -> Self {
+        match err {
+            AiError::Provider(msg) => AppError::AiProvider(msg),
+            AiError::RateLimited => AppError::AiRateLimited,
+            AiError::Internal => AppError::Internal,
         }
     }
 }

@@ -453,20 +453,4 @@
 			</aside>
 		</section>
 	</main>
-
-	<div class="group fixed right-5 bottom-5 z-40 flex items-center gap-3">
-		<div
-			class="pointer-events-none hidden translate-x-2 rounded-2xl border border-border bg-card px-3 py-2 text-sm font-semibold opacity-0 shadow-xl transition group-hover:translate-x-0 group-hover:opacity-100 sm:block"
-		>
-			Crear grupo
-		</div>
-		<button
-			aria-label="Crear grupo"
-			class="flex h-14 w-14 items-center justify-center rounded-full bg-foreground text-background shadow-2xl ring-4 shadow-lime-500/20 ring-lime-400/10 transition hover:scale-105 hover:shadow-lime-500/30 focus:ring-2 focus:ring-ring focus:outline-none active:scale-95"
-			onclick={() => (showNewGroup = true)}
-			type="button"
-		>
-			<Plus class="size-6 transition group-hover:rotate-90" />
-		</button>
-	</div>
 </DashboardLayout>
