@@ -1,17 +1,31 @@
 <script lang="ts" module>
-	const quickActions = [
-		'¿Cuánto debo en total?',
-		'Resumí mis grupos',
-		'¿Cómo funciona Lemipay?',
-		'¿Qué es debt resolution?'
+	type QuickAction = {
+		label: string;
+		type: 'ask' | 'explain';
+		concept?: string;
+	};
+
+	const quickActions: QuickAction[] = [
+		{ label: '¿Cuánto debo en total?', type: 'ask' },
+		{ label: 'Resumí mis grupos', type: 'ask' },
+		{ label: '¿Cómo funciona Lemipay?', type: 'explain', concept: 'balances' },
+		{ label: '¿Cómo funcionan las propuestas?', type: 'explain', concept: 'governance' }
+	];
+
+	const explainTopics: QuickAction[] = [
+		{ label: 'Balances y deudas', type: 'explain', concept: 'balances' },
+		{ label: 'Grupos y roles', type: 'explain', concept: 'groups' },
+		{ label: 'Propuestas y gobernanza', type: 'explain', concept: 'governance' },
+		{ label: 'Inversiones', type: 'explain', concept: 'investments' },
+		{ label: 'Resolución de deudas', type: 'explain', concept: 'debt_resolution' }
 	];
 </script>
 
 <script lang="ts">
-	import { Bot, MessageCircle, Trash2, X, SendHorizonal, Sparkles } from 'lucide-svelte';
+	import { Bot, MessageCircle, Plus, Trash2, X, SendHorizonal, Sparkles } from 'lucide-svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { isSuccess } from '$lib/types/client.types';
-	import { askAI } from '$lib/api/endpoints/ai';
+	import { askAI, explainAI } from '$lib/api/endpoints/ai';
 	import ChatMessage from './ChatMessage.svelte';
 
 	type Message = {
@@ -38,6 +52,21 @@
 	let input = $state('');
 	let loading = $state(false);
 	let container: HTMLDivElement | undefined = $state();
+	let menuBtn: HTMLButtonElement | undefined = $state();
+	let showMenu = $state(false);
+	let menuStyle = $state('');
+
+	function toggleMenu() {
+		if (showMenu) {
+			showMenu = false;
+			return;
+		}
+		if (menuBtn) {
+			const r = menuBtn.getBoundingClientRect();
+			menuStyle = `left:${r.left}px;bottom:${window.innerHeight - r.top + 4}px;`;
+		}
+		showMenu = true;
+	}
 
 	$effect(() => {
 		if (messages.length && container) {
@@ -97,9 +126,34 @@
 		}
 	}
 
-	function askQuick(question: string) {
-		input = question;
-		requestAnimationFrame(() => send());
+	async function askQuick(action: QuickAction) {
+		if (action.type === 'explain') {
+			const q = action.label;
+			const userMsg: Message = { role: 'user', content: q };
+			messages = [...messages, userMsg];
+			loading = true;
+
+			const controller = new AbortController();
+			const timeout = setTimeout(() => controller.abort(), 30000);
+
+			try {
+				const res = await explainAI({ concept: action.concept! }, controller.signal);
+				loading = false;
+				if (isSuccess(res)) {
+					messages = [...messages, { role: 'assistant', content: res.body.explanation }];
+				} else {
+					messages = [...messages, { role: 'assistant', content: 'Disculpá, hubo un error.' }];
+				}
+			} catch {
+				loading = false;
+				messages = [...messages, { role: 'assistant', content: 'La conexión tardó demasiado.' }];
+			} finally {
+				clearTimeout(timeout);
+			}
+		} else {
+			input = action.label;
+			requestAnimationFrame(() => send());
+		}
 	}
 </script>
 
@@ -161,7 +215,11 @@
 			</div>
 		</div>
 
-		<div bind:this={container} class="flex-1 space-y-3 overflow-y-auto scroll-smooth p-4">
+		<div
+			bind:this={container}
+			class="flex-1 space-y-3 overflow-y-auto scroll-smooth p-4"
+			onclick={() => (showMenu = false)}
+		>
 			{#if messages.length === 0}
 				<div class="flex h-full flex-col items-center justify-center text-center">
 					<Bot class="mt-6 mb-3 size-8 text-muted-foreground" />
@@ -176,7 +234,7 @@
 								class="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary hover:text-primary"
 								onclick={() => askQuick(action)}
 							>
-								{action}
+								{action.label}
 							</button>
 						{/each}
 					</div>
@@ -203,8 +261,22 @@
 			{/if}
 		</div>
 
-		<div class="border-t border-border p-3">
-			<div class="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
+		<div class="relative border-t border-border p-3">
+			<div
+				class="flex items-center gap-1.5 rounded-xl border border-border bg-background px-2 py-2"
+			>
+				<div class="relative">
+					<button
+						type="button"
+						bind:this={menuBtn}
+						class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+						onclick={toggleMenu}
+						aria-label="Temas"
+					>
+						<Plus class="size-4" />
+					</button>
+				</div>
+
 				<input
 					type="text"
 					bind:value={input}
@@ -214,7 +286,7 @@
 				/>
 				<button
 					type="button"
-					class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition {loading ||
+					class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition {loading ||
 					!input.trim()
 						? 'text-muted-foreground'
 						: 'bg-primary text-primary-foreground hover:bg-primary/90'}"
@@ -226,5 +298,29 @@
 				</button>
 			</div>
 		</div>
+
+		{#if showMenu}
+			<div
+				class="fixed z-[60] w-56 rounded-lg border border-border bg-card py-1 shadow-xl"
+				style={menuStyle}
+				onclick={() => (showMenu = false)}
+				role="menu"
+			>
+				<div class="flex items-center gap-2 border-b border-border px-3 py-2">
+					<Sparkles class="size-3.5 text-primary" />
+					<span class="text-xs font-semibold text-foreground">Aprender</span>
+				</div>
+				{#each explainTopics as topic}
+					<button
+						type="button"
+						class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+						onclick={() => askQuick(topic)}
+						role="menuitem"
+					>
+						{topic.label}
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</div>
 {/if}

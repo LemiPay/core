@@ -1,6 +1,13 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use tokio::sync::Mutex;
 
 use crate::application::ai::dto::ChatMessage;
+
+const MIN_INTERVAL: std::time::Duration = std::time::Duration::from_secs(1);
+const MAX_RETRIES: u32 = 3;
+const RETRY_DELAYS: [u64; 3] = [5, 15, 30];
 
 #[derive(Debug)]
 pub enum AiProviderError {
@@ -25,6 +32,7 @@ pub struct GeminiProvider {
     client: reqwest::Client,
     model: String,
     base_url: String,
+    last_request: Arc<Mutex<tokio::time::Instant>>,
 }
 
 impl GeminiProvider {
@@ -34,11 +42,45 @@ impl GeminiProvider {
             client: reqwest::Client::new(),
             model,
             base_url,
+            last_request: Arc::new(Mutex::new(
+                tokio::time::Instant::now() - std::time::Duration::from_secs(10),
+            )),
         }
     }
-}
 
-const MAX_RETRIES: u32 = 3;
+    async fn throttle(&self) {
+        let mut last = self.last_request.lock().await;
+        let elapsed = last.elapsed();
+        if elapsed < MIN_INTERVAL {
+            tokio::time::sleep(MIN_INTERVAL - elapsed).await;
+        }
+        *last = tokio::time::Instant::now();
+    }
+
+    fn build_contents(
+        history: &[ChatMessage],
+        context: &str,
+        question: &str,
+    ) -> Vec<serde_json::Value> {
+        let mut contents: Vec<serde_json::Value> = Vec::new();
+        for msg in history {
+            let role = match msg.role.as_str() {
+                "assistant" => "model",
+                _ => "user",
+            };
+            contents.push(serde_json::json!({
+                "role": role,
+                "parts": [{ "text": msg.content }]
+            }));
+        }
+        let current = format!("{}\n\nQuestion: {}", context, question);
+        contents.push(serde_json::json!({
+            "role": "user",
+            "parts": [{ "text": current }]
+        }));
+        contents
+    }
+}
 
 #[async_trait]
 impl AiProvider for GeminiProvider {
@@ -56,35 +98,18 @@ impl AiProvider for GeminiProvider {
             self.api_key
         );
 
-        let mut contents: Vec<serde_json::Value> = Vec::new();
-
-        for msg in history {
-            let role = match msg.role.as_str() {
-                "assistant" => "model",
-                _ => "user",
-            };
-            contents.push(serde_json::json!({
-                "role": role,
-                "parts": [{ "text": msg.content }]
-            }));
-        }
-
-        let current_content = format!("{}\n\nQuestion: {}", context, question);
-        contents.push(serde_json::json!({
-            "role": "user",
-            "parts": [{ "text": current_content }]
-        }));
-
         let body = serde_json::json!({
             "system_instruction": {
                 "parts": [{ "text": system_prompt }]
             },
-            "contents": contents
+            "contents": Self::build_contents(history, context, question)
         });
 
         let mut last_error = AiProviderError::Internal;
 
         for attempt in 0..=MAX_RETRIES {
+            self.throttle().await;
+
             let res = self
                 .client
                 .post(&url)
@@ -108,8 +133,10 @@ impl AiProvider for GeminiProvider {
             let status = res.status();
             if status == 429 && attempt < MAX_RETRIES {
                 last_error = AiProviderError::RateLimited;
-                let delay_secs = 1u64 << attempt;
-                tokio::time::sleep(std::time::Duration::from_secs(delay_secs)).await;
+                tokio::time::sleep(std::time::Duration::from_secs(
+                    RETRY_DELAYS[attempt as usize],
+                ))
+                .await;
                 continue;
             }
 

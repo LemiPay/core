@@ -11,3 +11,11 @@ export interface AskRequest {
 export interface AskResponse {
 	answer: string;
 }
+
+export interface ExplainRequest {
+	concept: string;
+}
+
+export interface ExplainResponse {
+	explanation: string;
+}

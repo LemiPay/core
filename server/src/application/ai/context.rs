@@ -131,6 +131,7 @@ pub fn assistant_system_prompt() -> String {
         "Admins can withdraw matured investments back into the group treasury.\n",
         "\n",
         "--- RULES ---\n",
+        "- First and most important: Always respond in Spanish.\n",
         "- Be concise and friendly. Use the same language as the user's question.\n",
         "- When the user asks about what they owe or are owed, focus on YOUR BALANCE (their personal position).\n",
         "- If the user asks about the group's total money, that's the GROUP BALANCE (treasury).\n",
@@ -148,7 +149,7 @@ pub const EXPLAIN_QUESTION: &str = "Explain this concept to me simply.";
 pub fn explain_system_prompt(concept: &str) -> String {
     let base = "You are Lemi, a helpful guide for Lemipay. \
         Explain concepts in simple, clear terms. Use analogies when helpful. \
-        Be friendly and concise.";
+        Be friendly and concise. Always respond in Spanish.";
 
     let specific = match concept {
         "debt_resolution" => {
