@@ -1,8 +1,9 @@
-use crate::domain::user::UserId;
+use serde::{Deserialize, Serialize};
 
-pub struct AskInput {
-    pub user_id: UserId,
-    pub question: String,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatMessage {
+    pub role: String,
+    pub content: String,
 }
 
 pub struct AskOutput {

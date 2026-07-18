@@ -1,5 +1,7 @@
 use async_trait::async_trait;
 
+use crate::application::ai::dto::ChatMessage;
+
 #[derive(Debug)]
 pub enum AiProviderError {
     ApiError(String),
@@ -14,6 +16,7 @@ pub trait AiProvider: Send + Sync {
         system_prompt: &str,
         context: &str,
         question: &str,
+        history: &[ChatMessage],
     ) -> Result<String, AiProviderError>;
 }
 
@@ -42,6 +45,7 @@ impl AiProvider for GeminiProvider {
         system_prompt: &str,
         context: &str,
         question: &str,
+        history: &[ChatMessage],
     ) -> Result<String, AiProviderError> {
         let url = format!(
             "{}/{}:generateContent?key={}",
@@ -50,15 +54,30 @@ impl AiProvider for GeminiProvider {
             self.api_key
         );
 
-        let content = format!("{}\n\nQuestion: {}", context, question);
+        let mut contents: Vec<serde_json::Value> = Vec::new();
+
+        for msg in history {
+            let role = match msg.role.as_str() {
+                "assistant" => "model",
+                _ => "user",
+            };
+            contents.push(serde_json::json!({
+                "role": role,
+                "parts": [{ "text": msg.content }]
+            }));
+        }
+
+        let current_content = format!("{}\n\nQuestion: {}", context, question);
+        contents.push(serde_json::json!({
+            "role": "user",
+            "parts": [{ "text": current_content }]
+        }));
 
         let body = serde_json::json!({
             "system_instruction": {
                 "parts": [{ "text": system_prompt }]
             },
-            "contents": [
-                { "role": "user", "parts": [{ "text": content }] }
-            ]
+            "contents": contents
         });
 
         let res = self

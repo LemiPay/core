@@ -38,21 +38,22 @@
 		if (!q || loading) return;
 
 		input = '';
-		messages = [...messages, { role: 'user', content: q }];
 		loading = true;
 
+		const userMsg: Message = { role: 'user', content: q };
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), 30000);
 
 		try {
-			const res = await askAI({ question: q }, controller.signal);
+			const res = await askAI({ question: q, history: messages }, controller.signal);
 			loading = false;
 
 			if (isSuccess(res)) {
-				messages = [...messages, { role: 'assistant', content: res.body.answer }];
+				messages = [...messages, userMsg, { role: 'assistant', content: res.body.answer }];
 			} else {
 				messages = [
 					...messages,
+					userMsg,
 					{
 						role: 'assistant',
 						content: 'Disculpá, hubo un error al comunicarme con el servidor. Intentalo de nuevo.'
@@ -63,6 +64,7 @@
 			loading = false;
 			messages = [
 				...messages,
+				userMsg,
 				{
 					role: 'assistant',
 					content: 'La conexión tardó demasiado. Intentalo de nuevo.'

@@ -18,7 +18,7 @@ pub async fn ask(
 
     let answer = state
         .ai_service
-        .ask(&system_prompt, &context, &body.question)
+        .ask(&system_prompt, &context, &body.question, &body.history)
         .await
         .map_err(AppError::from)?;
 

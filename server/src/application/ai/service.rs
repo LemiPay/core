@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::infrastructure::ai::ai_provider::AiProvider;
 
 use super::context;
+use super::dto::ChatMessage;
 use super::error::AiError;
 
 pub struct AiService {
@@ -19,9 +20,10 @@ impl AiService {
         system_prompt: &str,
         context: &str,
         question: &str,
+        history: &[ChatMessage],
     ) -> Result<String, AiError> {
         self.provider
-            .chat(system_prompt, context, question)
+            .chat(system_prompt, context, question, history)
             .await
             .map_err(Into::into)
     }
@@ -29,7 +31,7 @@ impl AiService {
     pub async fn explain(&self, concept: &str) -> Result<String, AiError> {
         let system_prompt = context::explain_system_prompt(concept);
         self.provider
-            .chat(&system_prompt, "", context::EXPLAIN_QUESTION)
+            .chat(&system_prompt, "", context::EXPLAIN_QUESTION, &[])
             .await
             .map_err(Into::into)
     }
