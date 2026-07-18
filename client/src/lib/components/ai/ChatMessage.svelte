@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Bot, User } from 'lucide-svelte';
+	import { User } from 'lucide-svelte';
 	import MarkdownRenderer from './MarkdownRenderer.svelte';
 
 	interface Props {
@@ -11,16 +11,15 @@
 </script>
 
 <div class="flex gap-2.5 {role === 'user' ? 'flex-row-reverse' : ''}">
-	<div
-		class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full {role ===
-		'assistant'
-			? 'bg-primary text-primary-foreground'
-			: 'bg-muted text-muted-foreground'}"
-	>
+	<div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center">
 		{#if role === 'assistant'}
-			<Bot class="size-3.5" />
+			<img src="/LemiGPT.png" alt="Lemi" class="h-full w-full rounded-full object-cover" />
 		{:else}
-			<User class="size-3.5" />
+			<div
+				class="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground"
+			>
+				<User class="size-3.5" />
+			</div>
 		{/if}
 	</div>
 

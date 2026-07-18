@@ -22,7 +22,7 @@
 </script>
 
 <script lang="ts">
-	import { Bot, MessageCircle, Plus, Trash2, X, SendHorizonal, Sparkles } from 'lucide-svelte';
+	import { Bot, Plus, Trash2, X, SendHorizonal, Sparkles } from 'lucide-svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { isSuccess } from '$lib/types/client.types';
 	import { askAI, explainAI } from '$lib/api/endpoints/ai';
@@ -171,15 +171,15 @@
 <button
 	type="button"
 	aria-label={open ? 'Cerrar chat' : 'Abrir chat'}
-	class="fixed right-5 bottom-5 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl ring-4 transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 {open
+	class="fixed right-5 bottom-5 z-50 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full shadow-2xl ring-4 transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 {open
 		? 'bg-muted text-muted-foreground ring-muted/20'
-		: 'bg-primary text-primary-foreground ring-lime-400/10'}"
+		: 'border border-black/15 bg-primary text-primary-foreground ring-lime-400/10'}"
 	onclick={() => (open = !open)}
 >
 	{#if open}
 		<X class="size-6" />
 	{:else}
-		<MessageCircle class="size-6" />
+		<img src="/LemiGPT.png" alt="Lemi" class="h-full w-full object-cover" />
 	{/if}
 </button>
 
