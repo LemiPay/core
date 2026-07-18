@@ -8,7 +8,7 @@
 </script>
 
 <script lang="ts">
-	import { Bot, MessageCircle, X, SendHorizonal, Sparkles } from 'lucide-svelte';
+	import { Bot, MessageCircle, Trash2, X, SendHorizonal, Sparkles } from 'lucide-svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { isSuccess } from '$lib/types/client.types';
 	import { askAI } from '$lib/api/endpoints/ai';
@@ -19,8 +19,22 @@
 		content: string;
 	};
 
+	function loadMessages(): Message[] {
+		try {
+			const stored = localStorage.getItem('lemi-chat');
+			return stored ? JSON.parse(stored) : [];
+		} catch {
+			return [];
+		}
+	}
+
+	function resetChat() {
+		messages = [];
+		localStorage.removeItem('lemi-chat');
+	}
+
 	let open = $state(false);
-	let messages = $state<Message[]>([]);
+	let messages = $state<Message[]>(loadMessages());
 	let input = $state('');
 	let loading = $state(false);
 	let container: HTMLDivElement | undefined = $state();
@@ -33,43 +47,44 @@
 		}
 	});
 
+	$effect(() => {
+		try {
+			localStorage.setItem('lemi-chat', JSON.stringify(messages));
+		} catch {}
+	});
+
 	async function send() {
 		const q = input.trim();
 		if (!q || loading) return;
 
 		input = '';
+		const userMsg: Message = { role: 'user', content: q };
+		const history = messages;
+		messages = [...messages, userMsg];
 		loading = true;
 
-		const userMsg: Message = { role: 'user', content: q };
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), 30000);
 
 		try {
-			const res = await askAI({ question: q, history: messages }, controller.signal);
+			const res = await askAI({ question: q, history }, controller.signal);
 			loading = false;
 
 			if (isSuccess(res)) {
-				messages = [...messages, userMsg, { role: 'assistant', content: res.body.answer }];
+				messages = [...messages, { role: 'assistant', content: res.body.answer }];
 			} else {
-				messages = [
-					...messages,
-					userMsg,
-					{
-						role: 'assistant',
-						content: 'Disculpá, hubo un error al comunicarme con el servidor. Intentalo de nuevo.'
-					}
-				];
+				const errorMsg =
+					res.status === 429
+						? 'Estamos recibiendo muchas consultas. Esperá unos segundos y probá de nuevo.'
+						: 'Disculpá, hubo un error al comunicarme con el servidor. Intentalo de nuevo.';
+				messages = [...messages, { role: 'assistant', content: errorMsg }];
 			}
 		} catch {
 			loading = false;
-			messages = [
-				...messages,
-				userMsg,
-				{
-					role: 'assistant',
-					content: 'La conexión tardó demasiado. Intentalo de nuevo.'
-				}
-			];
+			const msg = controller.signal.aborted
+				? 'La conexión tardó demasiado. Intentalo de nuevo.'
+				: 'Hubo un error inesperado. Intentalo de nuevo.';
+			messages = [...messages, { role: 'assistant', content: msg }];
 		} finally {
 			clearTimeout(timeout);
 		}
@@ -126,14 +141,24 @@
 				<Sparkles class="size-4 text-primary" />
 				<span class="text-sm font-semibold">Lemi — Asistente</span>
 			</div>
-			<button
-				type="button"
-				class="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
-				onclick={() => (open = false)}
-				aria-label="Cerrar"
-			>
-				<X class="size-4" />
-			</button>
+			<div class="flex items-center gap-1">
+				<button
+					type="button"
+					onclick={resetChat}
+					class="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+					aria-label="Resetear chat"
+				>
+					<Trash2 class="size-3.5" />
+				</button>
+				<button
+					type="button"
+					class="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+					onclick={() => (open = false)}
+					aria-label="Cerrar"
+				>
+					<X class="size-4" />
+				</button>
+			</div>
 		</div>
 
 		<div bind:this={container} class="flex-1 space-y-3 overflow-y-auto scroll-smooth p-4">

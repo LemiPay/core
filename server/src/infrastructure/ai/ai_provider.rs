@@ -38,6 +38,8 @@ impl GeminiProvider {
     }
 }
 
+const MAX_RETRIES: u32 = 3;
+
 #[async_trait]
 impl AiProvider for GeminiProvider {
     async fn chat(
@@ -80,16 +82,37 @@ impl AiProvider for GeminiProvider {
             "contents": contents
         });
 
-        let res = self
-            .client
-            .post(&url)
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| AiProviderError::ApiError(e.to_string()))?;
+        let mut last_error = AiProviderError::Internal;
 
-        if !res.status().is_success() {
+        for attempt in 0..=MAX_RETRIES {
+            let res = self
+                .client
+                .post(&url)
+                .json(&body)
+                .send()
+                .await
+                .map_err(|e| AiProviderError::ApiError(e.to_string()))?;
+
+            if res.status().is_success() {
+                let data: serde_json::Value = res
+                    .json()
+                    .await
+                    .map_err(|e| AiProviderError::ApiError(e.to_string()))?;
+
+                return data["candidates"][0]["content"]["parts"][0]["text"]
+                    .as_str()
+                    .ok_or(AiProviderError::Internal)
+                    .map(|s| s.to_string());
+            }
+
             let status = res.status();
+            if status == 429 && attempt < MAX_RETRIES {
+                last_error = AiProviderError::RateLimited;
+                let delay_secs = 1u64 << attempt;
+                tokio::time::sleep(std::time::Duration::from_secs(delay_secs)).await;
+                continue;
+            }
+
             return if status == 429 {
                 Err(AiProviderError::RateLimited)
             } else {
@@ -101,16 +124,6 @@ impl AiProvider for GeminiProvider {
             };
         }
 
-        let data: serde_json::Value = res
-            .json()
-            .await
-            .map_err(|e| AiProviderError::ApiError(e.to_string()))?;
-
-        let text = data["candidates"][0]["content"]["parts"][0]["text"]
-            .as_str()
-            .ok_or(AiProviderError::Internal)?
-            .to_string();
-
-        Ok(text)
+        Err(last_error)
     }
 }
