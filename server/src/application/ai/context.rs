@@ -16,6 +16,7 @@ pub fn assistant_system_prompt() -> String {
         "- When answering about balances, clearly state who owes whom.\n",
         "- If the user asks about actions, list pending proposals, unpaid expenses, and settlement opportunities.\n",
         "- If context data is provided, use it to give personalized answers. If some data is missing, say so.\n",
+        "- For numbers round up to 2 decimals.\n",
         "- Do NOT make up specific numbers — only use the data provided in the context."
     )
     .to_string()

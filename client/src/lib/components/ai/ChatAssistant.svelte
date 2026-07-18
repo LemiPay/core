@@ -25,17 +25,13 @@
 	let loading = $state(false);
 	let container: HTMLDivElement | undefined = $state();
 
-	function scrollToBottom() {
-		$effect(() => {
-			if (messages.length && container) {
-				requestAnimationFrame(() => {
-					container!.scrollTop = container!.scrollHeight;
-				});
-			}
-		});
-	}
-
-	scrollToBottom();
+	$effect(() => {
+		if (messages.length && container) {
+			requestAnimationFrame(() => {
+				container!.scrollTop = container!.scrollHeight;
+			});
+		}
+	});
 
 	async function send() {
 		const q = input.trim();
@@ -45,19 +41,35 @@
 		messages = [...messages, { role: 'user', content: q }];
 		loading = true;
 
-		const res = await askAI({ question: q });
-		loading = false;
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 30000);
 
-		if (isSuccess(res)) {
-			messages = [...messages, { role: 'assistant', content: res.body.answer }];
-		} else {
+		try {
+			const res = await askAI({ question: q }, controller.signal);
+			loading = false;
+
+			if (isSuccess(res)) {
+				messages = [...messages, { role: 'assistant', content: res.body.answer }];
+			} else {
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: 'Disculpá, hubo un error al comunicarme con el servidor. Intentalo de nuevo.'
+					}
+				];
+			}
+		} catch {
+			loading = false;
 			messages = [
 				...messages,
 				{
 					role: 'assistant',
-					content: 'Disculpá, hubo un error al comunicarme con el servidor. Intentalo de nuevo.'
+					content: 'La conexión tardó demasiado. Intentalo de nuevo.'
 				}
 			];
+		} finally {
+			clearTimeout(timeout);
 		}
 	}
 
