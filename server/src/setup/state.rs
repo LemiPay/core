@@ -1,4 +1,5 @@
 use super::config::AppConfig;
+use crate::application::ai::service::AiService;
 use crate::application::permission::PermissionService;
 use crate::application::settlements::service::SettlementsService;
 use crate::application::{
@@ -20,6 +21,7 @@ use std::sync::Arc;
 pub struct AppState {
     pub config: AppConfig,
 
+    pub ai_service: AiService,
     pub auth_service: AuthService,
     pub user_service: UserService,
     pub group_service: GroupService,
