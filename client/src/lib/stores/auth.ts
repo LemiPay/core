@@ -57,11 +57,10 @@ function createAuthStore() {
 			await this.fetchMe();
 		},
 
-		// --- 🚪 Logout ---
-		async logout() {
+		// --- Limpiar sesión local sin redirigir (API caída, 401, etc.) ---
+		clearSession() {
 			localStorage.removeItem('token');
 			token.set(null);
-			await authActions.logout();
 
 			set({
 				token: null,
@@ -69,27 +68,58 @@ function createAuthStore() {
 				user: null,
 				loading: false
 			});
+		},
+
+		// --- 🚪 Logout explícito del usuario ---
+		async logout() {
+			this.clearSession();
+			try {
+				await authActions.logout();
+			} catch (error) {
+				console.error('Wallet logout failed:', error);
+			}
 
 			window.location.href = '/login';
 		},
 
 		// --- 👤 Traer usuario ---
 		async fetchMe() {
-			const response = await me();
+			try {
+				const response = await me();
 
-			if (!isSuccess(response)) {
-				console.error(response.message);
-				this.logout();
-				return;
+				if (!isSuccess(response)) {
+					// Solo invalidar sesión si el token es rechazado.
+					// Si la API está caída (status 0) u otro error de servidor,
+					// no redirigimos ni rompemos rutas públicas.
+					if (response.status === 401) {
+						this.clearSession();
+						return;
+					}
+
+					console.error('fetchMe failed:', response.message);
+					update((s) => ({
+						...s,
+						user: null,
+						loading: false
+					}));
+					return;
+				}
+
+				const user = response.body;
+
+				update((s) => ({
+					...s,
+					user,
+					loading: false
+				}));
+			} catch (error) {
+				console.error('fetchMe error:', error);
+				update((s) => ({
+					...s,
+					user: null,
+					loading: false
+				}));
 			}
-
-			const user = response.body;
-
-			update((s) => ({
-				...s,
-				user,
-				loading: false
-			}));
 		},
 
 		// --- 📦 helpers ---
