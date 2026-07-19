@@ -1,6 +1,7 @@
 use axum::serve;
 use tokio::net::TcpListener;
 
+use server::infrastructure::env;
 use server::setup::app_builder::build_app;
 
 #[tokio::main]
@@ -9,7 +10,7 @@ async fn main() {
 
     // 🚀 Server
     use std::net::SocketAddr;
-    let addr: SocketAddr = "0.0.0.0:3000".parse().unwrap();
+    let addr = env::get_address();
 
     println!("Server running on http://{}", addr);
 
