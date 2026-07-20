@@ -10,7 +10,7 @@
 <a href="/users/{user.user_id}">
 	<div class="group relative flex w-max cursor-pointer justify-center">
 		<CircleUser
-			class="h-6 w-6 text-gray-700 transition-colors hover:text-black"
+			class="h-6 w-6 text-muted-foreground transition-colors hover:text-foreground"
 			strokeWidth={isAdmin ? 2.5 : 2}
 		/>
 

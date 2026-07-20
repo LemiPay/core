@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
 use diesel::{
@@ -8,8 +10,8 @@ use uuid::Uuid;
 use crate::application::{
     common::repo_error::RepoError,
     investment::dto::{
-        ActiveInvestmentDto, InvestmentDetails, InvestmentProposalDetails, InvestmentStrategyDto,
-        SnapshotDto,
+        ActiveInvestmentDto, AllocationDto, AssetPriceDto, HoldingDto, InvestmentDetails,
+        InvestmentProposalDetails, InvestmentStrategyDto, NewHolding, SnapshotDto,
     },
     investment::traits::repository::InvestmentRepository,
 };
@@ -22,9 +24,10 @@ use crate::infrastructure::db::{
             NewProposalModel, ProposalModel, ProposalStatusModel, ProposalStatusUpdateModel,
         },
         investment::{
-            InvestmentMemberModel, InvestmentModel, InvestmentProposalModel, InvestmentStatusModel,
-            InvestmentStrategyModel, NewInvestmentMemberModel, NewInvestmentModel,
-            NewInvestmentProposalModel,
+            AssetModel, InvestmentHoldingModel, InvestmentMemberModel, InvestmentModel,
+            InvestmentProposalModel, InvestmentStatusModel, InvestmentStrategyModel,
+            NewInvestmentHoldingModel, NewInvestmentMemberModel, NewInvestmentModel,
+            NewInvestmentProposalModel, StrategyAllocationModel,
         },
         treasury::{NewTransactionModel, TransactionTypeModel},
     },
@@ -45,14 +48,120 @@ impl DieselInvestmentRepository {
         self.db.get().map_err(|_| RepoError::Connection)
     }
 
+    /// CoinGecko asset page — id comes from `config/coingecko_tickers.toml`.
+    fn price_source_url(_kind: &str, _provider: &str, symbol: &str, external_id: &str) -> String {
+        crate::infrastructure::market_data::TickerMap::global().price_page_url(symbol, external_id)
+    }
+
+    fn load_allocations(
+        conn: &mut DbConn,
+        strategy_id: Uuid,
+    ) -> Result<Vec<AllocationDto>, diesel::result::Error> {
+        let rows = schema::strategy_allocation::table
+            .filter(schema::strategy_allocation::strategy_id.eq(strategy_id))
+            .inner_join(
+                schema::asset::table
+                    .on(schema::strategy_allocation::asset_id.eq(schema::asset::id)),
+            )
+            .select((
+                StrategyAllocationModel::as_select(),
+                AssetModel::as_select(),
+            ))
+            .load::<(StrategyAllocationModel, AssetModel)>(conn)?;
+        Ok(rows
+            .into_iter()
+            .map(|(alloc, asset)| {
+                let price_source_url = Self::price_source_url(
+                    &asset.kind,
+                    &asset.price_provider,
+                    &asset.symbol,
+                    &asset.external_id,
+                );
+                AllocationDto {
+                    asset_id: asset.id,
+                    symbol: asset.symbol,
+                    name: asset.name,
+                    kind: asset.kind,
+                    weight_bps: alloc.weight_bps,
+                    price_provider: asset.price_provider,
+                    external_id: asset.external_id,
+                    price_source_url,
+                }
+            })
+            .collect())
+    }
+
+    fn load_holdings(
+        conn: &mut DbConn,
+        investment_id: Uuid,
+    ) -> Result<Vec<HoldingDto>, diesel::result::Error> {
+        let rows = schema::investment_holding::table
+            .filter(schema::investment_holding::investment_id.eq(investment_id))
+            .inner_join(
+                schema::asset::table.on(schema::investment_holding::asset_id.eq(schema::asset::id)),
+            )
+            .select((InvestmentHoldingModel::as_select(), AssetModel::as_select()))
+            .load::<(InvestmentHoldingModel, AssetModel)>(conn)?;
+        Ok(rows
+            .into_iter()
+            .map(|(h, asset)| {
+                let price_source_url = Self::price_source_url(
+                    &asset.kind,
+                    &asset.price_provider,
+                    &asset.symbol,
+                    &asset.external_id,
+                );
+                let entry_price_usd = if h.units > BigDecimal::from(0) {
+                    Some(&h.cost_basis_usd / &h.units)
+                } else {
+                    None
+                };
+                HoldingDto {
+                    asset_id: asset.id,
+                    symbol: asset.symbol,
+                    name: asset.name,
+                    kind: asset.kind,
+                    units: h.units,
+                    weight_bps_at_entry: h.weight_bps_at_entry,
+                    cost_basis_usd: h.cost_basis_usd,
+                    price_provider: asset.price_provider,
+                    external_id: asset.external_id,
+                    price_source_url,
+                    entry_price_usd,
+                    current_price_usd: None,
+                    current_value_usd: None,
+                }
+            })
+            .collect())
+    }
+
+    fn strategy_to_dto(
+        s: InvestmentStrategyModel,
+        allocations: Vec<AllocationDto>,
+    ) -> InvestmentStrategyDto {
+        InvestmentStrategyDto {
+            id: s.id,
+            name: s.name,
+            description: s.description,
+            risk_level: s.risk_level,
+            expected_return_percentage: s.expected_return_percentage,
+            duration_days: s.duration_days,
+            created_at: s.created_at,
+            valuation_mode: s.valuation_mode,
+            category: s.category,
+            ragequit_fee_bps: s.ragequit_fee_bps,
+            leverage: s.leverage,
+            allocations,
+        }
+    }
+
     fn to_investment_details(
         inv: InvestmentModel,
         group_id: Uuid,
         strategy_id: Uuid,
         currency_id: Uuid,
-        strategy_name: String,
-        risk_level: String,
-        expected_return_percentage: BigDecimal,
+        strategy: &InvestmentStrategyModel,
+        holdings: Vec<HoldingDto>,
     ) -> InvestmentDetails {
         InvestmentDetails {
             id: inv.id,
@@ -68,34 +177,36 @@ impl DieselInvestmentRepository {
             matures_at: inv.matures_at,
             created_at: inv.created_at,
             updated_at: inv.updated_at,
-            strategy_name,
-            risk_level,
-            expected_return_percentage,
+            strategy_name: strategy.name.clone(),
+            risk_level: strategy.risk_level.clone(),
+            expected_return_percentage: strategy.expected_return_percentage.clone(),
+            valuation_mode: strategy.valuation_mode.clone(),
+            category: strategy.category.clone(),
+            ragequit_fee_bps: strategy.ragequit_fee_bps,
+            leverage: strategy.leverage,
+            entry_exposure: inv.entry_exposure,
+            exit_kind: inv.exit_kind,
+            fee_amount: inv.fee_amount,
+            holdings,
         }
     }
 }
 
 impl InvestmentRepository for DieselInvestmentRepository {
-    // ── Strategies ──
-
     fn list_strategies(&self) -> Result<Vec<InvestmentStrategyDto>, RepoError> {
         let mut conn = self.get_conn()?;
         let rows = schema::investment_strategy::table
             .select(InvestmentStrategyModel::as_select())
+            .order_by(schema::investment_strategy::created_at.asc())
             .load::<InvestmentStrategyModel>(&mut conn)
             .map_err(|_| RepoError::Query)?;
-        Ok(rows
-            .into_iter()
-            .map(|s| InvestmentStrategyDto {
-                id: s.id,
-                name: s.name,
-                description: s.description,
-                risk_level: s.risk_level,
-                expected_return_percentage: s.expected_return_percentage,
-                duration_days: s.duration_days,
-                created_at: s.created_at,
-            })
-            .collect())
+        let mut out = Vec::with_capacity(rows.len());
+        for s in rows {
+            let allocations =
+                Self::load_allocations(&mut conn, s.id).map_err(|_| RepoError::Query)?;
+            out.push(Self::strategy_to_dto(s, allocations));
+        }
+        Ok(out)
     }
 
     fn find_strategy(&self, strategy_id: Uuid) -> Result<Option<InvestmentStrategyDto>, RepoError> {
@@ -106,18 +217,40 @@ impl InvestmentRepository for DieselInvestmentRepository {
             .first::<InvestmentStrategyModel>(&mut conn)
             .optional()
             .map_err(|_| RepoError::Query)?;
-        Ok(row.map(|s| InvestmentStrategyDto {
-            id: s.id,
-            name: s.name,
-            description: s.description,
-            risk_level: s.risk_level,
-            expected_return_percentage: s.expected_return_percentage,
-            duration_days: s.duration_days,
-            created_at: s.created_at,
-        }))
+        match row {
+            Some(s) => {
+                let allocations =
+                    Self::load_allocations(&mut conn, s.id).map_err(|_| RepoError::Query)?;
+                Ok(Some(Self::strategy_to_dto(s, allocations)))
+            }
+            None => Ok(None),
+        }
     }
 
-    // ── Investment Proposals ──
+    fn list_strategy_assets_for_pricing(
+        &self,
+        strategy_id: Uuid,
+    ) -> Result<Vec<AssetPriceDto>, RepoError> {
+        let mut conn = self.get_conn()?;
+        let rows = schema::strategy_allocation::table
+            .filter(schema::strategy_allocation::strategy_id.eq(strategy_id))
+            .inner_join(
+                schema::asset::table
+                    .on(schema::strategy_allocation::asset_id.eq(schema::asset::id)),
+            )
+            .select(AssetModel::as_select())
+            .load::<AssetModel>(&mut conn)
+            .map_err(|_| RepoError::Query)?;
+        Ok(rows
+            .into_iter()
+            .map(|a| AssetPriceDto {
+                id: a.id,
+                symbol: a.symbol,
+                price_provider: a.price_provider,
+                external_id: a.external_id,
+            })
+            .collect())
+    }
 
     fn create_investment_proposal(
         &self,
@@ -255,18 +388,18 @@ impl InvestmentRepository for DieselInvestmentRepository {
             .collect())
     }
 
-    // ── Execute Investment ──
-
     fn execute_investment(
         &self,
         proposal_id: Uuid,
         group_id: Uuid,
         _user_id: Uuid,
         amount: BigDecimal,
+        entry_exposure: BigDecimal,
         strategy_id: Uuid,
         currency_id: Uuid,
         matures_at: NaiveDateTime,
-        partipants: Vec<NewInvestmentMember>,
+        participants: Vec<NewInvestmentMember>,
+        holdings: Vec<NewHolding>,
     ) -> Result<InvestmentDetails, RepoError> {
         let mut conn = self.get_conn()?;
         conn.transaction::<InvestmentDetails, diesel::result::Error, _>(|tx| {
@@ -303,24 +436,21 @@ impl InvestmentRepository for DieselInvestmentRepository {
                     id: Uuid::new_v4(),
                     proposal_id,
                     amount: amount.clone(),
-                    current_value: amount.clone(),
+                    current_value: amount.clone(), // equity starts at margin
                     status: InvestmentStatusModel::Active,
                     started_at: now,
                     matures_at,
+                    entry_exposure: entry_exposure.clone(),
                 })
                 .returning(InvestmentModel::as_returning())
                 .get_result::<InvestmentModel>(tx)?;
 
             let strategy = schema::investment_strategy::table
                 .filter(schema::investment_strategy::id.eq(strategy_id))
-                .select((
-                    schema::investment_strategy::name,
-                    schema::investment_strategy::risk_level,
-                    schema::investment_strategy::expected_return_percentage,
-                ))
-                .first::<(String, String, BigDecimal)>(tx)?;
+                .select(InvestmentStrategyModel::as_select())
+                .first::<InvestmentStrategyModel>(tx)?;
 
-            let member_models: Vec<NewInvestmentMemberModel> = partipants
+            let member_models: Vec<NewInvestmentMemberModel> = participants
                 .iter()
                 .map(|p| NewInvestmentMemberModel {
                     investment_id: investment.id,
@@ -337,7 +467,23 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 .values(&member_models)
                 .execute(tx)?;
 
-            for p in &partipants {
+            if !holdings.is_empty() {
+                let holding_models: Vec<NewInvestmentHoldingModel> = holdings
+                    .iter()
+                    .map(|h| NewInvestmentHoldingModel {
+                        investment_id: investment.id,
+                        asset_id: h.asset_id,
+                        units: h.units.clone(),
+                        weight_bps_at_entry: h.weight_bps_at_entry,
+                        cost_basis_usd: h.cost_basis_usd.clone(),
+                    })
+                    .collect();
+                diesel::insert_into(schema::investment_holding::table)
+                    .values(&holding_models)
+                    .execute(tx)?;
+            }
+
+            for p in &participants {
                 diesel::insert_into(schema::transaction::table)
                     .values(&NewTransactionModel {
                         tx_hash: None,
@@ -352,14 +498,15 @@ impl InvestmentRepository for DieselInvestmentRepository {
                     .execute(tx)?;
             }
 
+            let holding_dtos = Self::load_holdings(tx, investment.id)?;
+
             Ok(Self::to_investment_details(
                 investment,
                 group_id,
                 strategy_id,
                 currency_id,
-                strategy.0,
-                strategy.1,
-                strategy.2,
+                &strategy,
+                holding_dtos,
             ))
         })
         .map_err(|_| RepoError::Insert)
@@ -385,24 +532,26 @@ impl InvestmentRepository for DieselInvestmentRepository {
                     schema::investment_proposal::currency_id,
                     schema::investment_proposal::strategy_id,
                     schema::proposal::group_id,
-                    schema::investment_strategy::name,
-                    schema::investment_strategy::risk_level,
-                    schema::investment_strategy::expected_return_percentage,
+                    InvestmentStrategyModel::as_select(),
                 ))
-                .first::<(
-                    InvestmentModel,
-                    Uuid,
-                    Uuid,
-                    Uuid,
-                    String,
-                    String,
-                    BigDecimal,
-                )>(&mut conn)
+                .first::<(InvestmentModel, Uuid, Uuid, Uuid, InvestmentStrategyModel)>(&mut conn)
                 .optional()
                 .map_err(|_| RepoError::Query)?;
-        Ok(row.map(|(inv, currency_id, sid, gid, name, risk, pct)| {
-            Self::to_investment_details(inv, gid, sid, currency_id, name, risk, pct)
-        }))
+        match row {
+            Some((inv, currency_id, sid, gid, strategy)) => {
+                let holdings =
+                    Self::load_holdings(&mut conn, inv.id).map_err(|_| RepoError::Query)?;
+                Ok(Some(Self::to_investment_details(
+                    inv,
+                    gid,
+                    sid,
+                    currency_id,
+                    &strategy,
+                    holdings,
+                )))
+            }
+            None => Ok(None),
+        }
     }
 
     fn list_group_investments(&self, group_id: Uuid) -> Result<Vec<InvestmentDetails>, RepoError> {
@@ -425,26 +574,23 @@ impl InvestmentRepository for DieselInvestmentRepository {
                     schema::investment_proposal::currency_id,
                     schema::investment_proposal::strategy_id,
                     schema::proposal::group_id,
-                    schema::investment_strategy::name,
-                    schema::investment_strategy::risk_level,
-                    schema::investment_strategy::expected_return_percentage,
+                    InvestmentStrategyModel::as_select(),
                 ))
-                .load::<(
-                    InvestmentModel,
-                    Uuid,
-                    Uuid,
-                    Uuid,
-                    String,
-                    String,
-                    BigDecimal,
-                )>(&mut conn)
+                .load::<(InvestmentModel, Uuid, Uuid, Uuid, InvestmentStrategyModel)>(&mut conn)
                 .map_err(|_| RepoError::Query)?;
-        Ok(rows
-            .into_iter()
-            .map(|(inv, currency_id, sid, gid, name, risk, pct)| {
-                Self::to_investment_details(inv, gid, sid, currency_id, name, risk, pct)
-            })
-            .collect())
+        let mut out = Vec::with_capacity(rows.len());
+        for (inv, currency_id, sid, gid, strategy) in rows {
+            let holdings = Self::load_holdings(&mut conn, inv.id).map_err(|_| RepoError::Query)?;
+            out.push(Self::to_investment_details(
+                inv,
+                gid,
+                sid,
+                currency_id,
+                &strategy,
+                holdings,
+            ));
+        }
+        Ok(out)
     }
 
     fn withdraw_investment(
@@ -452,6 +598,10 @@ impl InvestmentRepository for DieselInvestmentRepository {
         investment_id: Uuid,
         group_id: Uuid,
         _user_id: Uuid,
+        payout: BigDecimal,
+        actual_return: BigDecimal,
+        exit_kind: &str,
+        fee_amount: BigDecimal,
     ) -> Result<InvestmentDetails, RepoError> {
         let mut conn = self.get_conn()?;
         conn.transaction::<InvestmentDetails, diesel::result::Error, _>(|tx| {
@@ -471,7 +621,6 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 .select(InvestmentProposalModel::as_select())
                 .first::<InvestmentProposalModel>(tx)?;
 
-            let total_return = inv.amount.clone() + inv.actual_return.clone().unwrap_or_default();
             let hundred = BigDecimal::from(100);
 
             diesel::update(
@@ -480,7 +629,7 @@ impl InvestmentRepository for DieselInvestmentRepository {
                     .filter(schema::group_wallet::currency_id.eq(ip.currency_id)),
             )
             .set((
-                schema::group_wallet::balance.eq(schema::group_wallet::balance + &total_return),
+                schema::group_wallet::balance.eq(schema::group_wallet::balance + &payout),
                 schema::group_wallet::updated_at.eq(chrono::Utc::now().naive_utc()),
             ))
             .execute(tx)?;
@@ -497,9 +646,14 @@ impl InvestmentRepository for DieselInvestmentRepository {
                 .load::<InvestmentMemberModel>(tx)?;
 
             let now = chrono::Utc::now().naive_utc();
+            let desc = if exit_kind == "ragequit" {
+                "Investment ragequit return"
+            } else {
+                "Investment return"
+            };
 
             for member in &members {
-                let member_return = total_return.clone() * &member.participation_pct / &hundred;
+                let member_return = payout.clone() * &member.participation_pct / &hundred;
 
                 diesel::insert_into(schema::transaction::table)
                     .values(&NewTransactionModel {
@@ -509,7 +663,7 @@ impl InvestmentRepository for DieselInvestmentRepository {
                         group_id: proposal.group_id,
                         currency_id: ip.currency_id,
                         address: group_wallet_address.clone(),
-                        description: Some("Investment return".into()),
+                        description: Some(desc.into()),
                         tx_type: TransactionTypeModel::from(TransactionType::Deposit),
                     })
                     .execute(tx)?;
@@ -530,6 +684,10 @@ impl InvestmentRepository for DieselInvestmentRepository {
             )
             .set((
                 schema::investment::status.eq(InvestmentStatusModel::Withdrawn),
+                schema::investment::actual_return.eq(&actual_return),
+                schema::investment::current_value.eq(&payout + &fee_amount),
+                schema::investment::exit_kind.eq(exit_kind),
+                schema::investment::fee_amount.eq(&fee_amount),
                 schema::investment::updated_at.eq(now),
             ))
             .returning(InvestmentModel::as_returning())
@@ -537,21 +695,18 @@ impl InvestmentRepository for DieselInvestmentRepository {
 
             let strategy = schema::investment_strategy::table
                 .filter(schema::investment_strategy::id.eq(ip.strategy_id))
-                .select((
-                    schema::investment_strategy::name,
-                    schema::investment_strategy::risk_level,
-                    schema::investment_strategy::expected_return_percentage,
-                ))
-                .first::<(String, String, BigDecimal)>(tx)?;
+                .select(InvestmentStrategyModel::as_select())
+                .first::<InvestmentStrategyModel>(tx)?;
+
+            let holdings = Self::load_holdings(tx, investment.id)?;
 
             Ok(Self::to_investment_details(
                 investment,
                 proposal.group_id,
                 ip.strategy_id,
                 ip.currency_id,
-                strategy.0,
-                strategy.1,
-                strategy.2,
+                &strategy,
+                holdings,
             ))
         })
         .map_err(|_| RepoError::Insert)
@@ -578,8 +733,6 @@ impl InvestmentRepository for DieselInvestmentRepository {
             .collect())
     }
 
-    // ── Pulse ──
-
     fn list_active_with_strategy(&self) -> Result<Vec<ActiveInvestmentDto>, RepoError> {
         let mut conn = self.get_conn()?;
         let rows =
@@ -599,24 +752,83 @@ impl InvestmentRepository for DieselInvestmentRepository {
                     schema::investment::id,
                     schema::proposal::group_id,
                     schema::investment::amount,
+                    schema::investment::entry_exposure,
                     schema::investment_strategy::expected_return_percentage,
                     schema::investment_strategy::risk_level,
                     schema::investment_strategy::duration_days,
+                    schema::investment_strategy::valuation_mode,
+                    schema::investment_strategy::id,
+                    schema::investment_strategy::leverage,
                 ))
-                .load::<(Uuid, Uuid, BigDecimal, BigDecimal, String, i32)>(&mut conn)
+                .load::<(
+                    Uuid,
+                    Uuid,
+                    BigDecimal,
+                    BigDecimal,
+                    BigDecimal,
+                    String,
+                    i32,
+                    String,
+                    Uuid,
+                    i32,
+                )>(&mut conn)
                 .map_err(|_| RepoError::Query)?;
         Ok(rows
             .into_iter()
             .map(
-                |(id, group_id, amount, pct, risk, days)| ActiveInvestmentDto {
+                |(
                     id,
                     group_id,
                     amount,
+                    entry_exposure,
+                    pct,
+                    risk,
+                    days,
+                    mode,
+                    strategy_id,
+                    leverage,
+                )| ActiveInvestmentDto {
+                    id,
+                    group_id,
+                    amount,
+                    entry_exposure,
                     expected_return_percentage: pct,
                     risk_level: risk,
                     duration_days: days,
+                    valuation_mode: mode,
+                    strategy_id,
+                    leverage,
                 },
             )
+            .collect())
+    }
+
+    fn list_holdings_for_pricing(
+        &self,
+        investment_id: Uuid,
+    ) -> Result<Vec<(AssetPriceDto, BigDecimal)>, RepoError> {
+        let mut conn = self.get_conn()?;
+        let rows = schema::investment_holding::table
+            .filter(schema::investment_holding::investment_id.eq(investment_id))
+            .inner_join(
+                schema::asset::table.on(schema::investment_holding::asset_id.eq(schema::asset::id)),
+            )
+            .select((AssetModel::as_select(), schema::investment_holding::units))
+            .load::<(AssetModel, BigDecimal)>(&mut conn)
+            .map_err(|_| RepoError::Query)?;
+        Ok(rows
+            .into_iter()
+            .map(|(a, units)| {
+                (
+                    AssetPriceDto {
+                        id: a.id,
+                        symbol: a.symbol,
+                        price_provider: a.price_provider,
+                        external_id: a.external_id,
+                    },
+                    units,
+                )
+            })
             .collect())
     }
 
@@ -666,6 +878,29 @@ impl InvestmentRepository for DieselInvestmentRepository {
         Ok(())
     }
 
+    fn liquidate_investment(
+        &self,
+        investment_id: Uuid,
+        margin: BigDecimal,
+        now: NaiveDateTime,
+    ) -> Result<(), RepoError> {
+        use bigdecimal::Zero;
+        let mut conn = self.get_conn()?;
+        let loss = BigDecimal::zero() - margin;
+        diesel::update(schema::investment::table.filter(schema::investment::id.eq(investment_id)))
+            .set((
+                schema::investment::status.eq(InvestmentStatusModel::Liquidated),
+                schema::investment::current_value.eq(BigDecimal::zero()),
+                schema::investment::actual_return.eq(&loss),
+                schema::investment::exit_kind.eq("liquidation"),
+                schema::investment::fee_amount.eq(BigDecimal::zero()),
+                schema::investment::updated_at.eq(now),
+            ))
+            .execute(&mut conn)
+            .map_err(|_| RepoError::Query)?;
+        Ok(())
+    }
+
     fn insert_snapshot(
         &self,
         investment_id: Uuid,
@@ -685,4 +920,169 @@ impl InvestmentRepository for DieselInvestmentRepository {
             .map_err(|_| RepoError::Insert)?;
         Ok(())
     }
+}
+
+/// Sync strategy catalog from `config/investment_strategies.toml` into Postgres.
+/// Safe to call on every startup; upserts by id or name and rebuilds allocations.
+pub fn sync_strategies_from_config(pool: &DbPool) -> Result<usize, String> {
+    use crate::infrastructure::market_data::TickerMap;
+    use crate::infrastructure::market_data::strategies_config::{
+        asset_kind_for_symbol, asset_name_for_symbol, load_strategy_definitions,
+    };
+    use diesel::prelude::*;
+
+    let (defs, path) = load_strategy_definitions()?;
+    if defs.is_empty() {
+        return Ok(0);
+    }
+
+    let mut conn = pool.get().map_err(|_| "db connection failed".to_string())?;
+    let tickers = TickerMap::global();
+    let mut synced = 0usize;
+
+    for def in &defs {
+        let strategy_id = conn
+            .transaction::<Uuid, diesel::result::Error, _>(|tx| {
+                // 1) Ensure assets for allocation symbols
+                let mut symbol_to_asset: HashMap<String, Uuid> = HashMap::new();
+                for (sym, _) in &def.allocation {
+                    let existing = schema::asset::table
+                        .filter(schema::asset::symbol.eq(sym))
+                        .select(schema::asset::id)
+                        .first::<Uuid>(tx)
+                        .optional()?;
+
+                    let asset_id = if let Some(id) = existing {
+                        let ext = tickers
+                            .coingecko_id(sym)
+                            .unwrap_or(sym.as_str())
+                            .to_string();
+                        diesel::update(schema::asset::table.filter(schema::asset::id.eq(id)))
+                            .set((
+                                schema::asset::name.eq(asset_name_for_symbol(sym)),
+                                schema::asset::kind.eq(asset_kind_for_symbol(sym)),
+                                schema::asset::price_provider.eq("coingecko"),
+                                schema::asset::external_id.eq(ext),
+                                schema::asset::is_active.eq(true),
+                            ))
+                            .execute(tx)?;
+                        id
+                    } else {
+                        let id = Uuid::new_v4();
+                        let ext = tickers
+                            .coingecko_id(sym)
+                            .unwrap_or(sym.as_str())
+                            .to_string();
+                        diesel::insert_into(schema::asset::table)
+                            .values((
+                                schema::asset::id.eq(id),
+                                schema::asset::symbol.eq(sym.as_str()),
+                                schema::asset::name.eq(asset_name_for_symbol(sym)),
+                                schema::asset::kind.eq(asset_kind_for_symbol(sym)),
+                                schema::asset::price_provider.eq("coingecko"),
+                                schema::asset::external_id.eq(ext),
+                                schema::asset::is_active.eq(true),
+                            ))
+                            .execute(tx)?;
+                        id
+                    };
+                    symbol_to_asset.insert(sym.clone(), asset_id);
+                }
+
+                // 2) Find existing strategy by id, else by name
+                let mut existing_id: Option<Uuid> = None;
+                if let Some(id) = def.id {
+                    existing_id = schema::investment_strategy::table
+                        .filter(schema::investment_strategy::id.eq(id))
+                        .select(schema::investment_strategy::id)
+                        .first::<Uuid>(tx)
+                        .optional()?;
+                }
+                if existing_id.is_none() {
+                    existing_id = schema::investment_strategy::table
+                        .filter(schema::investment_strategy::name.eq(&def.name))
+                        .select(schema::investment_strategy::id)
+                        .first::<Uuid>(tx)
+                        .optional()?;
+                }
+
+                let strategy_id = if let Some(id) = existing_id {
+                    diesel::update(
+                        schema::investment_strategy::table
+                            .filter(schema::investment_strategy::id.eq(id)),
+                    )
+                    .set((
+                        schema::investment_strategy::name.eq(&def.name),
+                        schema::investment_strategy::description.eq(&def.description),
+                        schema::investment_strategy::risk_level.eq(&def.risk_level),
+                        schema::investment_strategy::expected_return_percentage
+                            .eq(&def.expected_return_percentage),
+                        schema::investment_strategy::duration_days.eq(def.duration_days),
+                        schema::investment_strategy::valuation_mode.eq(&def.valuation_mode),
+                        schema::investment_strategy::category.eq(&def.category),
+                        schema::investment_strategy::ragequit_fee_bps.eq(def.ragequit_fee_bps),
+                        schema::investment_strategy::leverage.eq(def.leverage),
+                    ))
+                    .execute(tx)?;
+                    id
+                } else {
+                    let id = def.id.unwrap_or_else(Uuid::new_v4);
+                    diesel::insert_into(schema::investment_strategy::table)
+                        .values((
+                            schema::investment_strategy::id.eq(id),
+                            schema::investment_strategy::name.eq(&def.name),
+                            schema::investment_strategy::description.eq(&def.description),
+                            schema::investment_strategy::risk_level.eq(&def.risk_level),
+                            schema::investment_strategy::expected_return_percentage
+                                .eq(&def.expected_return_percentage),
+                            schema::investment_strategy::duration_days.eq(def.duration_days),
+                            schema::investment_strategy::valuation_mode.eq(&def.valuation_mode),
+                            schema::investment_strategy::category.eq(&def.category),
+                            schema::investment_strategy::ragequit_fee_bps.eq(def.ragequit_fee_bps),
+                            schema::investment_strategy::leverage.eq(def.leverage),
+                        ))
+                        .execute(tx)?;
+                    id
+                };
+
+                // 3) Rebuild allocations for MTM (clear always so simulated has none)
+                diesel::delete(
+                    schema::strategy_allocation::table
+                        .filter(schema::strategy_allocation::strategy_id.eq(strategy_id)),
+                )
+                .execute(tx)?;
+
+                if def.valuation_mode == "mark_to_market" {
+                    for (sym, weight) in &def.allocation {
+                        let asset_id = symbol_to_asset
+                            .get(sym)
+                            .copied()
+                            .expect("asset ensured above");
+                        diesel::insert_into(schema::strategy_allocation::table)
+                            .values((
+                                schema::strategy_allocation::strategy_id.eq(strategy_id),
+                                schema::strategy_allocation::asset_id.eq(asset_id),
+                                schema::strategy_allocation::weight_bps.eq(weight),
+                            ))
+                            .execute(tx)?;
+                    }
+                }
+
+                Ok(strategy_id)
+            })
+            .map_err(|e| format!("sync strategy '{}': {e:?}", def.name))?;
+
+        let _ = strategy_id;
+        synced += 1;
+    }
+
+    if let Some(p) = path {
+        println!(
+            "Investment strategies: synced {synced} strategies from {}",
+            p.display()
+        );
+    } else {
+        println!("Investment strategies: synced {synced} strategies");
+    }
+    Ok(synced)
 }

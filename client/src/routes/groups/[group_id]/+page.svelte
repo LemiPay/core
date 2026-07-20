@@ -216,7 +216,7 @@
 				<div class="flex items-center gap-1 self-start">
 					<a
 						href={`/groups/${groupId}/investments`}
-						class="inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 hover:text-emerald-800"
+						class="inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300 dark:hover:bg-emerald-400/20 dark:hover:text-emerald-200"
 					>
 						<TrendingUp class="h-4 w-4" />
 						Inversiones
@@ -233,7 +233,7 @@
 					{#if !groupState.readonly}
 						<button
 							onclick={() => (showConfirmDebtResolution = true)}
-							class="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 transition hover:bg-amber-100 hover:text-amber-800"
+							class="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 transition hover:bg-amber-100 hover:text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300 dark:hover:bg-amber-400/20 dark:hover:text-amber-200"
 							title="Iniciar resolución de deudas"
 						>
 							<ShieldAlert class="h-4 w-4" />
