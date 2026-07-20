@@ -8,10 +8,10 @@ use super::router::create_router;
 use crate::setup::{
     builders::{
         auth::build_auth_service, balances::build_balances_service, email::build_email_service,
-        expense::build_expense_service, governance::build_governance_service,
-        group::build_group_service, investment::build_investment_service,
-        permission::build_permission_service, treasury::build_treasury_service,
-        users::build_user_service,
+        expense::build_expense_service, friend::build_friend_service,
+        governance::build_governance_service, group::build_group_service,
+        investment::build_investment_service, permission::build_permission_service,
+        treasury::build_treasury_service, users::build_user_service,
     },
     state::AppState,
 };
@@ -33,6 +33,7 @@ use crate::{
             repositories::{
                 auth_repo_impl::DieselAuthRepository, currency_repo_impl::DieselCurrencyRepository,
                 expense_repo_impl::DieselExpenseRepository,
+                friend_repo_impl::DieselFriendRepository,
                 fund_event_repo_impl::DieselFundEventRepository,
                 governance_repo_impl::DieselGovernanceRepository,
                 group_repo_impl::DieselGroupRepository,
@@ -73,6 +74,7 @@ pub fn build_app() -> Router {
     let currency_repo = Arc::new(DieselCurrencyRepository::new(pool.clone()));
     let governance_repo = Arc::new(DieselGovernanceRepository::new(pool.clone()));
     let expense_repo = Arc::new(DieselExpenseRepository::new(pool.clone()));
+    let friend_repo = Arc::new(DieselFriendRepository::new(pool.clone()));
     let investment_repo = Arc::new(DieselInvestmentRepository::new(pool.clone()));
 
     // Sync strategies + baskets from config/investment_strategies.toml
@@ -121,6 +123,7 @@ pub fn build_app() -> Router {
         group_wallet_repo.clone(),
     );
     let expense_service = build_expense_service(group_repo.clone(), expense_repo.clone());
+    let friend_service = build_friend_service(friend_repo.clone());
     let balances_service =
         build_balances_service(transaction_repo.clone(), group_repo.clone(), expense_repo);
 
@@ -177,6 +180,7 @@ pub fn build_app() -> Router {
         treasury_service,
         governance_service,
         expense_service,
+        friend_service,
         balances_service,
         settlements_service,
         investment_service,

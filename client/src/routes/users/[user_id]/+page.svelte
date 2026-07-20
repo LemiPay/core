@@ -3,9 +3,28 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
-	import { ArrowLeft, Mail, User as UserIcon, Hash, UserPlus, ShieldCheck } from 'lucide-svelte';
+	import {
+		ArrowLeft,
+		Mail,
+		User as UserIcon,
+		Hash,
+		UserPlus,
+		UserCheck,
+		Clock,
+		ShieldCheck
+	} from 'lucide-svelte';
 	import { userInfo } from '$lib/api/auth';
 	import { fly, fade, scale } from 'svelte/transition';
+	import {
+		getFriends,
+		getReceivedRequests,
+		getSentRequests,
+		sendFriendRequest,
+		respondToFriendRequest,
+		unfriend
+	} from '$lib/api/endpoints/friends';
+	import { isSuccess } from '$lib/types/client.types';
+	import type { FriendResponse } from '$lib/types/endpoints/friends.types';
 
 	type UserSummary = {
 		id: string;
@@ -13,11 +32,16 @@
 		email: string;
 	};
 
+	type FriendRelation = 'none' | 'friend' | 'sent' | 'received' | 'self';
+
 	const userId = $derived(page.params.user_id);
 
 	let isLoading = $state(true);
 	let error = $state('');
 	let user = $state<UserSummary | null>(null);
+	let relation = $state<FriendRelation>('none');
+	let friendActionLoading = $state(false);
+	let friendError = $state('');
 
 	const initials = $derived(
 		(user?.name ?? '')
@@ -28,6 +52,117 @@
 			.map((part) => part[0]?.toUpperCase() ?? '')
 			.join('') || '?'
 	);
+
+	const friendButton = $derived.by(() => {
+		if (!user) return null;
+		switch (relation) {
+			case 'friend':
+				return {
+					icon: UserCheck,
+					label: 'Amigos',
+					action: 'unfriend' as const,
+					variant: 'secondary' as const
+				};
+			case 'sent':
+				return {
+					icon: Clock,
+					label: 'Solicitud enviada',
+					action: 'cancel' as const,
+					variant: 'secondary' as const
+				};
+			case 'received':
+				return {
+					icon: UserPlus,
+					label: 'Aceptar solicitud',
+					action: 'accept' as const,
+					variant: 'primary' as const
+				};
+			case 'none':
+				return {
+					icon: UserPlus,
+					label: 'Agregar amigo',
+					action: 'send' as const,
+					variant: 'primary' as const
+				};
+			default:
+				return null;
+		}
+	});
+
+	async function loadFriendRelation(targetUserId: string) {
+		const [friendsRes, receivedRes, sentRes] = await Promise.all([
+			getFriends(),
+			getReceivedRequests(),
+			getSentRequests()
+		]);
+
+		if (
+			isSuccess(friendsRes) &&
+			friendsRes.body.some((f: FriendResponse) => f.user_id === targetUserId)
+		) {
+			relation = 'friend';
+		} else if (
+			isSuccess(receivedRes) &&
+			receivedRes.body.some((f: FriendResponse) => f.user_id === targetUserId)
+		) {
+			relation = 'received';
+		} else if (
+			isSuccess(sentRes) &&
+			sentRes.body.some((f: FriendResponse) => f.user_id === targetUserId)
+		) {
+			relation = 'sent';
+		} else {
+			relation = 'none';
+		}
+	}
+
+	async function handleFriendAction() {
+		if (!user) return;
+		friendActionLoading = true;
+		friendError = '';
+
+		try {
+			let res;
+			switch (relation) {
+				case 'none':
+					res = await sendFriendRequest(user.id);
+					if (isSuccess(res)) {
+						relation = 'sent';
+					} else {
+						friendError = res.message;
+					}
+					break;
+				case 'received':
+					res = await respondToFriendRequest(user.id, 'accept');
+					if (isSuccess(res)) {
+						relation = 'friend';
+					} else {
+						friendError = res.message;
+					}
+					break;
+				case 'sent':
+					res = await unfriend(user.id);
+					if (isSuccess(res)) {
+						relation = 'none';
+					} else {
+						friendError = res.message;
+					}
+					break;
+				case 'friend':
+					res = await unfriend(user.id);
+					if (isSuccess(res)) {
+						relation = 'none';
+					} else {
+						friendError = res.message;
+					}
+					break;
+			}
+		} catch {
+			friendError = 'Error inesperado';
+		}
+
+		friendActionLoading = false;
+	}
 
 	function goBack() {
 		if (typeof history !== 'undefined' && history.length > 1) {
@@ -59,6 +194,7 @@
 		}
 
 		user = response.body;
+		loadFriendRelation(userId);
 		isLoading = false;
 	});
 </script>
@@ -68,13 +204,11 @@
 </svelte:head>
 
 <div class="min-h-screen bg-background text-foreground">
-	<!-- Ambient blobs (más sutiles para vista de perfil) -->
 	<div
 		class="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_-20%,rgba(168,85,247,0.15),transparent_45%)]"
 	></div>
 
 	<div class="mx-auto w-full max-w-2xl px-4 pt-24 pb-16 sm:px-6">
-		<!-- Back button -->
 		<div in:fly={{ y: -8, duration: 280 }}>
 			<button
 				onclick={goBack}
@@ -89,7 +223,6 @@
 			</button>
 		</div>
 
-		<!-- Loading skeleton -->
 		{#if isLoading}
 			<div
 				class="overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-xl"
@@ -104,8 +237,6 @@
 					<div class="mt-2 h-4 w-32 animate-pulse rounded-lg bg-muted"></div>
 				</div>
 			</div>
-
-			<!-- Error state -->
 		{:else if error}
 			<div
 				class="rounded-[2rem] border border-rose-200 bg-rose-50 p-10 text-center dark:border-rose-900/30 dark:bg-rose-900/10"
@@ -121,32 +252,60 @@
 				</h2>
 				<p class="mt-2 text-sm text-rose-600/80 dark:text-rose-400/80">{error}</p>
 			</div>
-
-			<!-- User profile -->
 		{:else if user}
 			<div in:fly={{ y: 14, duration: 400 }} class="space-y-6">
-				<!-- Tarjeta Principal (Hero Cover) -->
 				<section
 					class="relative overflow-hidden rounded-[2rem] border border-border/80 bg-card shadow-xl shadow-black/5 dark:shadow-none"
 				>
-					<!-- Banner Header -->
 					<div
 						class="h-32 w-full bg-linear-to-r from-violet-500/20 via-sky-400/20 to-lime-500/20 dark:from-violet-500/10 dark:via-sky-400/10 dark:to-lime-500/10"
 					></div>
 
-					<!-- Floating Action: Add Friend (Top Right) -->
-					<div class="absolute top-4 right-4 sm:top-6 sm:right-6">
-						<button
-							title="Enviar solicitud de amistad"
-							aria-label="Agregar amigo"
-							class="group flex size-11 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur-md transition hover:scale-105 hover:bg-foreground hover:text-background focus:ring-2 focus:ring-ring focus:outline-none"
-						>
-							<UserPlus class="size-5 transition-transform group-hover:rotate-6" />
-						</button>
-					</div>
+					{#if friendButton}
+						<div class="absolute top-4 right-4 sm:top-6 sm:right-6">
+							<button
+								title={friendButton.label}
+								aria-label={friendButton.label}
+								disabled={friendActionLoading}
+								onclick={handleFriendAction}
+								class="group flex size-11 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur-md transition hover:scale-105 hover:bg-foreground hover:text-background focus:ring-2 focus:ring-ring focus:outline-none disabled:opacity-50"
+							>
+								{#if friendActionLoading}
+									<svg class="size-5 animate-spin" viewBox="0 0 24 24" fill="none">
+										<circle
+											class="opacity-25"
+											cx="12"
+											cy="12"
+											r="10"
+											stroke="currentColor"
+											stroke-width="4"
+										/>
+										<path
+											class="opacity-75"
+											fill="currentColor"
+											d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+										/>
+									</svg>
+								{:else if friendButton.icon === UserPlus}
+									<UserPlus class="size-5 transition-transform group-hover:rotate-6" />
+								{:else if friendButton.icon === UserCheck}
+									<UserCheck class="size-5 transition-transform group-hover:rotate-6" />
+								{:else if friendButton.icon === Clock}
+									<Clock class="size-5 transition-transform group-hover:rotate-6" />
+								{/if}
+							</button>
+						</div>
+					{/if}
+
+					{#if friendError}
+						<div class="absolute top-16 right-4 sm:top-20 sm:right-6">
+							<span class="rounded-full bg-red-50 px-2 py-1 text-xs text-red-500 dark:bg-red-900/20"
+								>{friendError}</span
+							>
+						</div>
+					{/if}
 
 					<div class="px-6 pt-0 pb-8 sm:px-10">
-						<!-- Avatar Overlapping -->
 						<div class="flex items-end gap-5">
 							<div
 								class="-mt-14 flex size-28 shrink-0 items-center justify-center rounded-full border-[6px] border-card bg-linear-to-br from-violet-200 to-lime-200 text-4xl font-bold text-violet-800 shadow-md select-none dark:from-violet-400/30 dark:to-lime-400/20 dark:text-violet-200"
@@ -155,20 +314,24 @@
 							</div>
 						</div>
 
-						<!-- Identidad -->
 						<div class="mt-4">
 							<h1 class="text-3xl font-bold tracking-tight">{user.name}</h1>
-							<div class="mt-1 flex items-center gap-2 text-muted-foreground">
-								<ShieldCheck class="size-4 text-emerald-500" />
-								<span class="text-sm font-medium">Cuenta LemiPay Verificada</span>
-							</div>
+							{#if relation === 'friend'}
+								<div class="mt-1 flex items-center gap-2 text-emerald-500">
+									<UserCheck class="size-4" />
+									<span class="text-sm font-medium">Amigos</span>
+								</div>
+							{:else}
+								<div class="mt-1 flex items-center gap-2 text-muted-foreground">
+									<ShieldCheck class="size-4 text-emerald-500" />
+									<span class="text-sm font-medium">Cuenta LemiPay Verificada</span>
+								</div>
+							{/if}
 						</div>
 					</div>
 				</section>
 
-				<!-- Bloques de Información -->
 				<section class="grid gap-4 sm:grid-cols-2" in:fly={{ y: 10, duration: 360, delay: 80 }}>
-					<!-- Email Card -->
 					<div
 						class="group flex items-center gap-4 rounded-3xl border border-border/60 bg-card/50 p-5 backdrop-blur transition hover:border-border hover:bg-muted/50"
 					>
@@ -183,7 +346,6 @@
 						</div>
 					</div>
 
-					<!-- ID Card -->
 					<div
 						class="group flex items-center gap-4 rounded-3xl border border-border/60 bg-card/50 p-5 backdrop-blur transition hover:border-border hover:bg-muted/50"
 					>
@@ -201,8 +363,6 @@
 					</div>
 				</section>
 			</div>
-
-			<!-- Fallback -->
 		{:else}
 			<div class="rounded-[2rem] border border-dashed border-border bg-card p-12 text-center">
 				<div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-muted">

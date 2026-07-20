@@ -11,5 +11,5 @@ INSERT INTO blockchain_sync_state (sync_key,
                                    last_processed_block)
 
 VALUES ('lemipay_vault',
-        11023360)
+        11313700)
 ON CONFLICT (sync_key) DO NOTHING;

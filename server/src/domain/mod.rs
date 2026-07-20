@@ -1,6 +1,7 @@
 pub mod balances;
 pub mod common;
 pub mod expense;
+pub mod friend;
 pub mod governance;
 pub mod group;
 pub mod investment;

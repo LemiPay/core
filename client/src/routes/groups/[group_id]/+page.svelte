@@ -381,7 +381,9 @@
 			group_id={groupState.groupData.id}
 			open={showNewMemberModal}
 			onclose={() => (showNewMemberModal = false)}
-			onsuccess={() => groupState.loadMembersData()}
+			onsuccess={() => {
+				void groupState.loadMembersData();
+			}}
 		/>
 		<CreateGroupWallet
 			open={showCreateWalletModal}
