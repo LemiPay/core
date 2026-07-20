@@ -7,8 +7,8 @@ use super::router::create_router;
 
 use crate::setup::{
     builders::{
-        auth::build_auth_service, balances::build_balances_service, email::build_email_service,
-        expense::build_expense_service, friend::build_friend_service,
+        ai::build_ai_service, auth::build_auth_service, balances::build_balances_service,
+        email::build_email_service, expense::build_expense_service, friend::build_friend_service,
         governance::build_governance_service, group::build_group_service,
         investment::build_investment_service, permission::build_permission_service,
         treasury::build_treasury_service, users::build_user_service,
@@ -18,6 +18,7 @@ use crate::setup::{
 
 use crate::application::notifications::NotificationService;
 use crate::domain::group::GroupId;
+use crate::infrastructure::ai::config::AiConfig;
 use crate::infrastructure::auth::web_3_auth::Web3Auth;
 use crate::infrastructure::notification::db_persistent_service::DbPersistentNotificationService;
 use crate::setup::builders::settlements::build_settlements_service;
@@ -167,6 +168,9 @@ pub fn build_app() -> Router {
         user_repo: user_repo.clone(),
     };
 
+    let ai_config = AiConfig::from_env();
+    let ai_service = build_ai_service(ai_config);
+
     // -------------------------
     // 5. State
     // -------------------------
@@ -174,6 +178,7 @@ pub fn build_app() -> Router {
         config: app_config,
 
         // Services:
+        ai_service,
         auth_service,
         user_service,
         group_service,
