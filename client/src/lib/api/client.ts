@@ -1,79 +1,107 @@
+import { env } from '$env/dynamic/public';
 import { token } from '$lib/stores/token';
 import type { ApiResponse } from '$lib/types/client.types';
 
-const API_URL = 'http://localhost:3000';
+const DEFAULT_API_URL = 'http://localhost:3000';
 
-export async function apiFetch<T>(path: string, options: RequestInit = {}): ApiResponse<T> {
-	const res = await fetch(`${API_URL}${path}`, {
-		headers: {
-			'Content-Type': 'application/json',
-			...options.headers
-		},
-		...options
-	});
+function getApiUrl(): string {
+	const fromEnv = env.PUBLIC_API_URL?.trim();
+	if (!fromEnv) return DEFAULT_API_URL;
+	// Normalize trailing slash so paths like `/health` always join cleanly.
+	return fromEnv.replace(/\/+$/, '');
+}
 
-	let data: unknown = null;
-
-	try {
-		data = await res.json();
-	} catch {
-		// (ej: 204)
-	}
-
-	if (res.ok) {
-		return {
-			ok: true,
-			status: 200,
-			message: 'Success',
-			body: data as T
-		};
-	}
+function networkErrorResponse(error: unknown) {
+	const message =
+		error instanceof Error && error.message ? error.message : 'No se pudo conectar con la API';
 
 	return {
-		ok: false,
-		status: res.status,
-		message: res.statusText,
-		body: data
+		ok: false as const,
+		status: 0,
+		message,
+		body: null
 	};
 }
 
-export async function authedApiFetch<T>(path: string, options: RequestInit = {}): ApiResponse<T> {
-	const res = await fetch(`${API_URL}${path}`, {
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token.get()}`,
-			...options.headers
-		},
-		...options
-	});
-
-	let data: unknown = null;
-
+export async function apiFetch<T>(path: string, options: RequestInit = {}): ApiResponse<T> {
 	try {
-		data = await res.json();
-	} catch {
-		// (ej: 204)
-	}
+		const res = await fetch(`${getApiUrl()}${path}`, {
+			headers: {
+				'Content-Type': 'application/json',
+				...options.headers
+			},
+			...options
+		});
 
-	if (res.ok) {
+		let data: unknown = null;
+
+		try {
+			data = await res.json();
+		} catch {
+			// (ej: 204)
+		}
+
+		if (res.ok) {
+			return {
+				ok: true,
+				status: 200,
+				message: 'Success',
+				body: data as T
+			};
+		}
+
 		return {
-			ok: true,
-			status: 200,
-			message: 'Success',
-			body: data as T
+			ok: false,
+			status: res.status,
+			message: res.statusText,
+			body: data
 		};
+	} catch (error) {
+		return networkErrorResponse(error);
 	}
+}
 
-	let errorMessage = res.statusText;
+export async function authedApiFetch<T>(path: string, options: RequestInit = {}): ApiResponse<T> {
+	try {
+		const res = await fetch(`${getApiUrl()}${path}`, {
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token.get()}`,
+				...options.headers
+			},
+			...options
+		});
 
-	if (data && typeof data === 'object' && 'message' in data) {
-		errorMessage = String((data as Record<string, unknown>).message);
+		let data: unknown = null;
+
+		try {
+			data = await res.json();
+		} catch {
+			// (ej: 204)
+		}
+
+		if (res.ok) {
+			return {
+				ok: true,
+				status: 200,
+				message: 'Success',
+				body: data as T
+			};
+		}
+
+		let errorMessage = res.statusText;
+
+		if (data && typeof data === 'object' && 'message' in data) {
+			errorMessage = String((data as Record<string, unknown>).message);
+		}
+
+		return {
+			ok: false,
+			status: res.status,
+			message: errorMessage,
+			body: data
+		};
+	} catch (error) {
+		return networkErrorResponse(error);
 	}
-
-	return {
-		ok: false,
-		status: res.status,
-		message: errorMessage,
-		body: data
-	};
 }

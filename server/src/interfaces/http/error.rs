@@ -460,6 +460,9 @@ impl From<InvestmentError> for AppError {
             InvestmentError::GroupNotActive => {
                 AppError::Forbidden("El grupo no esta activo".into())
             }
+            InvestmentError::PriceUnavailable => AppError::BadRequest(
+                "No se pudieron obtener precios de mercado para esta estrategia. Reintentá en unos segundos.".into(),
+            ),
         }
     }
 }

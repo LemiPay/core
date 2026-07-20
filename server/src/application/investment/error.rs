@@ -17,6 +17,7 @@ pub enum InvestmentError {
     NotGroupAdmin,
     NotProposalCreator,
     NotGroupMember,
+    PriceUnavailable,
 }
 
 impl From<RepoError> for InvestmentError {

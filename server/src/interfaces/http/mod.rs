@@ -8,6 +8,7 @@ pub mod friend;
 pub mod governance;
 pub mod group;
 pub mod group_wallet;
+pub mod health;
 pub mod investment;
 pub mod middlewares;
 pub mod notifications;

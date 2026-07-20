@@ -77,6 +77,15 @@ pub fn build_app() -> Router {
     let expense_repo = Arc::new(DieselExpenseRepository::new(pool.clone()));
     let friend_repo = Arc::new(DieselFriendRepository::new(pool.clone()));
     let investment_repo = Arc::new(DieselInvestmentRepository::new(pool.clone()));
+
+    // Sync strategies + baskets from config/investment_strategies.toml
+    match crate::infrastructure::db::repositories::investment_repo_impl::sync_strategies_from_config(
+        &pool,
+    ) {
+        Ok(n) if n > 0 => {}
+        Ok(_) => {}
+        Err(e) => eprintln!("WARNING: investment strategies config sync failed: {e}"),
+    }
     let notification_repo = Arc::new(DieselNotificationRepository::new(pool.clone()));
     let permission_repo = Arc::new(DieselPermissionRepository::new(pool.clone()));
 
@@ -203,10 +212,13 @@ pub fn build_app() -> Router {
             let svc = pulse_svc.clone();
             let notifier = pulse_notifier.clone();
 
-            match tokio::task::spawn_blocking(move || svc.process_pulse()).await {
-                Ok(Ok(res)) => {
-                    if res.updated > 0 || res.matured > 0 {
-                        println!("Pulse: {} updated, {} matured", res.updated, res.matured)
+            match svc.process_pulse().await {
+                Ok(res) => {
+                    if res.updated > 0 || res.matured > 0 || res.liquidated > 0 {
+                        println!(
+                            "Pulse: {} updated, {} matured, {} liquidated",
+                            res.updated, res.matured, res.liquidated
+                        )
                     }
 
                     for group_id in res.matured_group_ids {
@@ -215,8 +227,7 @@ pub fn build_app() -> Router {
                             .await;
                     }
                 }
-                Ok(Err(e)) => eprintln!("Pulse error: {}", e),
-                Err(e) => eprintln!("Pulse task panicked: {}", e),
+                Err(e) => eprintln!("Pulse error: {}", e),
             }
         }
     });

@@ -13,16 +13,24 @@
 	let { children } = $props();
 	let initialized = $state(false);
 
-	const PUBLIC_ROUTES = ['/', '/login', '/register'];
+	const PUBLIC_ROUTES = ['/', '/login', '/register', '/status'];
 	const AUTH_ONLY_ROUTES = ['/login', '/register'];
 
 	function isPublic(pathname: string) {
 		return PUBLIC_ROUTES.includes(pathname);
 	}
 
+	// Rutas públicas no bloquean el render por la API (landing, status, login, register).
+	const canRender = $derived(initialized || isPublic(page.url.pathname));
+
 	onMount(async () => {
-		await authStore.init();
-		initialized = true;
+		try {
+			await authStore.init();
+		} catch (error) {
+			console.error('auth init failed:', error);
+		} finally {
+			initialized = true;
+		}
 	});
 
 	$effect(() => {
@@ -50,7 +58,7 @@
 
 <Navbar isAuthenticated={$authStore.isAuthenticated} user={$authStore.user} />
 
-{#if initialized}
+{#if canRender}
 	<div class="flex min-h-screen flex-col">
 		{@render children()}
 	</div>

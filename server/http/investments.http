@@ -28,7 +28,7 @@ GET {{host}}/investment/{{group_id}}
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
-### WITHDRAW INVESTMENT
+### WITHDRAW INVESTMENT (matured = full NAV; active = ragequit with fee)
 POST {{host}}/investment/withdraw/{{group_id}}
 Content-Type: application/json
 Authorization: Bearer {{token}}
@@ -36,6 +36,11 @@ Authorization: Bearer {{token}}
 {
   "investment_id": "97f7da58-f522-4a0c-8207-2e0b42efb9b5"
 }
+
+### NOTE
+# - Strategies with valuation_mode=mark_to_market create holdings at execute.
+# - Pulse revalues MTM positions with PRICE_ORACLE_MODE=mock|live.
+# - Ragequit (admin, active only): payout = NAV * (1 - ragequit_fee_bps/10000); fee burned.
 
 ### GET SNAPSHOTS
 GET {{host}}/investment/97f7da58-f522-4a0c-8207-2e0b42efb9b5/snapshots

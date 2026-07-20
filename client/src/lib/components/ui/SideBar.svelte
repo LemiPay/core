@@ -24,21 +24,21 @@
 	<div
 		role="presentation"
 		tabindex="-1"
-		class="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm transition-opacity"
+		class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity dark:bg-black/60"
 		transition:fade={{ duration: 200 }}
 		onclick={onclose}
 	></div>
 
 	<div
-		class="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-gray-200 bg-white shadow-2xl"
+		class="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-card text-card-foreground shadow-2xl"
 		transition:slide={{ axis: 'x', duration: 300 }}
 	>
-		<div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-			<h2 class="text-lg font-bold text-black">{title}</h2>
+		<div class="flex items-center justify-between border-b border-border px-6 py-4">
+			<h2 class="text-lg font-bold text-foreground">{title}</h2>
 
 			<button
 				onclick={onclose}
-				class="rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-black"
+				class="rounded-md p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
 			>
 				<X class="h-5 w-5" />
 			</button>

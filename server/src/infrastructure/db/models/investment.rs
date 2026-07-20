@@ -14,6 +14,7 @@ pub enum InvestmentStatusModel {
     Active,
     Matured,
     Withdrawn,
+    Liquidated,
 }
 
 impl From<InvestmentStatusModel> for InvestmentStatus {
@@ -22,6 +23,7 @@ impl From<InvestmentStatusModel> for InvestmentStatus {
             InvestmentStatusModel::Active => InvestmentStatus::Active,
             InvestmentStatusModel::Matured => InvestmentStatus::Matured,
             InvestmentStatusModel::Withdrawn => InvestmentStatus::Withdrawn,
+            InvestmentStatusModel::Liquidated => InvestmentStatus::Liquidated,
         }
     }
 }
@@ -32,13 +34,14 @@ impl From<InvestmentStatus> for InvestmentStatusModel {
             InvestmentStatus::Active => InvestmentStatusModel::Active,
             InvestmentStatus::Matured => InvestmentStatusModel::Matured,
             InvestmentStatus::Withdrawn => InvestmentStatusModel::Withdrawn,
+            InvestmentStatus::Liquidated => InvestmentStatusModel::Liquidated,
         }
     }
 }
 
 // Strategy
 
-#[derive(Queryable, Selectable, Debug)]
+#[derive(Queryable, Selectable, Debug, Clone)]
 #[diesel(table_name = schema::investment_strategy)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct InvestmentStrategyModel {
@@ -49,6 +52,63 @@ pub struct InvestmentStrategyModel {
     pub expected_return_percentage: BigDecimal,
     pub duration_days: i32,
     pub created_at: NaiveDateTime,
+    pub valuation_mode: String,
+    pub category: String,
+    pub ragequit_fee_bps: i32,
+    pub leverage: i32,
+}
+
+// Asset
+
+#[derive(Queryable, Selectable, Debug, Clone)]
+#[diesel(table_name = schema::asset)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct AssetModel {
+    pub id: Uuid,
+    pub symbol: String,
+    pub name: String,
+    pub kind: String,
+    pub price_provider: String,
+    pub external_id: String,
+    pub is_active: bool,
+    pub created_at: NaiveDateTime,
+}
+
+// Strategy allocation
+
+#[derive(Queryable, Selectable, Debug, Clone)]
+#[diesel(table_name = schema::strategy_allocation)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct StrategyAllocationModel {
+    pub id: Uuid,
+    pub strategy_id: Uuid,
+    pub asset_id: Uuid,
+    pub weight_bps: i32,
+}
+
+// Investment holding
+
+#[derive(Queryable, Selectable, Debug, Clone)]
+#[diesel(table_name = schema::investment_holding)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct InvestmentHoldingModel {
+    pub id: Uuid,
+    pub investment_id: Uuid,
+    pub asset_id: Uuid,
+    pub units: BigDecimal,
+    pub weight_bps_at_entry: i32,
+    pub cost_basis_usd: BigDecimal,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::investment_holding)]
+pub struct NewInvestmentHoldingModel {
+    pub investment_id: Uuid,
+    pub asset_id: Uuid,
+    pub units: BigDecimal,
+    pub weight_bps_at_entry: i32,
+    pub cost_basis_usd: BigDecimal,
 }
 
 // Investment Proposal
@@ -88,6 +148,9 @@ pub struct InvestmentModel {
     pub matures_at: NaiveDateTime,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
+    pub exit_kind: Option<String>,
+    pub fee_amount: Option<BigDecimal>,
+    pub entry_exposure: BigDecimal,
 }
 
 #[derive(Insertable)]
@@ -100,6 +163,7 @@ pub struct NewInvestmentModel {
     pub status: InvestmentStatusModel,
     pub started_at: NaiveDateTime,
     pub matures_at: NaiveDateTime,
+    pub entry_exposure: BigDecimal,
 }
 
 // Investment Member
