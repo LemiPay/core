@@ -52,7 +52,29 @@ jobs:
             PUBLIC_API_URL: ${{ secrets.PUBLIC_API_URL }}
             PUBLIC_VAULT_CONTRACT_ADDRESS: ${{ secrets.PUBLIC_VAULT_CONTRACT_ADDRESS }}
             VITE_PUBLIC_REOWN_KEY: ${{ secrets.VITE_PUBLIC_REOWN_KEY }}
-        
+
+      - name: Debug build output
+        working-directory: client
+        run: |
+          echo "=== BUILD ==="
+          ls -lah
+          echo
+
+          echo "=== build ==="
+          ls -R build || true
+          echo
+
+          echo "=== build/static ==="
+          ls -R build/static || true
+          echo
+
+          echo "=== build/server ==="
+          ls -R build/server || true
+          echo
+
+          echo "=== build/static/_app ==="
+          ls -R build/static/_app || true
+          echo
 
       - name: Build And Deploy
         id: builddeploy
