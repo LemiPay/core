@@ -40,6 +40,7 @@ pub struct ChallengeResponse {
     pub nonce: String,
     pub message: String,
     pub is_linked: bool,
+    pub issued_at: String,
 }
 
 #[derive(Deserialize)]
@@ -50,6 +51,8 @@ pub struct VerificationRequest {
     pub address: String,
     pub nonce: String,
     pub signature: String,
+    /// Debe coincidir con el challenge; permite verify sin cache (multi-réplica).
+    pub issued_at: Option<String>,
 }
 #[derive(Serialize)]
 pub struct VerificationResponse {

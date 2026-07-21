@@ -61,6 +61,7 @@ impl ChallengeUseCase {
             nonce,
             message,
             is_linked,
+            issued_at,
         })
     }
 }

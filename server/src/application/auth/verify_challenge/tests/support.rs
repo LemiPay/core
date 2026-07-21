@@ -555,6 +555,7 @@ impl TestContext {
             address: ADDRESS.to_string(),
             nonce: NONCE.to_string(),
             signature: SIGNATURE.to_string(),
+            issued_at: Some(ISSUED_AT.to_string()),
         })
         .await
     }

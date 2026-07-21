@@ -176,7 +176,8 @@
 			}
 
 			const { signature, address: signedAddress } = await authActions.signAuthMessage(
-				challenge.body.message
+				challenge.body.message,
+				address
 			);
 
 			const res = await verify_signature(
@@ -185,7 +186,8 @@
 				signedAddress,
 				challenge.body.nonce,
 				signature,
-				true
+				true,
+				challenge.body.issued_at
 			);
 
 			if (!isSuccess(res)) {

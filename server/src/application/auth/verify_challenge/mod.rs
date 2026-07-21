@@ -13,6 +13,7 @@ use crate::application::users::traits::repository::UserRepository;
 use crate::domain::treasury::{CurrencyId, Money, UserWallet, UserWalletId};
 use crate::domain::user::{Email, UserId};
 use crate::infrastructure::auth::jwt_service::JwtService;
+use crate::infrastructure::auth::web_3_auth::ChallengeData;
 use crate::interfaces::http::error::AppError;
 
 pub mod dto;
@@ -56,27 +57,27 @@ impl VerifyChallengeUseCase {
             .map_err(|_| AppError::BadRequest("Dirección Ethereum inválida".into()))?;
         let address = format!("{parsed_address:#x}").to_lowercase();
 
-        let stored_data = self.web3_service.cache_get(&address);
-
-        let Some(data) = stored_data else {
-            return Err(AppError::Forbidden(
-                "Sesión expirada o desafío no solicitado".into(),
-            ));
-        };
-
-        if data.nonce != input.nonce {
-            return Err(AppError::Forbidden("Nonce inválido".into()));
-        }
+        let issued_at = Self::resolve_issued_at(
+            self.web3_service.cache_get(&address),
+            &input.nonce,
+            input.issued_at.as_deref(),
+        )?;
 
         let is_valid = self
             .web3_service
-            .validate_signature_rpc(address.clone(), input.signature, data.nonce, data.issued_at)
+            .validate_signature_rpc(
+                address.clone(),
+                input.signature,
+                input.nonce.clone(),
+                issued_at,
+            )
             .await;
 
         if !is_valid {
             return Err(AppError::Forbidden("Firma criptográfica inválida".into()));
         }
 
+        // Consumir challenge en esta instancia (anti-replay local).
         self.web3_service.cache_remove(&address);
 
         let email = match input
@@ -168,6 +169,54 @@ impl VerifyChallengeUseCase {
             token: token.0,
             user_id: id.to_string(),
         })
+    }
+
+    /// Resuelve `issued_at` del challenge:
+    /// 1) cache in-memory con el mismo nonce (mismo proceso)
+    /// 2) fallback al `issued_at` que reenvía el cliente (multi-réplica / race)
+    fn resolve_issued_at(
+        cached: Option<ChallengeData>,
+        nonce: &str,
+        client_issued_at: Option<&str>,
+    ) -> Result<String, AppError> {
+        if let Some(data) = cached {
+            if data.nonce == nonce {
+                return Ok(data.issued_at);
+            }
+            // Race o multi-request: el cache tiene otro challenge.
+            // Si el cliente manda issued_at fresco del challenge que firmó, usarlo.
+            if let Some(issued_at) = client_issued_at.map(str::trim).filter(|v| !v.is_empty()) {
+                if Self::is_issued_at_fresh(issued_at) {
+                    return Ok(issued_at.to_string());
+                }
+            }
+            return Err(AppError::Forbidden("Nonce inválido".into()));
+        }
+
+        let Some(issued_at) = client_issued_at.map(str::trim).filter(|v| !v.is_empty()) else {
+            return Err(AppError::Forbidden(
+                "Sesión expirada o desafío no solicitado".into(),
+            ));
+        };
+
+        if !Self::is_issued_at_fresh(issued_at) {
+            return Err(AppError::Forbidden(
+                "Sesión expirada o desafío no solicitado".into(),
+            ));
+        }
+
+        Ok(issued_at.to_string())
+    }
+
+    fn is_issued_at_fresh(issued_at: &str) -> bool {
+        let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(issued_at) else {
+            return false;
+        };
+        let issued = parsed.with_timezone(&chrono::Utc);
+        let now = chrono::Utc::now();
+        let age = now.signed_duration_since(issued);
+        // 15 min de vida del challenge + 1 min de skew de reloj
+        age <= chrono::Duration::seconds(900) && age >= chrono::Duration::seconds(-60)
     }
 
     fn handle_new_user(

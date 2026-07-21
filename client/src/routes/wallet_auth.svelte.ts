@@ -272,14 +272,26 @@ export type WriteSepoliaContractParams = {
 /**
  * Firma un mensaje de auth (challenge) asegurando que wagmi/Reown estén
  * conectados — especialmente necesario para wallets embebidas (Google/email).
+ *
+ * Si se pasa `preferredAddress`, se usa esa cuenta (debe ser la misma del challenge).
  */
-async function signAuthMessage(message: string): Promise<{
+async function signAuthMessage(
+	message: string,
+	preferredAddress?: string
+): Promise<{
 	signature: `0x${string}`;
 	address: `0x${string}`;
 }> {
 	const ctx = await getWagmiTxContext();
 	if (!ctx) {
 		throw new Error('WALLET_NOT_READY');
+	}
+
+	const preferred = preferredAddress?.trim().toLowerCase();
+	const ctxAddr = ctx.address.toLowerCase();
+	if (preferred && preferred !== ctxAddr) {
+		// Evitar firmar con una address distinta a la del challenge.
+		throw new Error(`ADDRESS_MISMATCH: challenge=${preferred} signing=${ctxAddr}`);
 	}
 
 	const signature = await signMessage(wagmiAdapter.wagmiConfig, {

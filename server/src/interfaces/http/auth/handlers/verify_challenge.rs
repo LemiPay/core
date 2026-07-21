@@ -15,6 +15,7 @@ pub async fn verify_challenge(
         email: verification_request.email.clone(),
         name: verification_request.name.clone(),
         allow_linking: verification_request.allow_linking.unwrap_or(false),
+        issued_at: verification_request.issued_at.clone(),
     };
 
     let res = state

@@ -15,16 +15,51 @@ async fn rejects_when_challenge_missing() {
 }
 
 #[tokio::test]
-async fn rejects_when_nonce_mismatch() {
+async fn rejects_when_nonce_mismatch_without_client_issued_at() {
     let ctx = TestContext::new();
     ctx.given_challenge_with_nonce("other-nonce");
 
-    let result = ctx.verify().await;
+    // Sin issued_at del cliente no hay fallback: el cache tiene otro nonce.
+    let result = ctx
+        .verify_with(VerificationInput {
+            email: Some(EMAIL.to_string()),
+            name: Some(NAME.to_string()),
+            allow_linking: false,
+            address: ADDRESS.to_string(),
+            nonce: NONCE.to_string(),
+            signature: SIGNATURE.to_string(),
+            issued_at: None,
+        })
+        .await;
 
     assert!(matches!(
         result,
-        Err(AppError::Forbidden(msg)) if msg == "Nonce inválido"
+        Err(AppError::Forbidden(msg))
+            if msg == "Nonce inválido" || msg == "Sesión expirada o desafío no solicitado"
     ));
+}
+
+#[tokio::test]
+async fn accepts_client_issued_at_when_cache_missing() {
+    let ctx = TestContext::new();
+    // Sin cache: el verify debe funcionar con issued_at fresco del cliente.
+    let issued_at = chrono::Utc::now().to_rfc3339();
+    ctx.web3.set_signature_valid(true);
+
+    let result = ctx
+        .verify_with(VerificationInput {
+            email: Some(EMAIL.to_string()),
+            name: Some(NAME.to_string()),
+            allow_linking: false,
+            address: ADDRESS.to_string(),
+            nonce: NONCE.to_string(),
+            signature: SIGNATURE.to_string(),
+            issued_at: Some(issued_at),
+        })
+        .await
+        .expect("verification succeeds with client issued_at");
+
+    assert_eq!(result.user_id, ctx.new_user_id.to_string());
 }
 
 #[tokio::test]
@@ -112,6 +147,7 @@ async fn logs_in_with_wallet_address_when_email_missing() {
             address: ADDRESS.to_string(),
             nonce: NONCE.to_string(),
             signature: SIGNATURE.to_string(),
+            issued_at: Some(ISSUED_AT.to_string()),
         })
         .await
         .expect("verification succeeds");
@@ -134,6 +170,7 @@ async fn links_wallet_to_existing_user_when_allow_linking() {
             address: ADDRESS.to_string(),
             nonce: NONCE.to_string(),
             signature: SIGNATURE.to_string(),
+            issued_at: Some(ISSUED_AT.to_string()),
         })
         .await
         .expect("verification succeeds");

@@ -18,5 +18,6 @@ pub async fn generate_challenge(
         nonce: res.nonce,
         message: res.message,
         is_linked: res.is_linked,
+        issued_at: res.issued_at,
     }))
 }

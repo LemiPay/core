@@ -8,6 +8,8 @@ pub struct VerificationInput {
     pub address: String,
     pub nonce: String,
     pub signature: String,
+    /// Si el cache in-memory no tiene el challenge (otra réplica), se usa este valor.
+    pub issued_at: Option<String>,
 }
 
 #[derive(Serialize)]

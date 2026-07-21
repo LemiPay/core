@@ -28,9 +28,14 @@ export async function userInfo(id: string): ApiResponse<User> {
 	});
 }
 
-export async function request_challenge(
-	address: string
-): ApiResponse<{ nonce: string; message: string; is_linked: boolean }> {
+export type ChallengeResponse = {
+	nonce: string;
+	message: string;
+	is_linked: boolean;
+	issued_at: string;
+};
+
+export async function request_challenge(address: string): ApiResponse<ChallengeResponse> {
 	return apiFetch('/auth/request-challenge', {
 		method: 'POST',
 		body: JSON.stringify({
@@ -45,7 +50,8 @@ export async function verify_signature(
 	address: string,
 	nonce: string,
 	signature: string,
-	allow_linking: boolean = false
+	allow_linking: boolean = false,
+	issued_at?: string | null
 ): ApiResponse<{ token: string; user_id: string }> {
 	return apiFetch('/auth/verify-challenge', {
 		method: 'POST',
@@ -55,7 +61,8 @@ export async function verify_signature(
 			address,
 			signature,
 			nonce,
-			allow_linking
+			allow_linking,
+			issued_at: issued_at ?? null
 		})
 	});
 }
