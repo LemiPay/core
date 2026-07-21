@@ -1,0 +1,9 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/_app/*", "/*.{png,jpg,jpeg,svg,ico,webp,woff,woff2,css,js,txt}"]
+  },
+  "platform": {
+    "apiRuntime": "node:22"
+  }
+}

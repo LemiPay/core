@@ -38,6 +38,10 @@ jobs:
           VITE_PUBLIC_REOWN_KEY: ${{ secrets.VITE_PUBLIC_REOWN_KEY }}
           VITE_PUBLIC_RPC_URL: ${{ secrets.VITE_PUBLIC_RPC_URL }}
 
+      - name: Copy SWA config into static output
+        working-directory: client
+        run: cp build/staticwebapp.config.json build/static/staticwebapp.config.json
+
       - name: Verify build
         working-directory: client
         run: |
@@ -52,8 +56,8 @@ jobs:
           echo "===== SERVER (SSR function) ====="
           ls -lah build/server
           echo
-          echo "===== SWA CONFIG ====="
-          ls -lah build/staticwebapp.config.json || echo "⚠️  No se generó staticwebapp.config.json"
+          echo "===== SWA CONFIG (copiado a static/) ====="
+          cat build/static/staticwebapp.config.json
 
       - name: Deploy
         id: deploy
@@ -64,7 +68,10 @@ jobs:
           action: upload
           # MUY IMPORTANTE: con skip_app_build:true, Azure NO concatena
           # output_location — app_location tiene que apuntar DIRECTO
-          # a la carpeta con index.html ya generada.
+          # a la carpeta con index.html ya generada. Por eso el
+          # staticwebapp.config.json (que el adapter deja en build/,
+          # un nivel arriba) se copia a build/static/ en el step de
+          # arriba, para que viaje junto con el resto de los artifacts.
           app_location: client/build/static
           output_location: ""
           api_location: client/build/server
