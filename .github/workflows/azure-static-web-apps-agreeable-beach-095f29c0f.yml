@@ -52,6 +52,7 @@ jobs:
             PUBLIC_API_URL: ${{ secrets.PUBLIC_API_URL }}
             PUBLIC_VAULT_CONTRACT_ADDRESS: ${{ secrets.PUBLIC_VAULT_CONTRACT_ADDRESS }}
             VITE_PUBLIC_REOWN_KEY: ${{ secrets.VITE_PUBLIC_REOWN_KEY }}
+            VITE_PUBLIC_RPC_URL: ${{ secrets.VITE_PUBLIC_RPC_URL }}
 
       - name: Debug build output
         working-directory: client
