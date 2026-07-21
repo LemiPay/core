@@ -699,6 +699,14 @@ mod tests {
             strategy_name: "Conservative".into(),
             risk_level: "low".into(),
             expected_return_percentage: BigDecimal::from(10),
+            valuation_mode: "".to_string(),
+            category: "".to_string(),
+            ragequit_fee_bps: 0,
+            leverage: 0,
+            entry_exposure: Default::default(),
+            exit_kind: None,
+            fee_amount: None,
+            holdings: vec![],
         };
         let out = format_investments(&[inv]);
         assert!(out.contains("Conservative"));

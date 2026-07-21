@@ -11,9 +11,7 @@ use axum::{
 use tower_http::cors::CorsLayer;
 
 use crate::interfaces::http::{
-    ai, auth, blockchain_event, core, expense, friend, governance, group, group_wallet, investment,
-    notifications, permission, transaction, users, wallet,
-    auth, blockchain_event, core, expense, friend, governance, group, group_wallet, health,
+    ai, auth, blockchain_event, core, expense, friend, governance, group, group_wallet, health,
     investment, notifications, permission, transaction, users, wallet,
 };
 
