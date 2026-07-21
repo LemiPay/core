@@ -13,7 +13,7 @@ RUN rm -rf src
 
 COPY . .
 RUN touch src/main.rs
-RUN cargo build --release
+RUN cargo build --release --features production
 
 # Runtime (misma base que el builder → mismo glibc)
 FROM debian:trixie-slim
