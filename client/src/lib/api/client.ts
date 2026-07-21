@@ -1,9 +1,17 @@
-import { env } from '$env/dynamic/public';
+import { PUBLIC_API_URL } from '$env/static/public';
 import { token } from '$lib/stores/token';
 import type { ApiResponse } from '$lib/types/client.types';
 
-function getApiUrl(): string {
-	const fromEnv = env.PUBLIC_API_URL?.trim();
+/**
+ * Backend base URL from PUBLIC_API_URL.
+ *
+ * Uses `$env/static/public` so the value is inlined into the client bundle at
+ * build/dev time. `$env/dynamic/public` only works when SSR injects env into
+ * `globalThis.__sveltekit_*.env`; with vite preview / Azure SWA that object is
+ * often empty on the client, and the old code silently fell back to localhost.
+ */
+export function getApiUrl(): string {
+	const fromEnv = PUBLIC_API_URL?.trim();
 	if (!fromEnv) {
 		throw new Error(
 			'PUBLIC_API_URL is not set. Define it in the repo-root .env or client/.env (e.g. PUBLIC_API_URL=http://localhost:3000).'

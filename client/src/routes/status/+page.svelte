@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Activity, CheckCircle2, RefreshCw, Server, XCircle } from 'lucide-svelte';
+	import { Activity, CheckCircle2, Link2, RefreshCw, Server, XCircle } from 'lucide-svelte';
 
+	import { getApiUrl } from '$lib/api/client';
 	import { getHealth } from '$lib/api/endpoints/health';
 	import { isSuccess } from '$lib/types/client.types';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -14,10 +15,12 @@
 		state: ServiceState;
 		detail: string;
 		latencyMs: number | null;
+		url?: string | null;
 	};
 
 	let loading = $state(true);
 	let lastCheckedAt = $state<Date | null>(null);
+	let apiUrl = $state<string | null>(null);
 	let services = $state<ServiceStatus[]>([
 		{
 			name: 'Frontend',
@@ -31,7 +34,8 @@
 			description: 'Backend HTTP (Axum)',
 			state: 'checking',
 			detail: 'Comprobando…',
-			latencyMs: null
+			latencyMs: null,
+			url: null
 		}
 	]);
 
@@ -51,8 +55,23 @@
 
 	async function checkStatus() {
 		loading = true;
+
+		try {
+			apiUrl = getApiUrl();
+		} catch {
+			apiUrl = null;
+		}
+
 		services = services.map((s) =>
-			s.name === 'API' ? { ...s, state: 'checking', detail: 'Comprobando…', latencyMs: null } : s
+			s.name === 'API'
+				? {
+						...s,
+						state: 'checking',
+						detail: 'Comprobando…',
+						latencyMs: null,
+						url: apiUrl ? `${apiUrl}/health` : null
+					}
+				: s
 		);
 
 		const started = performance.now();
@@ -68,7 +87,8 @@
 								...s,
 								state: 'ok',
 								detail: `Respuesta: ${res.body.status.toUpperCase()}`,
-								latencyMs
+								latencyMs,
+								url: apiUrl ? `${apiUrl}/health` : null
 							}
 						: s
 				);
@@ -85,7 +105,8 @@
 								...s,
 								state: 'error',
 								detail,
-								latencyMs
+								latencyMs,
+								url: apiUrl ? `${apiUrl}/health` : null
 							}
 						: s
 				);
@@ -94,7 +115,15 @@
 			const latencyMs = Math.round(performance.now() - started);
 			const message = err instanceof Error ? err.message : 'No se pudo contactar la API';
 			services = services.map((s) =>
-				s.name === 'API' ? { ...s, state: 'error', detail: message, latencyMs } : s
+				s.name === 'API'
+					? {
+							...s,
+							state: 'error',
+							detail: message,
+							latencyMs,
+							url: apiUrl ? `${apiUrl}/health` : null
+						}
+					: s
 			);
 		} finally {
 			lastCheckedAt = new Date();
@@ -157,6 +186,12 @@
 					{/if}
 					<div>
 						<p class="text-lg font-semibold">{overallLabel}</p>
+						{#if apiUrl}
+							<p class="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+								<Link2 class="size-3 shrink-0" />
+								<span class="font-mono break-all">{apiUrl}</span>
+							</p>
+						{/if}
 						{#if lastCheckedAt}
 							<p class="mt-1 text-xs text-muted-foreground">
 								Última comprobación: {lastCheckedAt.toLocaleString()}
@@ -198,6 +233,12 @@
 										<span class="font-medium">{service.name}</span>
 									</div>
 									<p class="text-sm text-muted-foreground">{service.description}</p>
+									{#if service.url}
+										<p class="flex items-start gap-1.5 text-xs text-muted-foreground">
+											<Link2 class="mt-0.5 size-3 shrink-0" />
+											<span class="font-mono break-all">{service.url}</span>
+										</p>
+									{/if}
 									<p class="text-sm text-foreground/80">{service.detail}</p>
 									{#if service.latencyMs !== null}
 										<p class="text-xs text-muted-foreground">
