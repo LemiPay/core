@@ -8,6 +8,7 @@ import {
 	getConnectors,
 	getWalletClient,
 	reconnect,
+	signMessage,
 	switchChain,
 	writeContract,
 	type Connector
@@ -268,6 +269,28 @@ export type WriteSepoliaContractParams = {
 	args: readonly unknown[];
 };
 
+/**
+ * Firma un mensaje de auth (challenge) asegurando que wagmi/Reown estén
+ * conectados — especialmente necesario para wallets embebidas (Google/email).
+ */
+async function signAuthMessage(message: string): Promise<{
+	signature: `0x${string}`;
+	address: `0x${string}`;
+}> {
+	const ctx = await getWagmiTxContext();
+	if (!ctx) {
+		throw new Error('WALLET_NOT_READY');
+	}
+
+	const signature = await signMessage(wagmiAdapter.wagmiConfig, {
+		message,
+		account: ctx.address,
+		connector: ctx.connector
+	});
+
+	return { signature, address: ctx.address };
+}
+
 async function writeSepoliaContract(params: WriteSepoliaContractParams): Promise<`0x${string}`> {
 	await ensureSepoliaActiveNetwork();
 	const connector = await ensureWagmiConnectedForTx();
@@ -351,6 +374,7 @@ export const authActions = {
 	restoreWalletSession,
 	ensureWalletReadyForTx,
 	getWagmiTxContext,
+	signAuthMessage,
 	writeSepoliaContract,
 	hasReownProjectId
 };

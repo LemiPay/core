@@ -33,6 +33,24 @@
 		}
 	});
 
+	function getSafeRedirectPath(redirectTo: string | null): string {
+		if (!redirectTo) return '/dashboard';
+
+		const trimmed = redirectTo.trim();
+		if (!trimmed.startsWith('/') || trimmed.startsWith('//')) {
+			return '/dashboard';
+		}
+
+		try {
+			const parsed = new URL(trimmed, window.location.origin);
+			if (parsed.origin !== window.location.origin) return '/dashboard';
+			if (!parsed.pathname.startsWith('/')) return '/dashboard';
+			return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+		} catch {
+			return '/dashboard';
+		}
+	}
+
 	$effect(() => {
 		if (!initialized) return;
 
@@ -48,8 +66,10 @@
 			return;
 		}
 
+		// Si ya hay sesión y estamos en login/register, respetar redirectTo (no forzar /dashboard).
 		if (authed && AUTH_ONLY_ROUTES.includes(pathname)) {
-			goto('/dashboard', { replaceState: true });
+			const target = getSafeRedirectPath(page.url.searchParams.get('redirectTo'));
+			goto(target, { replaceState: true });
 		}
 	});
 </script>

@@ -12,7 +12,8 @@
 	let status: boolean | null = $state(false);
 	let error = $state('');
 
-	async function create_user() {
+	async function create_user(e: SubmitEvent) {
+		e.preventDefault();
 		status = true;
 		error = '';
 

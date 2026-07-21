@@ -49,9 +49,14 @@ impl VerifyChallengeUseCase {
         &self,
         input: VerificationInput,
     ) -> Result<VerificationOutput, AppError> {
-        let stored_data = self
-            .web3_service
-            .cache_get(&input.address.trim().to_string());
+        let parsed_address: alloy::primitives::Address = input
+            .address
+            .trim()
+            .parse()
+            .map_err(|_| AppError::BadRequest("Dirección Ethereum inválida".into()))?;
+        let address = format!("{parsed_address:#x}").to_lowercase();
+
+        let stored_data = self.web3_service.cache_get(&address);
 
         let Some(data) = stored_data else {
             return Err(AppError::Forbidden(
@@ -65,29 +70,27 @@ impl VerifyChallengeUseCase {
 
         let is_valid = self
             .web3_service
-            .validate_signature_rpc(
-                input.address.clone(),
-                input.signature,
-                data.nonce,
-                data.issued_at,
-            )
+            .validate_signature_rpc(address.clone(), input.signature, data.nonce, data.issued_at)
             .await;
 
         if !is_valid {
             return Err(AppError::Forbidden("Firma criptográfica inválida".into()));
         }
 
-        self.web3_service
-            .cache_remove(&input.address.trim().to_string());
+        self.web3_service.cache_remove(&address);
 
-        let address = input.address.trim().to_string();
-
-        let email = input
+        let email = match input
             .email
             .as_ref()
             .map(|value| value.trim())
             .filter(|value| !value.is_empty())
-            .map(|value| Email(value.to_lowercase()));
+        {
+            Some(value) => Some(
+                Email::new(value.to_string())
+                    .map_err(|_| AppError::BadRequest("Email inválido".into()))?,
+            ),
+            None => None,
+        };
 
         let name = input
             .name
@@ -127,7 +130,7 @@ impl VerifyChallengeUseCase {
                                     user_id
                                 } else {
                                     return Err(AppError::BadRequest(
-                                        "Email ya está asociado a una cuenta".into(),
+                                        "Ese email ya tiene una cuenta. Iniciá sesión con contraseña o Google y vinculá la wallet desde tu perfil.".into(),
                                     ));
                                 }
                             }

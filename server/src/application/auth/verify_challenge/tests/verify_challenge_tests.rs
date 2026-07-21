@@ -51,7 +51,8 @@ async fn rejects_when_email_already_registered_without_wallet() {
 
     assert!(matches!(
         result,
-        Err(AppError::BadRequest(msg)) if msg == "Email ya está asociado a una cuenta"
+        Err(AppError::BadRequest(msg)) if msg.contains("email ya tiene una cuenta")
+            || msg.contains("Email ya está asociado")
     ));
     assert!(ctx.wallet_repo.wallet_for_user(user.id).is_none());
 }

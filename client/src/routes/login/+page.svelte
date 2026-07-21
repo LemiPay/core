@@ -1,11 +1,5 @@
 <script lang="ts">
-	import {
-		authActions,
-		onWalletAuthChange,
-		wagmiAdapter,
-		walletAuthState
-	} from '../wallet_auth.svelte';
-	import { signMessage } from '@wagmi/core';
+	import { authActions, onWalletAuthChange, walletAuthState } from '../wallet_auth.svelte';
 
 	import api from '$lib/api/auth';
 	import { authStore } from '$lib/stores/auth';
@@ -25,7 +19,7 @@
 		password: ''
 	});
 
-	// false: idle | true: loading | null: end
+	// false: idle | true: loading | null: success
 	let status: boolean | null = $state(false);
 	let error = $state('');
 
@@ -34,9 +28,18 @@
 	let socialName = $state('');
 	let socialAttempted = $state(false);
 
+	// Credenciales de asociación locales (NO mutar walletAuthState: syncWallet las pisa en EOA).
+	let associationEmail = $state('' as string | null);
+	let associationName = $state('' as string | null);
+	let associationAllowLinking = $state(false);
+
 	const socialEmailTrimmed = $derived(socialEmail.trim());
 	const socialEmailValid = $derived(
-		socialEmailTrimmed.length >= 4 && socialEmailTrimmed.length <= 30
+		socialEmailTrimmed.includes('@') &&
+			socialEmailTrimmed.length >= 5 &&
+			socialEmailTrimmed.length <= 254 &&
+			!socialEmailTrimmed.startsWith('@') &&
+			!socialEmailTrimmed.endsWith('@')
 	);
 	const socialFormValid = $derived(socialEmailValid);
 
@@ -47,7 +50,7 @@
 		address: string;
 	};
 
-	// NUEVO: Memoria para saber si ya le pedimos la firma a esta address
+	/** Solo se setea tras login web3 exitoso, para no re-disparar el challenge. */
 	let lastHandledAddress = $state('' as string | undefined);
 	let pendingChallenge = $state(null as PendingChallenge | null);
 	let walletNotice = $state('');
@@ -74,7 +77,16 @@
 		}
 	}
 
-	async function login_user() {
+	function resetAssociationState() {
+		associationEmail = null;
+		associationName = null;
+		associationAllowLinking = false;
+		pendingChallenge = null;
+		walletNotice = '';
+	}
+
+	async function login_user(e: SubmitEvent) {
+		e.preventDefault();
 		error = '';
 		status = true;
 
@@ -82,7 +94,7 @@
 
 		if (!isSuccess(response)) {
 			error = response.message || 'Invalid credentials.';
-			status = false; // Lo pasamos a false para permitir reintentos manuales
+			status = false;
 			return;
 		}
 
@@ -113,8 +125,8 @@
 		try {
 			const response = await api.request_challenge(address);
 			if (!isSuccess(response)) {
-				error = response.message;
-				status = false; // Permitimos reintentar si el challenge falla
+				error = response.message || 'No se pudo solicitar el challenge.';
+				status = false;
 				return;
 			}
 			return response.body;
@@ -126,53 +138,86 @@
 		}
 	}
 
-	async function complete_challenge(nonce: string, message: string) {
+	type CompleteChallengeOpts = {
+		email?: string | null;
+		name?: string | null;
+		allowLinking?: boolean;
+		address?: string;
+	};
+
+	async function complete_challenge(
+		nonce: string,
+		message: string,
+		opts: CompleteChallengeOpts = {}
+	) {
 		error = '';
 		status = true;
 
-		const address = walletAuthState.address;
-		if (!address) {
+		const preferredAddress = (opts.address ?? walletAuthState.address)?.trim();
+		if (!preferredAddress) {
 			error = 'Wallet no conectada.';
 			status = false;
 			return;
 		}
-		if (signingInFlight && signingAddress === address) return;
-		const signingFor = address;
+		if (signingInFlight && signingAddress === preferredAddress) return;
+
+		const signingFor = preferredAddress;
 		signingInFlight = true;
 		signingAddress = signingFor;
 
 		try {
-			const signature = await signMessage(wagmiAdapter.wagmiConfig, {
-				message: message
-			});
+			// Asegura connector wagmi (crítico para Google / embedded wallet de Reown).
+			const { signature, address: signedAddress } = await authActions.signAuthMessage(message);
+
+			const email =
+				opts.email !== undefined ? opts.email : (associationEmail ?? walletAuthState.email ?? null);
+			const name =
+				opts.name !== undefined ? opts.name : (associationName ?? walletAuthState.name ?? null);
+			const allowLinking =
+				opts.allowLinking !== undefined
+					? opts.allowLinking
+					: associationAllowLinking || walletAuthState.isSocial;
 
 			const res = await api.verify_signature(
-				walletAuthState.email ?? null,
-				walletAuthState.name ?? null,
-				address,
+				email?.trim() ? email.trim() : null,
+				name?.trim() ? name.trim() : null,
+				signedAddress,
 				nonce,
 				signature,
-				walletAuthState.isSocial
+				allowLinking
 			);
 
 			if (!isSuccess(res)) {
-				error = res.message || 'Invalid credentials.';
-				status = false; // Evitamos el estado zombi 'null' cuando falla la verificación
+				error = res.message || 'No se pudo verificar la firma.';
+				status = false;
 				return;
 			}
 
 			await authStore.login(res.body.token);
 			status = null;
-			lastHandledAddress = signingFor;
+			lastHandledAddress = signedAddress;
 			walletNotice = '';
+			pendingChallenge = null;
 
 			const redirectTo = getSafeRedirectPath(page.url.searchParams.get('redirectTo'));
 
 			setTimeout(() => {
 				window.location.href = redirectTo;
 			}, 1000);
-		} catch (err: any) {
-			error = 'Firma rechazada por el usuario.';
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : String(err ?? '');
+			if (msg.includes('WALLET_NOT_READY') || msg.toLowerCase().includes('connector')) {
+				error =
+					'La wallet no está lista para firmar. Reconectá con Google/Wallet e intentá de nuevo.';
+			} else if (
+				msg.toLowerCase().includes('user rejected') ||
+				msg.toLowerCase().includes('rejected') ||
+				msg.toLowerCase().includes('denied')
+			) {
+				error = 'Firma rechazada por el usuario.';
+			} else {
+				error = 'No se pudo firmar el mensaje. Intentá de nuevo.';
+			}
 			status = false;
 			console.error('Error al firmar:', err);
 		} finally {
@@ -183,7 +228,10 @@
 		}
 	}
 
-	async function request_and_complete_challenge(address: string | undefined) {
+	async function request_and_complete_challenge(
+		address: string | undefined,
+		opts: CompleteChallengeOpts = {}
+	) {
 		if (!address) {
 			error = 'Wallet no conectada.';
 			status = false;
@@ -191,12 +239,15 @@
 		}
 		const challenge = await fetch_challenge(address);
 		if (!challenge) return;
-		await complete_challenge(challenge.nonce, challenge.message);
+		await complete_challenge(challenge.nonce, challenge.message, {
+			...opts,
+			address
+		});
 	}
 
 	function openSocialModal() {
-		socialEmail = walletAuthState.email ?? '';
-		socialName = walletAuthState.name ?? '';
+		socialEmail = associationEmail ?? walletAuthState.email ?? '';
+		socialName = associationName ?? walletAuthState.name ?? '';
 		socialAttempted = false;
 		socialModalOpen = true;
 	}
@@ -217,10 +268,12 @@
 
 	function handleSocialClose() {
 		cancelWalletLoginModal();
+		resetAssociationState();
 		challengeInFlight = false;
 		challengeInFlightAddress = '';
 		signingInFlight = false;
 		signingAddress = '';
+		// No marcar lastHandled: el usuario puede reconectar la misma wallet.
 		void authActions.logout();
 	}
 
@@ -229,87 +282,144 @@
 		socialAttempted = true;
 		if (!socialFormValid) return;
 
-		walletAuthState.email = socialEmailTrimmed;
-		walletAuthState.name = socialName.trim() ? socialName.trim() : undefined;
-		lastHandledAddress = walletAuthState.address;
+		// Guardamos en estado local (no en walletAuthState) para que syncWallet no lo pise.
+		associationEmail = socialEmailTrimmed;
+		associationName = socialName.trim() ? socialName.trim() : null;
+		// Solo social confía el email del proveedor para linkear cuentas existentes.
+		// En EOA el usuario escribió el email: si ya existe, el backend pide login con password/Google.
+		associationAllowLinking = walletAuthState.isSocial;
+
 		const cachedChallenge = pendingChallenge;
+		const address = walletAuthState.address;
 		pendingChallenge = null;
 		socialModalOpen = false;
 
-		if (cachedChallenge && cachedChallenge.address === walletAuthState.address) {
-			complete_challenge(cachedChallenge.nonce, cachedChallenge.message);
+		if (cachedChallenge && cachedChallenge.address === address) {
+			void complete_challenge(cachedChallenge.nonce, cachedChallenge.message, {
+				email: associationEmail,
+				name: associationName,
+				allowLinking: associationAllowLinking,
+				address: cachedChallenge.address
+			});
 			return;
 		}
 
-		if (walletAuthState.address) {
-			request_and_complete_challenge(walletAuthState.address);
+		if (address) {
+			void request_and_complete_challenge(address, {
+				email: associationEmail,
+				name: associationName,
+				allowLinking: associationAllowLinking,
+				address
+			});
+		}
+	}
+
+	async function startWalletAssociationFlow(address: string) {
+		const challenge = await fetch_challenge(address);
+		if (!challenge || !walletAuthState.address) return;
+		// Si la wallet cambió mientras pedíamos el challenge, abortar.
+		if (walletAuthState.address !== address) return;
+
+		if (challenge.is_linked) {
+			walletNotice = 'Wallet ya vinculada. Firmá para iniciar sesión.';
+			pendingChallenge = null;
+			await complete_challenge(challenge.nonce, challenge.message, {
+				email: null,
+				name: null,
+				allowLinking: false,
+				address
+			});
+			return;
+		}
+
+		walletNotice = '';
+		pendingChallenge = { ...challenge, address };
+		status = false;
+		if (!socialModalOpen) {
+			openSocialModal();
 		}
 	}
 
 	function handleWalletAuthChange() {
-		// 1. Si el usuario se desconecta, limpiamos la memoria
-		if (!walletAuthState.isConnected) {
+		// 1. Desconexión: limpiar memoria local
+		if (!walletAuthState.isConnected || !walletAuthState.address) {
 			lastHandledAddress = '';
-			pendingChallenge = null;
-			walletNotice = '';
+			resetAssociationState();
 			challengeInFlight = false;
 			challengeInFlightAddress = '';
 			signingInFlight = false;
 			signingAddress = '';
+			socialModalOpen = false;
+			return;
 		}
 
-		// 2. Evaluamos si hay que disparar el challenge
-		if (!walletAuthState.isConnected) return;
-		if (signingInFlight) return;
+		// 2. Evitar re-disparos en vuelo o ya exitosos
+		if (signingInFlight || challengeInFlight) return;
+		if (socialModalOpen) return;
+		if (walletAuthState.address === lastHandledAddress) return;
 
+		const address = walletAuthState.address;
+
+		// 3. SOCIAL (Google / email Reown)
 		if (walletAuthState.isSocial) {
-			cancelWalletLoginModal();
-		}
-
-		if (walletAuthState.isSocial && walletAuthState.address !== lastHandledAddress) {
-			// SOCIAL LOGIN !
-			lastHandledAddress = walletAuthState.address;
-			pendingChallenge = null;
-			request_and_complete_challenge(walletAuthState.address);
-			return;
-		}
-
-		if (pendingChallenge && pendingChallenge.address !== walletAuthState.address) {
-			pendingChallenge = null;
-		}
-
-		if (!walletAuthState.isSocial && walletAuthState.email == undefined) {
-			// WALLET LOGIN !
-			if (socialModalOpen || pendingChallenge) return;
-			if (walletAuthState.address) {
-				fetch_challenge(walletAuthState.address).then((challenge) => {
-					if (!challenge || !walletAuthState.address) return;
-					if (challenge.is_linked) {
-						walletNotice = 'Wallet ya vinculada. Firmá para iniciar sesión.';
-						pendingChallenge = null;
-						complete_challenge(challenge.nonce, challenge.message);
-						return;
-					}
-					walletNotice = '';
-					pendingChallenge = { ...challenge, address: walletAuthState.address };
-					status = false;
-					if (!socialModalOpen) {
-						openSocialModal();
-					}
+			const socialEmailFromProvider = walletAuthState.email?.trim() || null;
+			if (socialEmailFromProvider) {
+				// Email confiable del proveedor → permitir link a cuenta existente
+				associationEmail = socialEmailFromProvider;
+				associationName = walletAuthState.name ?? null;
+				associationAllowLinking = true;
+				void request_and_complete_challenge(address, {
+					email: socialEmailFromProvider,
+					name: walletAuthState.name ?? null,
+					allowLinking: true,
+					address
 				});
+				return;
 			}
+			// Social sin email del proveedor: pedir email en el modal
+			void startWalletAssociationFlow(address);
 			return;
 		}
 
-		if (
-			!walletAuthState.isSocial &&
-			walletAuthState.email &&
-			walletAuthState.address !== lastHandledAddress
-		) {
-			lastHandledAddress = walletAuthState.address;
-			pendingChallenge = null;
-			request_and_complete_challenge(walletAuthState.address);
+		// 4. EOA / wallet externa
+		// Si el usuario ya había completado el modal con email local, reintentar con esos datos
+		if (associationEmail) {
+			void request_and_complete_challenge(address, {
+				email: associationEmail,
+				name: associationName,
+				allowLinking: associationAllowLinking,
+				address
+			});
+			return;
 		}
+
+		void startWalletAssociationFlow(address);
+	}
+
+	async function retryWalletLogin() {
+		if (!walletAuthState.address || signingInFlight || challengeInFlight) return;
+		error = '';
+		// Forzar reintento aunque lastHandled estuviera seteado por error de lógica previa
+		const address = walletAuthState.address;
+		if (walletAuthState.isSocial && walletAuthState.email?.trim()) {
+			void request_and_complete_challenge(address, {
+				email: walletAuthState.email.trim(),
+				name: walletAuthState.name ?? null,
+				allowLinking: true,
+				address
+			});
+			return;
+		}
+		if (associationEmail) {
+			void request_and_complete_challenge(address, {
+				email: associationEmail,
+				name: associationName,
+				allowLinking: associationAllowLinking,
+				address
+			});
+			return;
+		}
+		void startWalletAssociationFlow(address);
 	}
 
 	onMount(() => {
@@ -335,8 +445,8 @@
 				bind:value={socialEmail}
 				id="social-email"
 				label="Email"
-				maxLength={30}
-				minLength={4}
+				maxLength={254}
+				minLength={5}
 				placeholder="name@example.com"
 				type="email"
 			/>
@@ -375,13 +485,15 @@
 					<div class="flex flex-col gap-1">
 						<span class="text-[10px] font-bold text-green-700 uppercase">Wallet Conectada</span>
 						<p class="truncate font-mono text-xs text-green-900">{walletAuthState.address}</p>
-						{#if walletAuthState.email}
-							<p class="text-xs text-green-800"><strong>Email:</strong> {walletAuthState.email}</p>
+						{#if walletAuthState.email || associationEmail}
+							<p class="text-xs text-green-800">
+								<strong>Email:</strong>
+								{walletAuthState.email ?? associationEmail}
+							</p>
 						{/if}
 					</div>
 
 					<div class="mt-4 flex gap-2">
-						<!-- Botón para abrir el modal de Reown (ajustes, cambiar red, etc) -->
 						<button
 							type="button"
 							onclick={() => authActions.openLogin()}
@@ -390,7 +502,6 @@
 							Ver Perfil
 						</button>
 
-						<!-- Botón para DESLOGUEARSE (limpia la sesión de Reown) -->
 						<button
 							type="button"
 							onclick={() => authActions.logout()}
@@ -399,6 +510,16 @@
 							Desconectar
 						</button>
 					</div>
+
+					{#if error && status === false}
+						<button
+							type="button"
+							onclick={() => retryWalletLogin()}
+							class="mt-3 w-full rounded-md border border-blue-200 bg-blue-50 py-2 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+						>
+							Reintentar firma / login con wallet
+						</button>
+					{/if}
 				</div>
 			{:else}
 				<!-- Estado: Desconectado -->

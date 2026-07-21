@@ -29,9 +29,11 @@ impl DieselUserRepository {
 impl UserRepository for DieselUserRepository {
     fn find_by_email(&self, user_email: &Email) -> Result<Option<UserModel>, RepoError> {
         let mut conn = self.get_conn()?;
+        // Email::new normalizes to lowercase; store/query consistently.
+        let email = user_email.to_string().to_lowercase();
 
         let result = schema::user::table
-            .filter(schema::user::email.eq(user_email.to_string()))
+            .filter(schema::user::email.eq(email))
             .first::<UserModel>(&mut conn)
             .optional()
             .map_err(|_| RepoError::Query)?;

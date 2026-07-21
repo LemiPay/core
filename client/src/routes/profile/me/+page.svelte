@@ -17,7 +17,6 @@
 	import { isSuccess } from '$lib/types/client.types';
 	import type { WalletInfo } from '$lib/types/endpoints/user_wallet.types';
 	import { getAllMyWallets } from '$lib/api/endpoints/user_wallet';
-	import { signMessage } from '@wagmi/core';
 	import {
 		walletAuthState,
 		authActions,
@@ -176,14 +175,14 @@
 				return;
 			}
 
-			const signature = await signMessage(wagmiAdapter.wagmiConfig, {
-				message: challenge.body.message
-			});
+			const { signature, address: signedAddress } = await authActions.signAuthMessage(
+				challenge.body.message
+			);
 
 			const res = await verify_signature(
 				user.email,
 				user.name ?? null,
-				address,
+				signedAddress,
 				challenge.body.nonce,
 				signature,
 				true
@@ -195,8 +194,20 @@
 			}
 
 			await loadWallets();
-		} catch (err: any) {
-			linkingError = 'Firma rechazada por el usuario.';
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : String(err ?? '');
+			if (msg.includes('WALLET_NOT_READY') || msg.toLowerCase().includes('connector')) {
+				linkingError =
+					'La wallet no está lista para firmar. Reconectá con Google/Wallet e intentá de nuevo.';
+			} else if (
+				msg.toLowerCase().includes('user rejected') ||
+				msg.toLowerCase().includes('rejected') ||
+				msg.toLowerCase().includes('denied')
+			) {
+				linkingError = 'Firma rechazada por el usuario.';
+			} else {
+				linkingError = 'No se pudo firmar el mensaje. Intentá de nuevo.';
+			}
 			console.error('Error al firmar:', err);
 		} finally {
 			linkingInFlight = false;

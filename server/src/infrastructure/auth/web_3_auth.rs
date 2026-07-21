@@ -18,13 +18,29 @@ pub struct ChallengeData {
 pub struct Web3Auth {
     blockchain_service: Arc<dyn BlockchainService>,
     cache: Cache<String, ChallengeData>,
+    /// Origen de la app mostrado en el mensaje a firmar (sin trailing slash).
+    app_uri: String,
+}
+
+/// URI del frontend para mensajes SIWE-like.
+/// Variable de entorno: `FRONTEND_URL`. Default: `https://lemipay.app`.
+fn resolve_app_uri() -> String {
+    std::env::var("FRONTEND_URL")
+        .ok()
+        .map(|value| value.trim().trim_end_matches('/').to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "https://lemipay.app".to_string())
 }
 
 impl Web3Auth {
     pub fn new() -> Self {
+        dotenvy::dotenv().ok();
+        dotenvy::from_filename("../.env").ok();
+
         Self {
             blockchain_service: Arc::new(EthereumService::new()),
             cache: Web3Auth::new_cache(),
+            app_uri: resolve_app_uri(),
         }
     }
 }
@@ -40,16 +56,18 @@ impl Web3AuthTrait for Web3Auth {
     }
 
     fn generate_message(&self, address: &Address, nonce: &String, issued_at: &String) -> String {
+        // Sepolia (11155111): debe coincidir con la red configurada en el cliente Reown/AppKit.
+        // URI: `FRONTEND_URL` o default `https://lemipay.app`.
         format!(
             "lemipay.app quiere iniciar sesión con tu cuenta Ethereum:\n\
         {}\n\n\
         Bienvenido a LemiPay.\n\n\
-        URI: https://localhost:5173\n\
+        URI: {}\n\
         Version: 1\n\
-        Chain ID: 1\n\
+        Chain ID: 11155111\n\
         Nonce: {}\n\
         Issued At: {}",
-            address, nonce, issued_at
+            address, self.app_uri, nonce, issued_at
         )
     }
 
@@ -80,18 +98,26 @@ impl Web3AuthTrait for Web3Auth {
     }
 }
 
+/// Clave canónica para el cache de challenges (checksum-insensitive).
+fn challenge_cache_key(address: &str) -> String {
+    match address.trim().parse::<Address>() {
+        Ok(addr) => format!("{addr:#x}").to_lowercase(),
+        Err(_) => address.trim().to_lowercase(),
+    }
+}
+
 #[async_trait]
 impl ChallengeCacheTrait for Web3Auth {
     fn cache_get(&self, address: &String) -> Option<ChallengeData> {
-        self.cache.get(address)
+        self.cache.get(&challenge_cache_key(address))
     }
 
     fn cache_insert(&self, address: String, data: ChallengeData) {
-        self.cache.insert(address, data);
+        self.cache.insert(challenge_cache_key(&address), data);
     }
 
     fn cache_remove(&self, address: &String) {
-        self.cache.invalidate(address);
+        self.cache.invalidate(&challenge_cache_key(address));
     }
 
     fn new_cache() -> Cache<String, ChallengeData> {

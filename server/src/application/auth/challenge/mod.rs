@@ -36,12 +36,15 @@ impl ChallengeUseCase {
             Err(_) => return Err(AppError::BadRequest("Dirección Ethereum inválida".into())),
         };
 
+        // Canonical lowercase hex so cache keys match across checksum variants.
+        let address_key = format!("{addr:#x}").to_lowercase();
+
         let message = self
             .web3_service
             .generate_message(&addr, &nonce, &issued_at);
 
         self.web3_service.cache_insert(
-            input.address.clone(),
+            address_key.clone(),
             ChallengeData {
                 nonce: nonce.clone(),
                 issued_at: issued_at.clone(),
@@ -50,7 +53,7 @@ impl ChallengeUseCase {
 
         let is_linked = self
             .user_wallet_repository
-            .find_owner_of_address(&input.address)
+            .find_owner_of_address(&address_key)
             .map_err(|_| AppError::Internal)?
             .is_some();
 

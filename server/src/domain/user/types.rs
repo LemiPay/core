@@ -16,11 +16,12 @@ impl Display for Email {
 
 impl Email {
     pub fn new(value: String) -> Result<Self, UserValidationError> {
-        if !value.contains("@") {
+        let normalized = value.trim().to_lowercase();
+        if !normalized.contains('@') || normalized.starts_with('@') || normalized.ends_with('@') {
             return Err(UserValidationError::InvalidEmail);
         }
 
-        Ok(Self(value))
+        Ok(Self(normalized))
     }
 }
 

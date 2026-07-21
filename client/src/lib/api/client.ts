@@ -60,10 +60,15 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): ApiR
 			};
 		}
 
+		let errorMessage = res.statusText;
+		if (data && typeof data === 'object' && 'message' in data) {
+			errorMessage = String((data as Record<string, unknown>).message);
+		}
+
 		return {
 			ok: false,
 			status: res.status,
-			message: res.statusText,
+			message: errorMessage,
 			body: data
 		};
 	} catch (error) {
