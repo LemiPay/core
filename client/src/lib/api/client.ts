@@ -2,11 +2,13 @@ import { env } from '$env/dynamic/public';
 import { token } from '$lib/stores/token';
 import type { ApiResponse } from '$lib/types/client.types';
 
-const DEFAULT_API_URL = 'http://localhost:3000';
-
 function getApiUrl(): string {
 	const fromEnv = env.PUBLIC_API_URL?.trim();
-	if (!fromEnv) return DEFAULT_API_URL;
+	if (!fromEnv) {
+		throw new Error(
+			'PUBLIC_API_URL is not set. Define it in the repo-root .env or client/.env (e.g. PUBLIC_API_URL=http://localhost:3000).'
+		);
+	}
 	// Normalize trailing slash so paths like `/health` always join cleanly.
 	return fromEnv.replace(/\/+$/, '');
 }

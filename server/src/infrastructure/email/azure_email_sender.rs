@@ -59,7 +59,7 @@ impl AzureEmailSender {
             // reqwest::Client es un Arc por dentro, es muy barato de clonar.
             let client = self.client.clone();
             let secret = self.secret.clone();
-            let endpoint = format!("{}/send-mail", self.base_url);
+            let endpoint = format!("{}/mail/send", self.base_url);
             let to_string = _to.to_string();
 
             // Serializamos el body a un valor que podamos adueñarnos ('static)

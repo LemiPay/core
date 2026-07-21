@@ -120,6 +120,16 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			if (showMenu) {
+				showMenu = false;
+				return;
+			}
+			if (open) {
+				open = false;
+			}
+			return;
+		}
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			send();
@@ -127,6 +137,7 @@
 	}
 
 	async function askQuick(action: QuickAction) {
+		showMenu = false;
 		if (action.type === 'explain') {
 			const q = action.label;
 			const userMsg: Message = { role: 'user', content: q };
@@ -164,8 +175,16 @@
 		class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
 		transition:fade={{ duration: 150 }}
 		onclick={() => (open = false)}
-		role="presentation"
-	/>
+		onkeydown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				open = false;
+			}
+		}}
+		role="button"
+		tabindex="-1"
+		aria-label="Cerrar chat"
+	></div>
 {/if}
 
 <button
@@ -218,7 +237,13 @@
 		<div
 			bind:this={container}
 			class="flex-1 space-y-3 overflow-y-auto scroll-smooth p-4"
-			onclick={() => (showMenu = false)}
+			role="log"
+			aria-live="polite"
+			aria-relevant="additions"
+			aria-label="Mensajes del chat"
+			onpointerdown={() => {
+				if (showMenu) showMenu = false;
+			}}
 		>
 			{#if messages.length === 0}
 				<div class="flex h-full flex-col items-center justify-center text-center">
@@ -247,13 +272,13 @@
 				{#if loading}
 					<div class="flex items-center gap-2 text-xs text-muted-foreground">
 						<div class="flex gap-1">
-							<span class="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
+							<span class="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground"></span>
 							<span
 								class="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0.1s]"
-							/>
+							></span>
 							<span
 								class="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0.2s]"
-							/>
+							></span>
 						</div>
 						<span>Pensando...</span>
 					</div>
@@ -303,8 +328,9 @@
 			<div
 				class="fixed z-[60] w-56 rounded-lg border border-border bg-card py-1 shadow-xl"
 				style={menuStyle}
-				onclick={() => (showMenu = false)}
 				role="menu"
+				tabindex="-1"
+				aria-label="Temas para aprender"
 			>
 				<div class="flex items-center gap-2 border-b border-border px-3 py-2">
 					<Sparkles class="size-3.5 text-primary" />

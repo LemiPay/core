@@ -1,5 +1,5 @@
 ### Send test email (internal only)
-POST http://localhost:5173/api/send-mail
+POST http://localhost:5173/mail/send
 Content-Type: application/json
 x-internal-secret: {{secret}}
 
