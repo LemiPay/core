@@ -34,6 +34,10 @@
 				{
 					title: 'About',
 					href: '#'
+				},
+				{
+					title: 'Architecture',
+					href: '/architecture'
 				}
 			]
 		},
