@@ -78,7 +78,7 @@ pub fn build_app() -> Router {
     let friend_repo = Arc::new(DieselFriendRepository::new(pool.clone()));
     let investment_repo = Arc::new(DieselInvestmentRepository::new(pool.clone()));
 
-    // Sync strategies + baskets from config/investment_strategies.toml
+    // Sync strategies + baskets (hardcoded catalog; POST-DEMO: restore TOML load)
     match crate::infrastructure::db::repositories::investment_repo_impl::sync_strategies_from_config(
         &pool,
     ) {

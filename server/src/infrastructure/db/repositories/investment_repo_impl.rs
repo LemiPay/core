@@ -922,7 +922,7 @@ impl InvestmentRepository for DieselInvestmentRepository {
     }
 }
 
-/// Sync strategy catalog from `config/investment_strategies.toml` into Postgres.
+/// Sync strategy catalog into Postgres (hardcoded catalog; POST-DEMO: restore TOML).
 /// Safe to call on every startup; upserts by id or name and rebuilds allocations.
 pub fn sync_strategies_from_config(pool: &DbPool) -> Result<usize, String> {
     use crate::infrastructure::market_data::TickerMap;
@@ -931,7 +931,7 @@ pub fn sync_strategies_from_config(pool: &DbPool) -> Result<usize, String> {
     };
     use diesel::prelude::*;
 
-    let (defs, path) = load_strategy_definitions()?;
+    let (defs, source) = load_strategy_definitions()?;
     if defs.is_empty() {
         return Ok(0);
     }
@@ -1076,11 +1076,8 @@ pub fn sync_strategies_from_config(pool: &DbPool) -> Result<usize, String> {
         synced += 1;
     }
 
-    if let Some(p) = path {
-        println!(
-            "Investment strategies: synced {synced} strategies from {}",
-            p.display()
-        );
+    if let Some(src) = source {
+        println!("Investment strategies: synced {synced} strategies from {src}");
     } else {
         println!("Investment strategies: synced {synced} strategies");
     }
