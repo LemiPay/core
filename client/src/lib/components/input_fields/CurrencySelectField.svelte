@@ -2,7 +2,7 @@
 	import { isSuccess } from '$lib/types/client.types';
 	import { getAllCurrencies } from '$lib/api/endpoints/currency';
 	import type { Currency } from '$lib/types/endpoints/currency.types';
-	import usdcLogo from '$lib/assets/USDC_logo.png';
+	import usdcLogo from '$lib/assets/USDC_Logo.png';
 
 	interface Props {
 		id?: string;
