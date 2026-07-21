@@ -48,7 +48,7 @@ impl DieselInvestmentRepository {
         self.db.get().map_err(|_| RepoError::Connection)
     }
 
-    /// CoinGecko asset page — id comes from `config/coingecko_tickers.toml`.
+    /// CoinGecko asset page — id comes from hardcoded ticker catalog.
     fn price_source_url(_kind: &str, _provider: &str, symbol: &str, external_id: &str) -> String {
         crate::infrastructure::market_data::TickerMap::global().price_page_url(symbol, external_id)
     }

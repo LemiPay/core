@@ -76,7 +76,7 @@ impl StrategyDefinition {
                 }
                 if tickers.coingecko_id(sym).is_none() {
                     return Err(format!(
-                        "strategy '{}': symbol {sym} is not in coingecko_tickers.toml",
+                        "strategy '{}': symbol {sym} is not in hardcoded ticker catalog",
                         self.name
                     ));
                 }

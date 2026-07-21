@@ -165,7 +165,7 @@ impl PriceOracle for MockPriceOracle {
     }
 }
 
-// ── Live: CoinGecko only (ids from config/coingecko_tickers.toml) ──────────
+// ── Live: CoinGecko only (ids from hardcoded ticker catalog) ──────────────
 
 pub struct CoinGeckoPriceOracle {
     client: reqwest::Client,
@@ -193,18 +193,10 @@ impl CoinGeckoPriceOracle {
             .unwrap_or_else(|_| "demo".into())
             .to_lowercase();
 
-        if let Some(path) = tickers.source_path() {
-            println!(
-                "CoinGecko oracle: {} tickers from {}",
-                tickers.len(),
-                path.display()
-            );
-        } else {
-            println!(
-                "CoinGecko oracle: {} tickers (no file path recorded)",
-                tickers.len()
-            );
-        }
+        println!(
+            "CoinGecko oracle: {} tickers (hardcoded catalog)",
+            tickers.len()
+        );
         if api_key.is_some() {
             println!("CoinGecko API key loaded (type={key_type})");
         } else {
@@ -320,7 +312,7 @@ impl PriceOracle for CoinGeckoPriceOracle {
                 Some(cg_id) => id_to_assets.entry(cg_id).or_default().push(a.id),
                 None => {
                     eprintln!(
-                        "CoinGecko: no ticker mapping for symbol={} (add it to coingecko_tickers.toml)",
+                        "CoinGecko: no ticker mapping for symbol={} (add it to hardcoded ticker catalog)",
                         a.symbol
                     );
                     unresolved.push(a);
@@ -353,7 +345,7 @@ impl PriceOracle for CoinGeckoPriceOracle {
                 }
             }
             eprintln!(
-                "CoinGecko: mock fallback for {} (missing or invalid API price; check api id in coingecko_tickers.toml)",
+                "CoinGecko: mock fallback for {} (missing or invalid API price; check api id in hardcoded ticker catalog)",
                 a.symbol
             );
             let mock = self.mock_fallback.prices_sync(std::slice::from_ref(a));

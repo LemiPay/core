@@ -1,10 +1,7 @@
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-use serde::Deserialize;
-
-/// Global ticker map from `config/coingecko_tickers.toml`, loaded once.
+/// Global ticker map (hardcoded catalog), loaded once.
 static TICKER_MAP: OnceLock<TickerMap> = OnceLock::new();
 
 /// CoinGecko URL category + page slug + API id for one symbol.
@@ -21,51 +18,6 @@ pub struct TickerEntry {
 #[derive(Debug, Clone, Default)]
 pub struct TickerMap {
     by_symbol: HashMap<String, TickerEntry>,
-    source_path: Option<PathBuf>,
-}
-
-/// Accept either `"bitcoin"` or `{ page = "apple", api = "apple-ondo-tokenized-stock" }`.
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-enum TickerValue {
-    Simple(String),
-    Detailed {
-        page: String,
-        #[serde(default)]
-        api: Option<String>,
-    },
-}
-
-impl TickerValue {
-    fn into_parts(self) -> (String, String) {
-        match self {
-            TickerValue::Simple(s) => {
-                let s = s.trim().to_string();
-                (s.clone(), s)
-            }
-            TickerValue::Detailed { page, api } => {
-                let page = page.trim().to_string();
-                let api_id = api
-                    .map(|a| a.trim().to_string())
-                    .filter(|a| !a.is_empty())
-                    .unwrap_or_else(|| page.clone());
-                (page, api_id)
-            }
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Default)]
-struct TickersFile {
-    #[serde(default)]
-    coins: HashMap<String, TickerValue>,
-    #[serde(default)]
-    stocks: HashMap<String, TickerValue>,
-    #[serde(default)]
-    commodities: HashMap<String, TickerValue>,
-    /// Legacy flat map → coins
-    #[serde(default)]
-    tickers: HashMap<String, TickerValue>,
 }
 
 impl TickerMap {
@@ -106,93 +58,73 @@ impl TickerMap {
         format!("https://www.coingecko.com/en/coins/{id}")
     }
 
-    pub fn source_path(&self) -> Option<&Path> {
-        self.source_path.as_deref()
-    }
-
     pub fn len(&self) -> usize {
         self.by_symbol.len()
     }
 }
 
-fn candidate_paths() -> Vec<PathBuf> {
-    let mut paths = Vec::new();
-    if let Ok(p) = std::env::var("COINGECKO_TICKERS_FILE") {
-        paths.push(PathBuf::from(p));
+// =============================================================================
+// POST-DEMO: DELETE THIS HARDCODED CATALOG
+// -----------------------------------------------------------------------------
+// Temporary workaround: Azure/container ships only the binary (no config/), so
+// coingecko_tickers.toml cannot be read at runtime. Catalog is inlined here.
+// After the demo, restore loading from config/coingecko_tickers.toml (or move
+// fully to DB/admin UI) and delete this block.
+// =============================================================================
+
+fn entry(tag: &str, page: &str, api_id: &str) -> TickerEntry {
+    TickerEntry {
+        tag: tag.to_string(),
+        page: page.to_string(),
+        api_id: api_id.to_string(),
     }
-    paths.push(PathBuf::from("config/coingecko_tickers.toml"));
-    paths.push(PathBuf::from("server/config/coingecko_tickers.toml"));
-    paths.push(PathBuf::from(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/config/coingecko_tickers.toml"
-    )));
-    paths
 }
 
-fn insert_section(
-    by_symbol: &mut HashMap<String, TickerEntry>,
-    tag: &str,
-    section: HashMap<String, TickerValue>,
-) {
-    for (k, v) in section {
-        let sym = k.trim().to_uppercase();
-        if sym.is_empty() {
-            continue;
-        }
-        let (page, api_id) = v.into_parts();
-        if page.is_empty() || api_id.is_empty() {
-            continue;
-        }
-        by_symbol.insert(
-            sym,
-            TickerEntry {
-                tag: tag.to_string(),
-                page,
-                api_id,
-            },
-        );
+/// POST-DEMO: DELETE — hardcoded ticker catalog (was config/coingecko_tickers.toml).
+fn hardcoded_ticker_catalog() -> HashMap<String, TickerEntry> {
+    let mut m = HashMap::new();
+
+    // coins: page = api = slug
+    for (sym, slug) in [
+        ("BTC", "bitcoin"),
+        ("ETH", "ethereum"),
+        ("SOL", "solana"),
+        ("DOGE", "dogecoin"),
+    ] {
+        m.insert(sym.to_string(), entry("coins", slug, slug));
     }
+
+    // stocks: page = /en/stocks/{page} | api = CoinGecko coin id for /simple/price
+    for (sym, page, api) in [
+        ("AAPL", "apple", "apple-ondo-tokenized-stock"),
+        ("MSFT", "microsoft", "microsoft-ondo-tokenized-stock"),
+        ("NVDA", "nvidia", "nvidia-ondo-tokenized-stock"),
+        ("GOOGL", "alphabet", "alphabet-class-a-ondo-tokenized-stock"),
+        ("SPCX", "spacex", "spacex-bstocks-tokenized-stock"),
+    ] {
+        m.insert(sym.to_string(), entry("stocks", page, api));
+    }
+
+    // commodities
+    m.insert("GOLD".to_string(), entry("commodities", "gold", "pax-gold"));
+
+    m
 }
+
+// =============================================================================
+// END POST-DEMO HARDCODED CATALOG
+// =============================================================================
 
 fn load_ticker_map() -> TickerMap {
-    for path in candidate_paths() {
-        if !path.is_file() {
-            continue;
-        }
-        match std::fs::read_to_string(&path) {
-            Ok(raw) => match toml::from_str::<TickersFile>(&raw) {
-                Ok(file) => {
-                    let mut by_symbol = HashMap::new();
-                    insert_section(&mut by_symbol, "coins", file.coins);
-                    insert_section(&mut by_symbol, "stocks", file.stocks);
-                    insert_section(&mut by_symbol, "commodities", file.commodities);
-                    insert_section(&mut by_symbol, "coins", file.tickers);
-
-                    println!(
-                        "CoinGecko tickers: loaded {} symbols from {}",
-                        by_symbol.len(),
-                        path.display()
-                    );
-                    for (sym, e) in &by_symbol {
-                        if e.page != e.api_id {
-                            println!("  {sym}: page={}/{}  api={}", e.tag, e.page, e.api_id);
-                        }
-                    }
-                    return TickerMap {
-                        by_symbol,
-                        source_path: Some(path),
-                    };
-                }
-                Err(e) => {
-                    eprintln!("CoinGecko tickers: failed to parse {}: {e}", path.display());
-                }
-            },
-            Err(e) => {
-                eprintln!("CoinGecko tickers: cannot read {}: {e}", path.display());
-            }
+    let by_symbol = hardcoded_ticker_catalog();
+    println!(
+        "CoinGecko tickers: loaded {} symbols from hardcoded catalog [POST-DEMO: remove hardcode]",
+        by_symbol.len()
+    );
+    for (sym, e) in &by_symbol {
+        if e.page != e.api_id {
+            println!("  {sym}: page={}/{}  api={}", e.tag, e.page, e.api_id);
         }
     }
-
-    eprintln!("CoinGecko tickers: no config file found. Using empty map.");
-    TickerMap::default()
+    TickerMap { by_symbol }
 }
