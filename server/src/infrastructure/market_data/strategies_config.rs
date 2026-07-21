@@ -139,7 +139,7 @@ fn candidate_paths() -> Vec<PathBuf> {
     if let Ok(p) = std::env::var("INVESTMENT_STRATEGIES_FILE") {
         paths.push(PathBuf::from(p));
     }
-    paths.push(PathBuf::from("config/investment_strategies.toml"));
+    paths.push(PathBuf::from("../../config/investment_strategies.toml"));
     paths.push(PathBuf::from("server/config/investment_strategies.toml"));
     paths.push(PathBuf::from(concat!(
         env!("CARGO_MANIFEST_DIR"),
