@@ -62,11 +62,12 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AGREEABLE_BEACH_095F29C0F }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          # MUY IMPORTANTE: app_location apunta a la carpeta ya buildeada.
-          # output_location y api_location son relativos a app_location.
-          app_location: client/build
-          output_location: static
-          api_location: server
+          # MUY IMPORTANTE: con skip_app_build:true, Azure NO concatena
+          # output_location — app_location tiene que apuntar DIRECTO
+          # a la carpeta con index.html ya generada.
+          app_location: client/build/static
+          output_location: ""
+          api_location: client/build/server
           # skip_app_build: Bun ya buildeó el frontend arriba, Oryx no debe tocarlo.
           # No seteamos skip_api_build: Oryx instala las deps de la función SSR
           # (build/server) con npm — eso es Node puro, no depende de Bun.
