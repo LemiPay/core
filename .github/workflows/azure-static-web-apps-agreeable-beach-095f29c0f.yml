@@ -48,6 +48,11 @@ jobs:
       - name: Build
         working-directory: client
         run: pnpm build
+        env:
+            PUBLIC_API_URL: ${{ secrets.PUBLIC_API_URL }}
+            PUBLIC_VAULT_CONTRACT_ADDRESS: ${{ secrets.PUBLIC_VAULT_CONTRACT_ADDRESS }}
+            VITE_PUBLIC_REOWN_KEY: ${{ secrets.VITE_PUBLIC_REOWN_KEY }}
+        
 
       - name: Build And Deploy
         id: builddeploy
