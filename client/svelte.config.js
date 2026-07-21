@@ -1,22 +1,9 @@
-import azure from 'svelte-adapter-azure-swa';
+import adapter from '@sveltejs/adapter-vercel';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	kit: {
-		adapter: azure({
-			esbuildOptions: {
-				external: [
-					'@coinbase/wallet-sdk',
-					'@metamask/connect-evm',
-					'@metamask/sdk',
-					'porto',
-					'porto/internal',
-					'@safe-global/safe-apps-sdk',
-					'@safe-global/safe-apps-provider',
-					'@walletconnect/ethereum-provider'
-				]
-			}
-		})
+		adapter: adapter()
 	},
 	vitePlugin: {
 		dynamicCompileOptions: ({ filename }) =>
