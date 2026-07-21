@@ -34,6 +34,7 @@
 		"prettier-plugin-tailwindcss": "^0.7.2",
 		"shadcn-svelte": "^1.2.7",
 		"svelte": "^5.51.0",
+		"svelte-adapter-azure-swa": "^0.22.1",
 		"svelte-check": "^4.4.2",
 		"svelte-markdown": "^0.4.1",
 		"tailwind-merge": "^3.6.0",
@@ -58,9 +59,7 @@
 		"viem": "^2.48.8",
 		"wagmi": "^3.6.9"
 	},
-	"pnpm": {
-		"overrides": {
-			"svelte-markdown>svelte": "^5.0.0"
-		}
+	"overrides": {
+		"svelte-markdown>svelte": "^5.0.0"
 	}
 }

@@ -2,95 +2,81 @@ name: Azure Static Web Apps CI/CD
 
 on:
   push:
-    branches: [master]
-
+    branches:
+      - master
   pull_request:
-    branches: [master]
     types: [opened, synchronize, reopened, closed]
-
-permissions:
-  contents: read
-  pull-requests: write
-
-concurrency:
-  group: swa-${{ github.ref }}
-  cancel-in-progress: true
+    branches:
+      - master
 
 jobs:
-  build_and_deploy:
-    if: github.event_name == 'push' || github.event.action != 'closed'
-
+  build_and_deploy_job:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/checkout@v4
         with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: client/pnpm-lock.yaml
+          submodules: true
+          lfs: false
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 10.32.1
-          run_install: false
+          bun-version: latest
 
-      - name: Install
+      - name: Install dependencies
         working-directory: client
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Build
         working-directory: client
+        run: bun run build
         env:
           PUBLIC_API_URL: ${{ secrets.PUBLIC_API_URL }}
           PUBLIC_VAULT_CONTRACT_ADDRESS: ${{ secrets.PUBLIC_VAULT_CONTRACT_ADDRESS }}
           VITE_PUBLIC_REOWN_KEY: ${{ secrets.VITE_PUBLIC_REOWN_KEY }}
           VITE_PUBLIC_RPC_URL: ${{ secrets.VITE_PUBLIC_RPC_URL }}
-        run: pnpm build
 
-      - name: Verify output
+      - name: Verify build
         working-directory: client
         run: |
-          echo "=== BUILD ==="
-          find build -maxdepth 3 -type f | sort
-
+          echo "===== BUILD ROOT ====="
+          find build -maxdepth 2 -type f | sort
           echo
-          echo "=== STATIC ==="
+          echo "===== STATIC (frontend) ====="
           ls -lah build/static
-
           echo
-          echo "=== SERVER ==="
+          head -20 build/static/index.html
+          echo
+          echo "===== SERVER (SSR function) ====="
           ls -lah build/server
-
           echo
-          echo "=== CONFIG ==="
-          ls -lah build/staticwebapp.config.json
+          echo "===== SWA CONFIG ====="
+          ls -lah build/staticwebapp.config.json || echo "⚠️  No se generó staticwebapp.config.json"
 
       - name: Deploy
+        id: deploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AGREEABLE_BEACH_095F29C0F }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-
           action: upload
-
-          app_location: client
-          api_location: client/build/server
-          output_location: build/static
-
+          # MUY IMPORTANTE: app_location apunta a la carpeta ya buildeada.
+          # output_location y api_location son relativos a app_location.
+          app_location: client/build
+          output_location: static
+          api_location: server
+          # skip_app_build: Bun ya buildeó el frontend arriba, Oryx no debe tocarlo.
+          # No seteamos skip_api_build: Oryx instala las deps de la función SSR
+          # (build/server) con npm — eso es Node puro, no depende de Bun.
           skip_app_build: true
 
-  close_pull_request:
+  close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: Azure/static-web-apps-deploy@v1
         with:
-          action: close
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AGREEABLE_BEACH_095F29C0F }}
+          action: close
