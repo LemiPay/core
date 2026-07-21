@@ -1,4 +1,12 @@
-<script>
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { getHealth } from '$lib/api/endpoints/health';
+	import { isSuccess } from '$lib/types/client.types';
+
+	type StatusState = 'checking' | 'ok' | 'error';
+
+	let status = $state<StatusState>('checking');
+
 	let links = [
 		{
 			group: 'Product',
@@ -109,10 +117,39 @@
 				{
 					title: 'Security',
 					href: '#'
+				},
+				{
+					title: 'Status',
+					href: '/status'
 				}
 			]
 		}
 	];
+
+	const statusDotClass = $derived(
+		status === 'ok'
+			? 'bg-emerald-500'
+			: status === 'error'
+				? 'bg-red-500'
+				: 'bg-amber-400 animate-pulse'
+	);
+
+	const statusLabel = $derived(
+		status === 'ok'
+			? 'Sistemas operativos'
+			: status === 'error'
+				? 'Problemas detectados'
+				: 'Comprobando estado'
+	);
+
+	onMount(async () => {
+		try {
+			const res = await getHealth();
+			status = isSuccess(res) && res.body?.status?.toLowerCase() === 'ok' ? 'ok' : 'error';
+		} catch {
+			status = 'error';
+		}
+	});
 </script>
 
 <footer class="border-b bg-white pt-20 dark:bg-transparent">
@@ -141,9 +178,20 @@
 			</div>
 		</div>
 		<div class="mt-12 flex flex-wrap items-end justify-between gap-6 border-t py-6">
-			<span class="order-last block text-center text-sm text-muted-foreground md:order-first"
-				>© {new Date().getFullYear()} LemiPay, All rights reserved</span
+			<div
+				class="order-last flex flex-col items-center gap-2 text-sm text-muted-foreground md:order-first md:items-start"
 			>
+				<span>© {new Date().getFullYear()} LemiPay, All rights reserved</span>
+				<a
+					href="/status"
+					class="inline-flex items-center gap-2 duration-150 hover:text-primary"
+					title={statusLabel}
+					aria-label={statusLabel}
+				>
+					<span class="size-2 shrink-0 rounded-full {statusDotClass}"></span>
+					<span>Status</span>
+				</a>
+			</div>
 			<div class="order-first flex flex-wrap justify-center gap-6 text-sm md:order-last">
 				<a
 					href="/"
